@@ -1,0 +1,144 @@
+
+📖 Auth + ACL Module Development Guideline
+✅ 1. کلیات معماری
+حتماً از Clean Architecture که تو فاز صفر چیدیم پیروی کن:
+
+Domain (فقط موجودیت‌ها و اینترفیس‌ها)
+
+Application (سرویس‌ها، UseCaseها، DTOها)
+
+Infrastructure (EF Core، Repositoryها، Implementationها)
+
+API (Controllerها و Endpointها)
+
+هر ماژول (Auth، Wallet و …) مستقل باشه:
+
+پروژهٔ خودش با ۴ لایهٔ Domain, Application, Infrastructure, Api
+
+از SharedKernel و BuildingBlocks استفاده کنه، اما به بقیهٔ ماژول‌ها مستقیم وابسته نباشه.
+
+✅ 2. اصول کدنویسی
+SOLID:
+
+S: هر کلاس فقط یک مسئولیت.
+
+O: باز برای توسعه، بسته برای تغییر.
+
+L: کلاس‌های فرزند قابل جایگزینی با والد.
+
+I: اینترفیس‌های کوچک و تخصصی.
+
+D: لایهٔ بالا به لایهٔ پایین وابسته نباشه، همه چیز از طریق اینترفیس.
+
+Clean Code:
+
+اسم‌ها واضح و معنادار.
+
+متدهای کوتاه و تک‌مسئولیتی.
+
+کلاس‌های کوچک و مجزا.
+
+Exceptionها فقط برای شرایط Exceptional.
+
+Log حتماً داشته باش، مخصوصاً تو Auth.
+
+✅ 3. تکنولوژی و ابزار
+Backend: ASP.NET Core 7 (یا جدیدتر)
+
+Database: EF Core 7 + SQL Server/PostgreSQL
+
+Authentication: JWT Bearer
+
+Events: MediatR برای Domain Events
+
+Logging: Serilog + Seq
+
+Tests: xUnit + FluentAssertions
+
+Documentation: Swagger برای APIها
+
+✅ 4. نکات اجرایی برای هر تسک
+📌 Design Database Models
+از Fluent API برای Mapping استفاده کن (OnModelCreating).
+
+همهٔ جدول‌ها TenantId داشته باشن.
+
+Audit fields مثل CreatedAt, UpdatedAt رو تو BaseEntity بذار.
+
+📌 Registration API
+از DTO برای ورودی/خروجی استفاده کن، مستقیم Entity نده بیرون.
+
+پسورد رو Hash کن (BCrypt یا ASP.NET Core Identity PasswordHasher).
+
+نقش پیش‌فرض مثل User رو اتومات بهش بده.
+
+📌 Login & JWT
+از Microsoft.AspNetCore.Authentication.JwtBearer استفاده کن.
+
+تو Claimها UserId, TenantId, Roles بذار.
+
+زمان انقضا و RefreshToken رو قابل تنظیم کن.
+
+📌 Role & Permission Management
+تو Application لایه، سرویس RoleService و PermissionService بساز.
+
+Roleها و Permissionها رو بر اساس Tenant فیلتر کن.
+
+📌 Page & Action APIs
+امکان تعریف داینامیک Page و Action باشه.
+
+Permission = Page + Action، این رو تو جدول جدا ذخیره کن.
+
+📌 Permission Check Middleware
+یک Attribute سفارشی مثل [HasPermission("PAGE_CODE","ACTION_CODE")] بنویس.
+
+تو Middleware یا Filter، JWT رو بخون و چک کن که تو Permissionهاش هست یا نه.
+
+📌 Multi-Tenant
+تو همهٔ Queryها TenantId رو از JWT بگیر و اعمال کن.
+
+تو Startup براش یک Service بنویس: ITenantContext.
+
+📌 Logging & Security Audits
+هر تغییر Permission و Role لاگ کن.
+
+هر Login یا Failed Login لاگ کن.
+
+IP و UserAgent رو ذخیره کن.
+
+📌 Documentation & Tests
+برای هر Endpoint یک نمونه Request/Response تو README بنویس.
+
+Unit Test:
+
+سرویس‌ها رو بدون دیتابیس تست کن.
+
+Integration Test:
+
+با WebApplicationFactory یه API واقعی بالا بیار و End-to-End تست کن.
+
+✅ 5. Best Practices
+از Dependency Injection برای همه چیز استفاده کن (کلاس‌هات new نکن).
+
+از Asynchronous Programming استفاده کن (متدها async باشن).
+
+برای Resource Strings از IStringLocalizer استفاده کن (multi-language).
+
+از Migration‌ها برای تغییرات دیتابیس استفاده کن (dotnet ef migrations add).
+
+پوشهٔ /Docs بساز و توش هر تغییری رو ثبت کن (ERD، UseCase، Flow).
+
+✅ 6. ارتباط با بقیهٔ سیستم
+Auth Module توکن JWT تولید می‌کنه که بقیهٔ ماژول‌ها می‌خونن.
+
+Eventها: وقتی کاربر جدید ثبت میشه → UserRegisteredEvent رو Publish کن.
+
+بقیهٔ ماژول‌ها مثل Wallet یا CRM می‌تونن Subscribe کنن.
+
+✨ چند نکته خلاقانه اضافه
+از الان HealthCheck برای Auth بنویس (/auth/health).
+
+از Rate Limiting برای Loginها استفاده کن تا امنیت بالا بره.
+
+از یک پوشه‌ی ModuleSamples استفاده کن برای مثال کدها.
+

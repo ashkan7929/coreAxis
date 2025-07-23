@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoreAxis Health Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 20px;
+            background-color: #f8f9fa;
+        }
+        .health-card {
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        .health-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .status-healthy {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-degraded {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status-unhealthy {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .refresh-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+        }
+        .card-header {
+            font-weight: bold;
+        }
+        .check-item {
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+        }
+        .last-updated {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <h1>CoreAxis Health Dashboard</h1>
+                <p class="text-muted">Monitor the health of all CoreAxis services</p>
+                <div class="last-updated mb-3">Last updated: <span id="last-updated-time">Never</span></div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card health-card" id="overall-health-card">
+                    <div class="card-header">Overall System Health</div>
+                    <div class="card-body" id="overall-health">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title">Loading...</h5>
+                            <div class="spinner-border spinner-border-sm" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card health-card">
+                    <div class="card-header">System Performance</div>
+                    <div class="card-body">
+                        <p class="card-text">Total Response Time: <span id="total-duration">-</span> ms</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card health-card">
+                    <div class="card-header">Health Check Details</div>
+                    <div class="card-body">
+                        <div id="health-checks">
+                            <div class="text-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p>Loading health checks...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <button class="btn btn-primary refresh-btn" id="refresh-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+            <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+        </svg>
+        Refresh
+    </button>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchHealthData();
+            
+            document.getElementById('refresh-btn').addEventListener('click', function() {
+                fetchHealthData();
+            });
+            
+            // Auto-refresh every 30 seconds
+            setInterval(fetchHealthData, 30000);
+        });
+        
+        function fetchHealthData() {
+            fetch('/health')
+                .then(response => response.json())
+                .then(data => {
+                    updateDashboard(data);
+                    updateLastUpdatedTime();
+                })
+                .catch(error => {
+                    console.error('Error fetching health data:', error);
+                    document.getElementById('overall-health').innerHTML = `
+                        <div class="alert alert-danger">
+                            <h5 class="card-title">Connection Error</h5>
+                            <p>Unable to fetch health data. The service might be down.</p>
+                        </div>
+                    `;
+                });
+        }
+        
+        function updateDashboard(data) {
+            // Update overall health
+            const overallHealthCard = document.getElementById('overall-health-card');
+            const overallHealthElement = document.getElementById('overall-health');
+            let statusClass = '';
+            
+            switch(data.status.toLowerCase()) {
+                case 'healthy':
+                    statusClass = 'status-healthy';
+                    break;
+                case 'degraded':
+                    statusClass = 'status-degraded';
+                    break;
+                default:
+                    statusClass = 'status-unhealthy';
+            }
+            
+            overallHealthCard.className = `card health-card ${statusClass}`;
+            overallHealthElement.innerHTML = `
+                <h5 class="card-title">${data.status}</h5>
+                <p class="card-text">All systems are being monitored.</p>
+            `;
+            
+            // Update total duration
+            document.getElementById('total-duration').textContent = data.totalDuration.toFixed(2);
+            
+            // Update health checks
+            const healthChecksElement = document.getElementById('health-checks');
+            healthChecksElement.innerHTML = '';
+            
+            data.checks.forEach(check => {
+                let checkStatusClass = '';
+                switch(check.status.toLowerCase()) {
+                    case 'healthy':
+                        checkStatusClass = 'status-healthy';
+                        break;
+                    case 'degraded':
+                        checkStatusClass = 'status-degraded';
+                        break;
+                    default:
+                        checkStatusClass = 'status-unhealthy';
+                }
+                
+                const checkElement = document.createElement('div');
+                checkElement.className = `check-item ${checkStatusClass}`;
+                checkElement.innerHTML = `
+                    <div class="d-flex justify-content-between">
+                        <h5>${check.name}</h5>
+                        <span>${check.status}</span>
+                    </div>
+                    <p>${check.description || 'No description provided'}</p>
+                    <div class="d-flex justify-content-between">
+                        <small>Response time: ${check.duration.toFixed(2)} ms</small>
+                        ${check.exception ? `<small class="text-danger">Error: ${check.exception}</small>` : ''}
+                    </div>
+                `;
+                
+                healthChecksElement.appendChild(checkElement);
+            });
+        }
+        
+        function updateLastUpdatedTime() {
+            const now = new Date();
+            const formattedTime = now.toLocaleTimeString();
+            document.getElementById('last-updated-time').textContent = formattedTime;
+        }
+    </script>
+</body>
+</html>

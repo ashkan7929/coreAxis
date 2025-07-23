@@ -1,0 +1,72 @@
+# 📘 CoreAxis – Module Development Guideline
+
+### 🎯 Purpose
+Every module in CoreAxis must be self-contained, follow Clean Architecture, SOLID principles, and integrate via events and SharedKernel only.
+
+---
+
+## 📂 Folder Structure per Module
+Modules/
+└── ModuleName/
+├── ModuleName.Domain
+│ ├── Entities
+│ ├── ValueObjects
+│ ├── Events
+│ └── Interfaces
+├── ModuleName.Application
+│ ├── Services (UseCases)
+│ ├── DTOs
+│ └── Interfaces
+├── ModuleName.Infrastructure
+│ ├── EF Configurations
+│ ├── Repositories
+│ └── Adapters
+└── ModuleName.Api
+├── Controllers
+└── Endpoints
+
+---
+
+## 🔌 Module Registration
+- Implement `IModule`:
+```csharp
+public interface IModule
+{
+    void ConfigureServices(IServiceCollection services, IConfiguration config);
+    void MapEndpoints(IEndpointRouteBuilder endpoints);
+}
+
+Core will scan modules on startup and register automatically.
+
+🌐 Localization
+Each module has its own Resources folder with .resx files:
+Resources/
+   en-US.resx
+   fa-IR.resx
+Use IStringLocalizer<YourClass> for texts.
+
+📦 Communication
+Use domain events and integration events.
+
+Publish events via MediatR or RabbitMQ, don’t directly call another module’s service.
+
+🧪 Testing
+Each module has its own test folder under CoreAxis.Tests/ModuleNameTests.
+
+Write both unit tests (Application services) and integration tests (API endpoints).
+
+📄 Documentation
+Each module must include a Module_README.md:
+
+Purpose
+
+Entities
+
+APIs
+
+Events published/consumed
+
+Setup instructions
+
+Example requests/responses
+

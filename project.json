@@ -1,0 +1,166 @@
+{
+  "project": {
+    "name": "CoreAxis",
+    "vision": "CoreAxis is a clean, scalable, modular SaaS platform built with .NET Core, following SOLID principles and clean architecture. It is designed to support multi-tenant businesses with extensible modules (CRM, Workflow, FormBuilder, Product, Wallet, etc.) and multi-language support. The foundation must be future-proof, allowing hundreds of modules to communicate seamlessly."
+  },
+  "phase_zero_tasks": [
+    {
+      "taskName": "Establish Clean Architecture Solution",
+      "description": {
+        "nonTechnical": "Design a future-proof folder and project structure so each module is isolated, testable, and follows best practices.",
+        "technical": "Create solution with projects: CoreAxis.SharedKernel, CoreAxis.BuildingBlocks (common abstractions), CoreAxis.Infrastructure, CoreAxis.EventBus, and CoreAxis.ApiGateway. Under /Modules, each module (e.g., DemoModule) has Domain, Application, Infrastructure, and API projects. Follow SOLID principles: Single Responsibility per service, Dependency Inversion via interfaces, segregated interfaces for modules. Ensure each module is independently testable."
+      },
+      "status": "completed"
+    },
+    {
+      "taskName": "Implement Module Registration and Discovery",
+      "description": {
+        "nonTechnical": "The system must dynamically load and register modules without manual wiring, enabling plug-and-play extensions.",
+        "technical": "Create an IModule interface (e.g., ConfigureServices, MapEndpoints). On startup, scan assemblies in /Modules folder, load all implementing IModule, and register their services/endpoints. Document this pattern in Module_README_Template.md."
+      },
+      "status": "completed"
+    },
+    {
+      "taskName": "Event Bus and Domain Events Skeleton",
+      "description": {
+        "nonTechnical": "Modules communicate through events to avoid tight coupling, ensuring future modules integrate smoothly.",
+        "technical": "Add MediatR for in-process events and integrate RabbitMQ for cross-module messaging. Create base classes DomainEvent, IntegrationEvent, and handlers in SharedKernel. Add a demo event to prove the pipeline works."
+      },
+      "status": "completed"
+    },
+    {
+      "taskName": "Multi-Language (Localization) Infrastructure",
+      "description": {
+        "nonTechnical": "The platform must support multiple languages for UI texts, validation messages, and module-specific content.",
+        "technical": "Add localization support in API and future frontends: use IStringLocalizer and resource files (.resx). Set up a pattern where each module can include its own resource files. Configure middleware to detect Accept-Language header or tenant default language."
+      },
+      "status": "completed"
+    },
+    {
+      "taskName": "Shared Utilities and Base Building Blocks",
+      "description": {
+        "nonTechnical": "Centralize common patterns to enforce consistency across modules.",
+        "technical": "In CoreAxis.SharedKernel: implement EntityBase with audit fields (CreatedBy, TenantId, etc.), ValueObject base class, Result<T> wrapper, PaginatedList<T>, exception classes, and localization helper services. Document usage in template."
+      },
+      "status": "completed"
+    },
+    {
+      "taskName": "Sample Demo Module with Documentation",
+      "description": {
+        "nonTechnical": "Prove the architecture works by creating a minimal module and documenting it as a template for future developers.",
+        "technical": "Create DemoModule with its own Domain (DemoItem entity), Application (DemoItemService), Infrastructure (EF configuration), and API (DemoItemController). Include its own resource files for multi-language. Write Module_README_Template.md with sections: Purpose, Entities, Events, APIs, Configuration, Example Queries."
+      },
+      "status": "completed"
+    },
+    {
+      "taskName": "Testing Infrastructure",
+      "description": {
+        "nonTechnical": "Ensure all future modules can be tested consistently.",
+        "technical": "Add CoreAxis.Tests project with xUnit. Set up unit test patterns for Application services and integration tests with WebApplicationFactory for API endpoints. Provide a demo test for DemoModule."
+      },
+      "status": "completed"
+    },
+    {
+      "taskName": "Documentation and Code Quality",
+      "description": {
+        "nonTechnical": "Every developer must understand how to build modules. Provide clear docs and enforce code quality.",
+        "technical": "Write a root-level ARCHITECTURE.md explaining folder structure, SOLID practices, and module lifecycle. Configure analyzers (SonarLint or Roslyn analyzers) to enforce naming, async patterns, and DI best practices. Integrate StyleCop for code style."
+      },
+      "status": "completed"
+    },
+    {
+      "taskName": "Continuous Integration Setup",
+      "description": {
+        "nonTechnical": "Prepare for scalable development with automated builds and tests.",
+        "technical": "Set up GitHub Actions or Azure DevOps pipeline to build solution, run unit/integration tests, and generate API documentation automatically on each push. Store artifacts for modules."
+      },
+      "status": "completed"
+    },
+    {
+      "taskName": "Health Checks and Observability",
+      "description": {
+        "nonTechnical": "Make sure the system is monitorable from day one.",
+        "technical": "Integrate Serilog with structured logging (Seq or ELK). Add ASP.NET Core health checks for DB, EventBus, and module status. Expose /health endpoint and provide a simple dashboard for status overview."
+      },
+      "status": "completed"
+    }
+  ],
+  "Auth_and_ACL_Module": {
+    "moduleName": "Auth + ACL",
+    "vision": "The Auth + ACL module provides authentication (login, registration) and a powerful access control layer. It defines Users, Roles, Pages, Actions, and Permissions so that every API or UI action can be secured. It is multi-tenant aware, supports JWT-based authentication, and follows clean architecture principles.",
+    "tasks": [
+      {
+        "taskName": "Design Database Models for Auth and ACL",
+        "description": {
+          "nonTechnical": "Define the core entities for authentication and access control so the system knows who the users are and what they can do.",
+          "technical": "Create EF Core entities: User (Id, Username, Email, PasswordHash, TenantId), Role (Id, Name, TenantId), UserRole (UserId, RoleId), Page (Id, Code, Path), Action (Id, Code, Name), Permission (PageId, ActionId), RolePermission (RoleId, PermissionId), UserPermission (UserId, PermissionId). Add migration and database context configuration. Include CreatedAt, UpdatedAt, TenantId fields for multi-tenancy."
+        },
+        "status": "pending"
+      },
+      {
+        "taskName": "Implement Registration API",
+        "description": {
+          "nonTechnical": "Allow new users to sign up with email/phone and password, automatically assigning a default role.",
+          "technical": "Add /api/auth/register endpoint in Auth.Api. Validate inputs, hash password with ASP.NET Core Identity or custom hashing, create User entity, assign default Role, save to database. Return a success response."
+        },
+        "status": "pending"
+      },
+      {
+        "taskName": "Implement Login and JWT Authentication",
+        "description": {
+          "nonTechnical": "Allow users to log in and receive a token they can use to access other modules.",
+          "technical": "Add /api/auth/login endpoint. Validate username/email and password, issue JWT with claims (UserId, TenantId, Roles, Permissions). Configure JWT authentication middleware in ApiGateway and Auth.Api."
+        },
+        "status": "pending"
+      },
+      {
+        "taskName": "Role and Permission Management APIs",
+        "description": {
+          "nonTechnical": "Provide admin users with the ability to create roles and assign permissions to them.",
+          "technical": "Add endpoints: POST /api/roles (create new role), GET /api/roles (list roles), POST /api/roles/{id}/permissions (assign permissions). Implement services in Auth.Application and repositories in Auth.Infrastructure."
+        },
+        "status": "pending"
+      },
+      {
+        "taskName": "Page and Action Registration APIs",
+        "description": {
+          "nonTechnical": "Define the system’s pages (features) and actions (operations) that need permissions.",
+          "technical": "Add endpoints: POST /api/pages, POST /api/actions, POST /api/permissions (combine Page+Action). Store them in database. Ensure each module can register its own pages and actions during startup using IModule."
+        },
+        "status": "pending"
+      },
+      {
+        "taskName": "Permission Check Middleware",
+        "description": {
+          "nonTechnical": "Check if a user has access before allowing an API action.",
+          "technical": "Create a middleware or attribute `[AuthorizePermission(PageCode, ActionCode)]` that reads JWT claims and verifies against effective permissions (UserPermission > RolePermission). Integrate into Auth.Api and share via SharedKernel."
+        },
+        "status": "pending"
+      },
+      {
+        "taskName": "Multi-Tenant Support in Auth",
+        "description": {
+          "nonTechnical": "Ensure each tenant (business) has isolated users and roles.",
+          "technical": "Add TenantId field to User, Role, Permission. When querying users/roles, filter by TenantId from JWT claims. Include tenant scoping in DbContext and repository layer."
+        },
+        "status": "pending"
+      },
+      {
+        "taskName": "Logging and Security Audits",
+        "description": {
+          "nonTechnical": "Keep track of logins, failed attempts, and permission changes for security.",
+          "technical": "Add AccessLog entity and service. On login, store timestamp, IP, and user agent. On permission changes, store adminId, action, and affected role/user. Use Serilog sinks for structured logging."
+        },
+        "status": "pending"
+      },
+      {
+        "taskName": "Module Documentation and Tests",
+        "description": {
+          "nonTechnical": "Document how to use Auth APIs and test them thoroughly.",
+          "technical": "Write Module_README.md with ERD diagram, endpoint list, sample requests/responses. Add xUnit tests: unit tests for services (UserService, RoleService), integration tests for Register/Login APIs using WebApplicationFactory."
+        },
+        "status": "pending"
+      }
+    ]
+  }
+}

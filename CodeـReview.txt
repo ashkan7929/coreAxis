@@ -1,0 +1,163 @@
+# ✅ CoreAxis – Phase 0 Code Review Checklist
+
+### 🔧 Architecture & Structure
+- [ ] Solution structure follows Clean Architecture (Domain, Application, Infrastructure, API).
+- [ ] Each module is isolated with its own projects (no cross-module direct references except through SharedKernel or events).
+- [ ] SharedKernel contains only truly shared abstractions and base types (no business logic).
+
+### 🧩 SOLID Principles
+- [ ] Single Responsibility: Each class has one responsibility.
+- [ ] Open/Closed: Modules can be extended without modifying core.
+- [ ] Liskov Substitution: Derived classes behave as their base types.
+- [ ] Interface Segregation: Interfaces are small and focused.
+- [ ] Dependency Inversion: High-level modules depend on abstractions, not implementations.
+
+### 🚀 Module Registration
+- [ ] IModule interface implemented and modules auto-registered in Startup.
+- [ ] No hardcoded dependencies on specific modules in the core.
+
+### 🌐 Multi-Language
+- [ ] IStringLocalizer integrated.
+- [ ] Resource files (.resx) exist and sample translations tested.
+- [ ] Middleware properly reads `Accept-Language` or tenant default.
+
+### 📦 Event Bus
+- [ ] MediatR integrated for in-process events.
+- [ ] RabbitMQ (or equivalent) scaffolded for cross-module events.
+- [ ] Demo event published & consumed successfully.
+
+### 📑 Documentation & Templates
+- [ ] ARCHITECTURE.md present and clear.
+- [ ] Module_README_Template.md exists with examples.
+- [ ] DemoModule documented.
+
+### 🧪 Testing
+- [ ] CoreAxis.Tests project exists.
+- [ ] At least one unit test for DemoModule Application layer.
+- [ ] At least one integration test for DemoModule API.
+
+### 📋 Code Quality
+- [ ] Consistent naming conventions.
+- [ ] StyleCop/Analyzers configured (warnings resolved).
+- [ ] Async/await properly used.
+- [ ] No dead/commented-out code.
+- [ ] All methods/classes have XML documentation or summaries.
+
+### 📈 CI/CD
+- [ ] Build pipeline successfully runs.
+- [ ] Tests run automatically on push.
+- [ ] Artifacts generated (optional).
+
+✅ **Result:** When all boxes are checked, Phase 0 is stable and ready for first real module.
+---
+
+# ✅ **CoreAxis – Phase Auth+ACL Code Review Checklist**
+
+### 🔧 **Architecture & Structure**
+
+* [ ] Auth + ACL module follows Clean Architecture (Domain, Application, Infrastructure, API layers separated).
+* [ ] No business logic in Controllers; only orchestration.
+* [ ] SharedKernel only contains base entities, exceptions, value objects (no Auth-specific logic there).
+* [ ] No cross-module direct references; only SharedKernel or events are used.
+* [ ] Proper dependency injection (no `new` in high-level layers).
+
+---
+
+### 🧩 **Domain Models & Database**
+
+* [ ] Entities implemented: `User`, `Role`, `Page`, `Action`, `Permission`, `UserRole`, `RolePermission`, `UserPermission` with audit fields and `TenantId`.
+* [ ] EF Core configurations (Fluent API) correctly map relationships and indexes.
+* [ ] Migrations created and applied (tables exist with correct naming conventions).
+* [ ] Tenant filtering implemented at repository/query level.
+
+---
+
+### 🔐 **Authentication**
+
+* [ ] `/api/auth/register` endpoint implemented, validates inputs, hashes password securely.
+* [ ] `/api/auth/login` endpoint implemented, issues JWT with proper claims (`UserId`, `TenantId`, `Roles`).
+* [ ] Refresh token mechanism considered or documented (optional for this phase).
+* [ ] JWT middleware configured in API Startup.
+
+---
+
+### 🛂 **Access Control (ACL)**
+
+* [ ] Endpoints exist to manage Roles (`POST /api/roles`, `GET /api/roles`).
+* [ ] Endpoints exist to manage Pages/Actions and Permissions (`POST /api/pages`, `POST /api/actions`, `POST /api/permissions`).
+* [ ] Endpoints exist to assign Permissions to Roles (`POST /api/roles/{id}/permissions`).
+* [ ] Endpoints exist to assign Roles or direct Permissions to Users (`POST /api/users/{id}/roles`, `POST /api/users/{id}/permissions`).
+* [ ] Permission check middleware/attribute (e.g., `[HasPermission("PAGE","ACTION")]`) implemented and tested.
+
+---
+
+### 🌍 **Multi-Tenant**
+
+* [ ] All queries and commands scoped by `TenantId`.
+* [ ] TenantId extracted from JWT or request context.
+* [ ] No cross-tenant data leakage (test by creating two tenants and checking isolation).
+
+---
+
+### 🌐 **Multi-Language**
+
+* [ ] IStringLocalizer integrated for Auth module.
+* [ ] Resource files (`Auth.en.resx`, `Auth.fa.resx`, etc.) created with sample keys (validation messages, error messages).
+* [ ] API responses and validation errors return localized messages when `Accept-Language` changes.
+
+---
+
+### 📦 **Event Handling**
+
+* [ ] Domain events raised on key actions (e.g., `UserRegisteredEvent`).
+* [ ] MediatR handlers implemented and tested.
+* [ ] Integration events scaffolded for cross-module communication (even if no subscriber yet).
+
+---
+
+### 🧪 **Testing**
+
+* [ ] Unit tests for `UserService`, `RoleService`, and Permission checks.
+* [ ] Integration tests for Auth API (`/api/auth/register`, `/api/auth/login`) using WebApplicationFactory.
+* [ ] Tests simulate multi-tenant scenarios (two users in different tenants, isolated roles).
+* [ ] All tests passing in CI pipeline.
+
+---
+
+### 📑 **Documentation**
+
+* [ ] `Module_README.md` for Auth module exists:
+
+  * Purpose and overview of Auth+ACL.
+  * ERD diagram of tables and relationships.
+  * API endpoint list with sample requests/responses.
+  * Notes on multi-tenant and localization implementation.
+* [ ] Comments and XML documentation on public methods/classes.
+
+---
+
+### ✨ **Code Quality & Security**
+
+* [ ] SOLID principles followed (no God classes, single responsibility per service).
+* [ ] StyleCop/Analyzers enabled, no unresolved warnings.
+* [ ] No sensitive data logged (e.g., raw passwords).
+* [ ] Input validation present on all APIs.
+* [ ] Async/await patterns properly used.
+* [ ] No dead/commented-out code remains.
+* [ ] Security headers and best practices in place (e.g., HTTPS, JWT expiration).
+
+---
+
+### 📈 **CI/CD & Observability**
+
+* [ ] CI pipeline builds and tests Auth module on push.
+* [ ] Swagger shows all Auth+ACL endpoints with proper descriptions.
+* [ ] Serilog logs meaningful messages (user login, permission change).
+* [ ] `/health` endpoint shows Auth module status.
+
+---
+
+✅ **Result:**
+✅ When **all boxes** are checked, the Auth + ACL module is **ready for integration** with other modules (Wallet, CRM, etc.) and safe to deploy.
+
+---
