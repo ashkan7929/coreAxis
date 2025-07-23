@@ -1,105 +1,105 @@
 # CoreAxis
 
-## نظرة عامة
+## Overview
 
-CoreAxis هو إطار عمل متكامل لبناء تطبيقات ويب مُعدّة للمؤسسات باستخدام هندسة نظيفة (Clean Architecture) ومبادئ SOLID. يتميز بتصميم معياري يسمح بتطوير وتكامل وحدات مستقلة.
+CoreAxis is a comprehensive framework for building enterprise web applications using Clean Architecture and SOLID principles. It features a modular design that allows for the development and integration of independent units.
 
-## هيكل المشروع
+## Project Structure
 
 ```
 CoreAxis/
-├── ApiGateway/                  # بوابة API الرئيسية
+├── ApiGateway/                  # Main API Gateway
 ├── src/
-│   ├── ApiGateway/              # مشروع بوابة API
-│   ├── BuildingBlocks/          # مكونات أساسية مشتركة
-│   │   └── SharedKernel/        # نواة مشتركة للمشروع
-│   ├── EventBus/                # نظام نقل الأحداث
-│   ├── Infrastructure/          # البنية التحتية المشتركة
-│   └── Modules/                 # الوحدات المختلفة
-│       └── DemoModule/          # وحدة توضيحية
-│           ├── API/             # واجهة برمجة التطبيقات
-│           ├── Application/     # طبقة التطبيق
-│           ├── Domain/          # طبقة المجال
-│           └── Infrastructure/  # طبقة البنية التحتية
-├── Tests/                       # اختبارات
-│   └── CoreAxis.Tests/          # مشروع الاختبارات
-└── docs/                        # التوثيق
+│   ├── ApiGateway/              # API Gateway project
+│   ├── BuildingBlocks/          # Shared core components
+│   │   └── SharedKernel/        # Shared kernel for the project
+│   ├── EventBus/                # Event bus system
+│   ├── Infrastructure/          # Shared infrastructure
+│   └── Modules/                 # Various modules
+│       └── DemoModule/          # Illustrative module
+│           ├── API/             # Application Programming Interface
+│           ├── Application/     # Application layer
+│           ├── Domain/          # Domain layer
+│           └── Infrastructure/  # Infrastructure layer
+├── Tests/                       # Tests
+│   └── CoreAxis.Tests/          # Tests project
+└── docs/                        # Documentation
 ```
 
-## المتطلبات الأساسية
+## Prerequisites
 
 - .NET 9.0 SDK
-- Visual Studio 2022 أو أحدث
-- SQL Server (اختياري، يمكن استخدام قاعدة بيانات في الذاكرة للتطوير)
+- Visual Studio 2022 or newer
+- SQL Server (optional, in-memory database can be used for development)
 
-## البدء السريع
+## Quick Start
 
-### تثبيت المشروع
+### Project Installation
 
-1. استنساخ المستودع:
-   ```bash
-   git clone https://github.com/your-organization/CoreAxis.git
-   cd CoreAxis
-   ```
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/your-organization/CoreAxis.git
+    cd CoreAxis
+    ```
 
-2. استعادة الحزم وبناء المشروع:
-   ```bash
-   dotnet restore
-   dotnet build
-   ```
+2.  Restore packages and build the project:
+    ```bash
+    dotnet restore
+    dotnet build
+    ```
 
-3. تشغيل المشروع:
-   ```bash
-   cd src/ApiGateway/CoreAxis.ApiGateway
-   dotnet run
-   ```
+3.  Run the project:
+    ```bash
+    cd src/ApiGateway/CoreAxis.ApiGateway
+    dotnet run
+    ```
 
-4. الوصول إلى التطبيق:
-   - واجهة API: `https://localhost:5001/api`
-   - لوحة تحكم الصحة: `https://localhost:5001/health-ui`
+4.  Access the application:
+    -   API Interface: `https://localhost:5001/api`
+    -   Health Dashboard: `https://localhost:5001/health-ui`
 
-## الميزات الرئيسية
+## Key Features
 
-- **هندسة نظيفة**: فصل واضح بين طبقات المجال والتطبيق والبنية التحتية وواجهة المستخدم
-- **تصميم معياري**: وحدات مستقلة يمكن تطويرها ونشرها بشكل منفصل
-- **نظام أحداث**: تواصل بين الوحدات عبر الأحداث باستخدام MediatR
-- **دعم متعدد اللغات**: دعم كامل للتعريب والترجمة
-- **فحوصات الصحة**: مراقبة حالة التطبيق والخدمات
-- **توثيق API**: توثيق تلقائي باستخدام Swagger
+-   **Clean Architecture**: Clear separation between domain, application, infrastructure, and user interface layers
+-   **Modular Design**: Independent modules that can be developed and deployed separately
+-   **Event System**: Communication between modules via events using MediatR
+-   **Multi-language Support**: Full support for localization and translation
+-   **Health Checks**: Monitoring application and service status
+-   **API Documentation**: Automatic documentation using Swagger
 
-## تطوير الوحدات
+## Module Development
 
-لإضافة وحدة جديدة، اتبع هيكل DemoModule واستخدم الإرشادات الموجودة في `ModuleـDevelopmentـGuideline.txt`.
+To add a new module, follow the structure of DemoModule and use the guidelines in ModuleـDevelopmentـGuideline.txt.
 
-كل وحدة يجب أن تحتوي على:
+Each module should contain:
 
-1. طبقة المجال (Domain): الكيانات وقواعد العمل
-2. طبقة التطبيق (Application): خدمات التطبيق وحالات الاستخدام
-3. طبقة البنية التحتية (Infrastructure): تنفيذ الواجهات والوصول للبيانات
-4. طبقة API: وحدات تحكم وتسجيل الوحدة
+1.  Domain Layer: Entities and business rules
+2.  Application Layer: Application services and use cases
+3.  Infrastructure Layer: Interface implementation and data access
+4.  API Layer: Controllers and module registration
 
-## الاختبارات
+## Tests
 
-تشغيل الاختبارات:
+Run tests:
 
 ```bash
 dotnet test
 ```
 
-## التوثيق
+## Documentation
 
-راجع مجلد `docs/` للحصول على توثيق مفصل حول:
+Refer to the `docs/` folder for detailed documentation on:
 
-- هندسة النظام (ARCHITECTURE.md)
-- فحوصات الصحة (HealthChecks.md)
-- التكامل المستمر (ContinuousIntegration.md)
+-   System Architecture (ARCHITECTURE.md)
+-   Health Checks (HealthChecks.md)
+-   Continuous Integration (ContinuousIntegration.md)
 
-## المساهمة
+## Contribution
 
-1. اتبع إرشادات مراجعة الكود في `CodeـReview.txt`
-2. تأكد من وجود اختبارات لكل ميزة جديدة
-3. حافظ على التوثيق محدثًا
+1.  Follow the code review guidelines in CodeـReview.txt
+2.  Ensure tests exist for every new feature
+3.  Keep documentation updated
 
-## الترخيص
+## License
 
-هذا المشروع مرخص بموجب [ترخيص MIT](LICENSE).
+This project is licensed under the [MIT License](LICENSE).
