@@ -89,5 +89,23 @@ namespace CoreAxis.SharedKernel
             var items = list.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
             return new PaginatedList<T>(items, totalCount, pageNumber, pageSize);
         }
+
+        /// <summary>
+        /// Creates a paginated list with explicit items and total count.
+        /// </summary>
+        /// <param name="items">The items for the current page.</param>
+        /// <param name="pageNumber">The page number (1-based).</param>
+        /// <param name="pageSize">The page size.</param>
+        /// <param name="totalCount">The total number of items across all pages.</param>
+        /// <returns>A paginated list.</returns>
+        public static PaginatedList<T> Create(IEnumerable<T> items, int pageNumber, int pageSize, int totalCount)
+        {
+            if (pageNumber < 1)
+                throw new ArgumentException("Page number must be greater than 0.", nameof(pageNumber));
+            if (pageSize < 1)
+                throw new ArgumentException("Page size must be greater than 0.", nameof(pageSize));
+
+            return new PaginatedList<T>(items, totalCount, pageNumber, pageSize);
+        }
     }
 }

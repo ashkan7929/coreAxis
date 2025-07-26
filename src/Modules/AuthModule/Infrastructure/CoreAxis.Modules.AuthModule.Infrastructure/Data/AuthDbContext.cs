@@ -1,6 +1,5 @@
 using CoreAxis.Modules.AuthModule.Domain.Entities;
 using CoreAxis.SharedKernel;
-using CoreAxis.SharedKernel.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace CoreAxis.Modules.AuthModule.Infrastructure.Data;

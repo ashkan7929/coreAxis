@@ -3,6 +3,7 @@ using CoreAxis.Modules.AuthModule.Domain.Repositories;
 using CoreAxis.Modules.AuthModule.Infrastructure.Data;
 using CoreAxis.Modules.AuthModule.Infrastructure.Repositories;
 using CoreAxis.Modules.AuthModule.Infrastructure.Services;
+using CoreAxis.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

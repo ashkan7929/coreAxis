@@ -51,10 +51,10 @@ namespace CoreAxis.Tests.ApiGateway
         }
 
         /// <summary>
-        /// Tests that UseCoreAxisHealthChecks maps the expected health check endpoints.
+        /// Tests that MapCoreAxisHealthChecks maps the expected health check endpoints.
         /// </summary>
         [Fact]
-        public void UseCoreAxisHealthChecks_ShouldMapExpectedEndpoints()
+        public void MapCoreAxisHealthChecks_ShouldMapExpectedEndpoints()
         {
             // Arrange
             var mockEndpointRouteBuilder = new Mock<IEndpointRouteBuilder>();
@@ -75,7 +75,7 @@ namespace CoreAxis.Tests.ApiGateway
                 .Returns(mockEndpointBuilder.Object);
 
             // Act
-            mockEndpointRouteBuilder.Object.UseCoreAxisHealthChecks();
+            mockEndpointRouteBuilder.Object.MapCoreAxisHealthChecks();
 
             // Assert
             Assert.Contains("/health", endpoints);

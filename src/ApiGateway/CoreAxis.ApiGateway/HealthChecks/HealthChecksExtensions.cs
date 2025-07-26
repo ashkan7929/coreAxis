@@ -1,6 +1,7 @@
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 
@@ -52,6 +53,34 @@ namespace CoreAxis.ApiGateway.HealthChecks
             });
 
             return app;
+        }
+
+        /// <summary>
+        /// Maps CoreAxis health check endpoints.
+        /// </summary>
+        /// <param name="endpoints">The endpoint route builder.</param>
+        /// <returns>The endpoint route builder.</returns>
+        public static IEndpointRouteBuilder MapCoreAxisHealthChecks(this IEndpointRouteBuilder endpoints)
+        {
+            endpoints.MapHealthChecks("/health", new HealthCheckOptions
+            {
+                Predicate = _ => true,
+                ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+            });
+
+            endpoints.MapHealthChecks("/health/ready", new HealthCheckOptions
+            {
+                Predicate = check => check.Tags.Contains("ready"),
+                ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+            });
+
+            endpoints.MapHealthChecks("/health/live", new HealthCheckOptions
+            {
+                Predicate = _ => false,
+                ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+            });
+
+            return endpoints;
         }
     }
 }

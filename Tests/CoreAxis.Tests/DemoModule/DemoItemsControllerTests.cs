@@ -1,5 +1,7 @@
 using CoreAxis.Modules.DemoModule.API;
+using CoreAxis.Modules.DemoModule.API.Controllers;
 using CoreAxis.Modules.DemoModule.Application;
+using CoreAxis.Modules.DemoModule.Application.Services;
 using CoreAxis.Modules.DemoModule.Domain;
 using CoreAxis.SharedKernel;
 using Microsoft.AspNetCore.Mvc;
@@ -132,14 +134,12 @@ namespace CoreAxis.Tests.DemoModule
         }
 
         /// <summary>
-        /// Tests that GetFeatured returns a successful response with paginated featured DemoItems.
+        /// Tests that GetFeatured returns a successful response with featured DemoItems.
         /// </summary>
         [Fact]
         public async Task GetFeatured_ShouldReturnOkResultWithFeaturedItems()
         {
             // Arrange
-            int pageNumber = 1;
-            int pageSize = 10;
             var demoItems = new List<DemoItem>
             {
                 DemoItem.Create("Item 1", "Description 1", 10.99m, "Category 1"),
@@ -151,20 +151,18 @@ namespace CoreAxis.Tests.DemoModule
             {
                 item.SetFeatured(true);
             }
-            
-            var paginatedList = PaginatedList<DemoItem>.Create(demoItems, pageNumber, pageSize, demoItems.Count);
 
-            _mockService.Setup(service => service.GetFeaturedAsync(pageNumber, pageSize))
-                .ReturnsAsync(paginatedList);
+            _mockService.Setup(service => service.GetFeaturedAsync())
+                .ReturnsAsync(demoItems);
 
             // Act
-            var result = await _controller.GetFeatured(pageNumber, pageSize);
+            var result = await _controller.GetFeatured();
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
-            var returnValue = Assert.IsType<PaginatedList<DemoItem>>(okResult.Value);
-            Assert.Equal(demoItems.Count, returnValue.Items.Count);
-            Assert.All(returnValue.Items, item => Assert.True(item.IsFeatured));
+            var returnValue = Assert.IsAssignableFrom<IEnumerable<DemoItem>>(okResult.Value);
+            Assert.Equal(demoItems.Count, returnValue.Count());
+            Assert.All(returnValue, item => Assert.True(item.IsFeatured));
         }
 
         /// <summary>

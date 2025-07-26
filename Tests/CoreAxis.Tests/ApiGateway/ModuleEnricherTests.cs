@@ -49,10 +49,10 @@ namespace CoreAxis.Tests.ApiGateway
 
             // Assert
             Assert.True(logEvent.Properties.ContainsKey("ModuleCount"));
-            Assert.True(logEvent.Properties.ContainsKey("ModuleNames"));
+            Assert.True(logEvent.Properties.ContainsKey("Modules"));
             
-            var moduleCount = (ScalarValue)logEvent.Properties["ModuleCount"].Value;
-            var moduleNames = (SequenceValue)logEvent.Properties["ModuleNames"].Value;
+            var moduleCount = (ScalarValue)logEvent.Properties["ModuleCount"];
+            var moduleNames = (SequenceValue)logEvent.Properties["Modules"];
             
             Assert.Equal(3, moduleCount.Value);
             Assert.Equal(3, moduleNames.Elements.Count);
@@ -90,10 +90,10 @@ namespace CoreAxis.Tests.ApiGateway
 
             // Assert
             Assert.True(logEvent.Properties.ContainsKey("ModuleCount"));
-            Assert.True(logEvent.Properties.ContainsKey("ModuleNames"));
+            Assert.True(logEvent.Properties.ContainsKey("Modules"));
             
-            var moduleCount = (ScalarValue)logEvent.Properties["ModuleCount"].Value;
-            var moduleNames = (SequenceValue)logEvent.Properties["ModuleNames"].Value;
+            var moduleCount = (ScalarValue)logEvent.Properties["ModuleCount"];
+            var moduleNames = (SequenceValue)logEvent.Properties["Modules"];
             
             Assert.Equal(0, moduleCount.Value);
             Assert.Empty(moduleNames.Elements);
@@ -115,13 +115,14 @@ namespace CoreAxis.Tests.ApiGateway
         private class TestModule : IModule
         {
             public string Name { get; }
+            public string Version => "1.0.0";
 
             public TestModule(string name)
             {
                 Name = name;
             }
 
-            public void ConfigureServices(IServiceCollection services, IConfiguration configuration)
+            public void RegisterServices(IServiceCollection services)
             {
                 // Not needed for this test
             }

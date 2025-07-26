@@ -1,4 +1,5 @@
 using CoreAxis.Modules.DemoModule.Application;
+using CoreAxis.Modules.DemoModule.Application.Services;
 using CoreAxis.Modules.DemoModule.Domain;
 using CoreAxis.SharedKernel;
 using Moq;
@@ -64,7 +65,8 @@ namespace CoreAxis.Tests.DemoModule
 
             // Assert
             Assert.False(result.IsSuccess);
-            Assert.Contains("not found", result.Error, StringComparison.OrdinalIgnoreCase);
+            Assert.Single(result.Errors);
+            Assert.Contains("not found", result.Errors[0], StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -155,11 +157,11 @@ namespace CoreAxis.Tests.DemoModule
                 .ReturnsAsync(featuredItems);
 
             // Act
-            var result = await _service.GetFeaturedAsync(1, 10);
+            var result = await _service.GetFeaturedAsync();
 
             // Assert
-            Assert.Equal(2, result.Items.Count);
-            Assert.All(result.Items, item => Assert.True(item.IsFeatured));
+            Assert.Equal(2, result.Count());
+            Assert.All(result, item => Assert.True(item.IsFeatured));
         }
 
         /// <summary>
@@ -178,7 +180,7 @@ namespace CoreAxis.Tests.DemoModule
 
             _mockRepository.Setup(repo => repo.AddAsync(It.IsAny<DemoItem>()))
                 .Callback<DemoItem>(item => savedDemoItem = item)
-                .ReturnsAsync((DemoItem item) => item);
+                .Returns(Task.CompletedTask);
 
             // Act
             var result = await _service.CreateAsync(name, description, price, category);
@@ -218,7 +220,7 @@ namespace CoreAxis.Tests.DemoModule
                 .ReturnsAsync(demoItem);
 
             _mockRepository.Setup(repo => repo.UpdateAsync(It.IsAny<DemoItem>()))
-                .ReturnsAsync((DemoItem item) => item);
+                .Returns(Task.CompletedTask);
 
             // Act
             var result = await _service.UpdateAsync(demoItemId, newName, newDescription, newPrice, newCategory);
@@ -251,7 +253,8 @@ namespace CoreAxis.Tests.DemoModule
 
             // Assert
             Assert.False(result.IsSuccess);
-            Assert.Contains("not found", result.Error, StringComparison.OrdinalIgnoreCase);
+            Assert.Single(result.Errors);
+            Assert.Contains("not found", result.Errors[0], StringComparison.OrdinalIgnoreCase);
 
             // Verify repository was not called for update
             _mockRepository.Verify(repo => repo.UpdateAsync(It.IsAny<DemoItem>()), Times.Never);
@@ -276,7 +279,7 @@ namespace CoreAxis.Tests.DemoModule
                 .ReturnsAsync(demoItem);
 
             _mockRepository.Setup(repo => repo.UpdateAsync(It.IsAny<DemoItem>()))
-                .ReturnsAsync((DemoItem item) => item);
+                .Returns(Task.CompletedTask);
 
             // Act
             var result = await _service.SetFeaturedAsync(demoItemId, isFeatured);
@@ -306,7 +309,7 @@ namespace CoreAxis.Tests.DemoModule
                 .ReturnsAsync(demoItem);
 
             _mockRepository.Setup(repo => repo.DeleteAsync(It.IsAny<DemoItem>()))
-                .ReturnsAsync(true);
+                .Returns(Task.CompletedTask);
 
             // Act
             var result = await _service.DeleteAsync(demoItemId);
@@ -335,7 +338,8 @@ namespace CoreAxis.Tests.DemoModule
 
             // Assert
             Assert.False(result.IsSuccess);
-            Assert.Contains("not found", result.Error, StringComparison.OrdinalIgnoreCase);
+            Assert.Single(result.Errors);
+            Assert.Contains("not found", result.Errors[0], StringComparison.OrdinalIgnoreCase);
 
             // Verify repository was not called for delete
             _mockRepository.Verify(repo => repo.DeleteAsync(It.IsAny<DemoItem>()), Times.Never);

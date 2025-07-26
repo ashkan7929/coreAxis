@@ -1,9 +1,13 @@
 using CoreAxis.Modules.AuthModule.Application.Services;
+using CoreAxis.Modules.AuthModule.Domain.Entities;
+using CoreAxis.SharedKernel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CoreAxis.Modules.AuthModule.Infrastructure.Services;
 
@@ -65,6 +69,13 @@ public class JwtTokenService : IJwtTokenService
         };
     }
 
+    public async Task<TokenResult> GenerateTokenAsync(User user, CancellationToken cancellationToken = default)
+    {
+        // Get user roles - for now we'll use empty collection, this should be implemented based on your role system
+        var roles = new List<string>(); // TODO: Implement role retrieval
+        return await Task.FromResult(GenerateToken(user.Id, user.Username, user.Email, user.TenantId ?? Guid.Empty, roles));
+    }
+
     public bool ValidateToken(string token)
     {
         try
@@ -93,6 +104,11 @@ public class JwtTokenService : IJwtTokenService
         }
     }
 
+    public async Task<bool> ValidateTokenAsync(string token, CancellationToken cancellationToken = default)
+    {
+        return await Task.FromResult(ValidateToken(token));
+    }
+
     public Guid? GetUserIdFromToken(string token)
     {
         try
@@ -112,5 +128,10 @@ public class JwtTokenService : IJwtTokenService
         {
             return null;
         }
+    }
+
+    public async Task<Guid?> GetUserIdFromTokenAsync(string token, CancellationToken cancellationToken = default)
+    {
+        return await Task.FromResult(GetUserIdFromToken(token));
     }
 }

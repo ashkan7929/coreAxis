@@ -1,4 +1,5 @@
 using CoreAxis.SharedKernel;
+using CoreAxis.SharedKernel.DomainEvents;
 using System;
 using System.Linq;
 using Xunit;
@@ -74,11 +75,11 @@ namespace CoreAxis.Tests.SharedKernel
             var domainEvent = new TestDomainEvent();
 
             // Act
-            entity.AddDomainEvent(domainEvent);
+            entity.AddTestDomainEvent(domainEvent);
 
             // Assert
             Assert.Single(entity.DomainEvents);
-            Assert.Equal(domainEvent, entity.DomainEvents[0]);
+            Assert.Equal(domainEvent, entity.DomainEvents.First());
         }
 
         /// <summary>
@@ -90,10 +91,10 @@ namespace CoreAxis.Tests.SharedKernel
             // Arrange
             var entity = new TestEntity();
             var domainEvent = new TestDomainEvent();
-            entity.AddDomainEvent(domainEvent);
+            entity.AddTestDomainEvent(domainEvent);
 
             // Act
-            entity.RemoveDomainEvent(domainEvent);
+            entity.RemoveTestDomainEvent(domainEvent);
 
             // Assert
             Assert.Empty(entity.DomainEvents);
@@ -107,9 +108,9 @@ namespace CoreAxis.Tests.SharedKernel
         {
             // Arrange
             var entity = new TestEntity();
-            entity.AddDomainEvent(new TestDomainEvent());
-            entity.AddDomainEvent(new TestDomainEvent());
-            entity.AddDomainEvent(new TestDomainEvent());
+            entity.AddTestDomainEvent(new TestDomainEvent());
+            entity.AddTestDomainEvent(new TestDomainEvent());
+            entity.AddTestDomainEvent(new TestDomainEvent());
 
             // Act
             entity.ClearDomainEvents();
@@ -217,6 +218,8 @@ namespace CoreAxis.Tests.SharedKernel
     /// </summary>
     public class TestEntity : EntityBase
     {
+        private readonly List<DomainEvent> _testDomainEvents = new List<DomainEvent>();
+
         public TestEntity() : base()
         {
         }
@@ -227,6 +230,22 @@ namespace CoreAxis.Tests.SharedKernel
             var property = typeof(EntityBase).GetProperty("Id");
             property.SetValue(this, id);
         }
+
+        public void AddTestDomainEvent(DomainEvent domainEvent)
+        {
+            AddDomainEvent(domainEvent);
+        }
+
+        public void RemoveTestDomainEvent(DomainEvent domainEvent)
+        {
+            // Since EntityBase doesn't have RemoveDomainEvent, we'll simulate it by clearing and re-adding
+            var events = DomainEvents.Where(e => e != domainEvent).ToList();
+            ClearDomainEvents();
+            foreach (var evt in events)
+            {
+                AddDomainEvent(evt);
+            }
+        }
     }
 
     /// <summary>
@@ -234,6 +253,6 @@ namespace CoreAxis.Tests.SharedKernel
     /// </summary>
     public class TestDomainEvent : DomainEvent
     {
-        public override string EventType => "TestDomainEvent";
+        // EventType is inherited from base class and doesn't need to be overridden
     }
 }

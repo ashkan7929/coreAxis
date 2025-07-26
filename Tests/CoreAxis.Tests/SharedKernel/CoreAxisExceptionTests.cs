@@ -1,4 +1,5 @@
 using CoreAxis.SharedKernel;
+using CoreAxis.SharedKernel.Exceptions;
 using System;
 using System.Collections.Generic;
 using Xunit;
@@ -11,37 +12,16 @@ namespace CoreAxis.Tests.SharedKernel
     public class CoreAxisExceptionTests
     {
         /// <summary>
-        /// Tests that CoreAxisException can be created with a message.
+        /// Tests that concrete CoreAxisException implementations inherit the Code property.
         /// </summary>
         [Fact]
-        public void CoreAxisException_WithMessage_ShouldSetMessage()
+        public void CoreAxisException_ConcreteImplementation_ShouldHaveCode()
         {
-            // Arrange
-            string message = "Test exception message";
-
-            // Act
-            var exception = new CoreAxisException(message);
+            // Arrange & Act
+            var exception = new ValidationException("Test message");
 
             // Assert
-            Assert.Equal(message, exception.Message);
-        }
-
-        /// <summary>
-        /// Tests that CoreAxisException can be created with a message and inner exception.
-        /// </summary>
-        [Fact]
-        public void CoreAxisException_WithMessageAndInnerException_ShouldSetMessageAndInnerException()
-        {
-            // Arrange
-            string message = "Test exception message";
-            var innerException = new Exception("Inner exception");
-
-            // Act
-            var exception = new CoreAxisException(message, innerException);
-
-            // Assert
-            Assert.Equal(message, exception.Message);
-            Assert.Equal(innerException, exception.InnerException);
+            Assert.Equal("VALIDATION_ERROR", exception.Code);
         }
 
         /// <summary>
@@ -90,7 +70,7 @@ namespace CoreAxis.Tests.SharedKernel
             string message = "Unauthorized access";
 
             // Act
-            var exception = new CoreAxis.SharedKernel.UnauthorizedAccessException(message);
+            var exception = new CoreAxis.SharedKernel.Exceptions.UnauthorizedAccessException(message);
 
             // Assert
             Assert.Equal(message, exception.Message);

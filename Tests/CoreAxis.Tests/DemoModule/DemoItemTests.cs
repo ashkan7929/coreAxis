@@ -1,5 +1,6 @@
 using CoreAxis.Modules.DemoModule.Domain;
 using System;
+using System.Linq;
 using Xunit;
 
 namespace CoreAxis.Tests.DemoModule
@@ -33,7 +34,7 @@ namespace CoreAxis.Tests.DemoModule
             Assert.False(demoItem.IsFeatured);
             Assert.NotEqual(Guid.Empty, demoItem.Id);
             Assert.Single(demoItem.DomainEvents);
-            Assert.IsType<DemoItemCreatedEvent>(demoItem.DomainEvents[0]);
+            Assert.IsType<DemoItemCreatedEvent>(demoItem.DomainEvents.First());
         }
 
         /// <summary>
@@ -97,7 +98,7 @@ namespace CoreAxis.Tests.DemoModule
             Assert.Equal(newPrice, demoItem.Price);
             Assert.Equal(newCategory, demoItem.Category);
             Assert.Single(demoItem.DomainEvents);
-            Assert.IsType<DemoItemUpdatedEvent>(demoItem.DomainEvents[0]);
+            Assert.IsType<DemoItemUpdatedEvent>(demoItem.DomainEvents.First());
         }
 
         /// <summary>
@@ -156,8 +157,8 @@ namespace CoreAxis.Tests.DemoModule
             // Assert
             Assert.True(demoItem.IsFeatured);
             Assert.Single(demoItem.DomainEvents);
-            Assert.IsType<DemoItemFeaturedChangedEvent>(demoItem.DomainEvents[0]);
-            var @event = (DemoItemFeaturedChangedEvent)demoItem.DomainEvents[0];
+            Assert.IsType<DemoItemFeaturedChangedEvent>(demoItem.DomainEvents.First());
+            var @event = (DemoItemFeaturedChangedEvent)demoItem.DomainEvents.First();
             Assert.Equal(demoItem.Id, @event.DemoItemId);
             Assert.True(@event.IsFeatured);
 
@@ -177,8 +178,8 @@ namespace CoreAxis.Tests.DemoModule
             // Assert
             Assert.False(demoItem.IsFeatured);
             Assert.Single(demoItem.DomainEvents);
-            Assert.IsType<DemoItemFeaturedChangedEvent>(demoItem.DomainEvents[0]);
-            @event = (DemoItemFeaturedChangedEvent)demoItem.DomainEvents[0];
+            Assert.IsType<DemoItemFeaturedChangedEvent>(demoItem.DomainEvents.First());
+            @event = (DemoItemFeaturedChangedEvent)demoItem.DomainEvents.First();
             Assert.Equal(demoItem.Id, @event.DemoItemId);
             Assert.False(@event.IsFeatured);
         }

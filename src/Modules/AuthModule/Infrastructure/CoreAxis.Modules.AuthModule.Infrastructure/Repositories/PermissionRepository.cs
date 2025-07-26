@@ -1,7 +1,7 @@
 using CoreAxis.Modules.AuthModule.Domain.Entities;
 using CoreAxis.Modules.AuthModule.Domain.Repositories;
 using CoreAxis.Modules.AuthModule.Infrastructure.Data;
-using CoreAxis.SharedKernel.Domain;
+using CoreAxis.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -85,7 +85,8 @@ public class PermissionRepository : IPermissionRepository
     {
         return await _context.Permissions
             .Where(p => p.IsActive)
-            .OrderBy(p => p.Code)
+            .Include(p => p.Page)
+            .Include(p => p.Action)
             .ToListAsync(cancellationToken);
     }
 

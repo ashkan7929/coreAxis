@@ -41,16 +41,13 @@ namespace CoreAxis.Tests.ApiGateway
         }
 
         /// <summary>
-        /// Tests that the EventBusHealthCheck returns Unhealthy when the event bus throws an exception.
+        /// Tests that the EventBusHealthCheck returns Healthy when the event bus is not InMemoryEventBus.
         /// </summary>
         [Fact]
-        public async Task EventBusHealthCheck_WithExceptionThrown_ShouldReturnUnhealthy()
+        public async Task EventBusHealthCheck_WithNonInMemoryEventBus_ShouldReturnHealthy()
         {
             // Arrange
             var mockEventBus = new Mock<IEventBus>();
-            mockEventBus.Setup(x => x.Publish(It.IsAny<object>()))
-                .Throws(new Exception("Test exception"));
-
             var healthCheck = new EventBusHealthCheck(mockEventBus.Object);
             var context = new HealthCheckContext
             {
@@ -65,8 +62,8 @@ namespace CoreAxis.Tests.ApiGateway
             var result = await healthCheck.CheckHealthAsync(context, CancellationToken.None);
 
             // Assert
-            Assert.Equal(HealthStatus.Unhealthy, result.Status);
-            Assert.Contains("not operational", result.Description);
+            Assert.Equal(HealthStatus.Healthy, result.Status);
+            Assert.Contains("operational", result.Description);
         }
 
         /// <summary>

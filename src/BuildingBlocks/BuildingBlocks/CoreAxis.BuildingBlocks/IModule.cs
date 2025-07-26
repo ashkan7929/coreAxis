@@ -15,6 +15,11 @@ namespace CoreAxis.BuildingBlocks
         string Name { get; }
 
         /// <summary>
+        /// Gets the version of the module.
+        /// </summary>
+        string Version { get; }
+
+        /// <summary>
         /// Registers the module's services with the dependency injection container.
         /// </summary>
         /// <param name="services">The service collection to register services with.</param>

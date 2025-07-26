@@ -135,7 +135,7 @@ namespace CoreAxis.Tests.EventBus
             var testEvent = new TestIntegrationEvent();
             var handlerMock = new Mock<IDynamicIntegrationEventHandler>();
             
-            handlerMock.Setup(h => h.HandleAsync(It.IsAny<dynamic>()))
+            handlerMock.Setup(h => h.HandleAsync(It.IsAny<object>(), It.IsAny<string>()))
                 .Returns(Task.CompletedTask)
                 .Verifiable();
 
@@ -145,7 +145,7 @@ namespace CoreAxis.Tests.EventBus
             await eventBus.PublishDynamicAsync(testEvent, "TestIntegrationEvent");
 
             // Assert
-            handlerMock.Verify(h => h.HandleAsync(It.IsAny<dynamic>()), Times.Once);
+            handlerMock.Verify(h => h.HandleAsync(It.IsAny<object>(), It.IsAny<string>()), Times.Once);
         }
 
         /// <summary>
@@ -159,7 +159,7 @@ namespace CoreAxis.Tests.EventBus
             var testEvent = new TestIntegrationEvent();
             var handlerMock = new Mock<IDynamicIntegrationEventHandler>();
             
-            handlerMock.Setup(h => h.HandleAsync(It.IsAny<dynamic>()))
+            handlerMock.Setup(h => h.HandleAsync(It.IsAny<object>(), It.IsAny<string>()))
                 .Returns(Task.CompletedTask);
 
             eventBus.SubscribeDynamic("TestIntegrationEvent", handlerMock.Object);
@@ -169,7 +169,7 @@ namespace CoreAxis.Tests.EventBus
             await eventBus.PublishDynamicAsync(testEvent, "TestIntegrationEvent");
 
             // Assert
-            handlerMock.Verify(h => h.HandleAsync(It.IsAny<dynamic>()), Times.Never);
+            handlerMock.Verify(h => h.HandleAsync(It.IsAny<object>(), It.IsAny<string>()), Times.Never);
         }
 
         /// <summary>
@@ -184,11 +184,11 @@ namespace CoreAxis.Tests.EventBus
             var handlerMock1 = new Mock<IDynamicIntegrationEventHandler>();
             var handlerMock2 = new Mock<IDynamicIntegrationEventHandler>();
             
-            handlerMock1.Setup(h => h.HandleAsync(It.IsAny<dynamic>()))
+            handlerMock1.Setup(h => h.HandleAsync(It.IsAny<object>(), It.IsAny<string>()))
                 .Returns(Task.CompletedTask)
                 .Verifiable();
                 
-            handlerMock2.Setup(h => h.HandleAsync(It.IsAny<dynamic>()))
+            handlerMock2.Setup(h => h.HandleAsync(It.IsAny<object>(), It.IsAny<string>()))
                 .Returns(Task.CompletedTask)
                 .Verifiable();
 
@@ -199,8 +199,8 @@ namespace CoreAxis.Tests.EventBus
             await eventBus.PublishDynamicAsync(testEvent, "TestIntegrationEvent");
 
             // Assert
-            handlerMock1.Verify(h => h.HandleAsync(It.IsAny<dynamic>()), Times.Once);
-            handlerMock2.Verify(h => h.HandleAsync(It.IsAny<dynamic>()), Times.Once);
+            handlerMock1.Verify(h => h.HandleAsync(It.IsAny<object>(), It.IsAny<string>()), Times.Once);
+            handlerMock2.Verify(h => h.HandleAsync(It.IsAny<object>(), It.IsAny<string>()), Times.Once);
         }
 
         /// <summary>
@@ -215,11 +215,11 @@ namespace CoreAxis.Tests.EventBus
             var handlerMock1 = new Mock<IDynamicIntegrationEventHandler>();
             var handlerMock2 = new Mock<IDynamicIntegrationEventHandler>();
             
-            handlerMock1.Setup(h => h.HandleAsync(It.IsAny<dynamic>()))
+            handlerMock1.Setup(h => h.HandleAsync(It.IsAny<object>(), It.IsAny<string>()))
                 .Returns(Task.CompletedTask)
                 .Verifiable();
                 
-            handlerMock2.Setup(h => h.HandleAsync(It.IsAny<dynamic>()))
+            handlerMock2.Setup(h => h.HandleAsync(It.IsAny<object>(), It.IsAny<string>()))
                 .Returns(Task.CompletedTask)
                 .Verifiable();
 
@@ -230,8 +230,8 @@ namespace CoreAxis.Tests.EventBus
             await eventBus.PublishDynamicAsync(testEvent, "TestIntegrationEvent");
 
             // Assert
-            handlerMock1.Verify(h => h.HandleAsync(It.IsAny<dynamic>()), Times.Once);
-            handlerMock2.Verify(h => h.HandleAsync(It.IsAny<dynamic>()), Times.Never);
+            handlerMock1.Verify(h => h.HandleAsync(It.IsAny<object>(), It.IsAny<string>()), Times.Once);
+            handlerMock2.Verify(h => h.HandleAsync(It.IsAny<object>(), It.IsAny<string>()), Times.Never);
         }
     }
 
@@ -240,7 +240,7 @@ namespace CoreAxis.Tests.EventBus
     /// </summary>
     public class TestIntegrationEvent : IntegrationEvent
     {
-        public override string EventType => "TestIntegrationEvent";
+        // EventType is inherited from base class and doesn't need to be overridden
     }
 
     /// <summary>
@@ -248,6 +248,6 @@ namespace CoreAxis.Tests.EventBus
     /// </summary>
     public class OtherIntegrationEvent : IntegrationEvent
     {
-        public override string EventType => "OtherIntegrationEvent";
+        // EventType is inherited from base class and doesn't need to be overridden
     }
 }

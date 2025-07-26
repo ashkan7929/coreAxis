@@ -24,7 +24,7 @@ namespace CoreAxis.Tests.SharedKernel
             // Assert
             Assert.True(result.IsSuccess);
             Assert.Equal(value, result.Value);
-            Assert.Empty(result.Error);
+            Assert.Empty(result.Errors);
         }
 
         /// <summary>
@@ -42,7 +42,8 @@ namespace CoreAxis.Tests.SharedKernel
             // Assert
             Assert.False(result.IsSuccess);
             Assert.Equal(default, result.Value);
-            Assert.Equal(errorMessage, result.Error);
+            Assert.Single(result.Errors);
+            Assert.Equal(errorMessage, result.Errors[0]);
         }
 
         /// <summary>
@@ -81,7 +82,7 @@ namespace CoreAxis.Tests.SharedKernel
 
             // Assert
             Assert.True(result.IsSuccess);
-            Assert.Empty(result.Error);
+            Assert.Empty(result.Errors);
         }
 
         /// <summary>
@@ -98,7 +99,8 @@ namespace CoreAxis.Tests.SharedKernel
 
             // Assert
             Assert.False(result.IsSuccess);
-            Assert.Equal(errorMessage, result.Error);
+            Assert.Single(result.Errors);
+            Assert.Equal(errorMessage, result.Errors[0]);
         }
 
         /// <summary>
@@ -130,7 +132,7 @@ namespace CoreAxis.Tests.SharedKernel
             // Assert
             Assert.True(result.IsSuccess);
             Assert.Equal(value, result.Value);
-            Assert.Empty(result.Error);
+            Assert.Empty(result.Errors);
         }
 
         /// <summary>

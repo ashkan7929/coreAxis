@@ -1,7 +1,7 @@
 using CoreAxis.Modules.AuthModule.Domain.Entities;
 using CoreAxis.Modules.AuthModule.Domain.Repositories;
 using CoreAxis.Modules.AuthModule.Infrastructure.Data;
-using CoreAxis.SharedKernel.Domain;
+using CoreAxis.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -114,7 +114,7 @@ public class UserRepository : IUserRepository
         // Add direct user permissions
         foreach (var userPermission in user.UserPermissions)
         {
-            permissions.Add(userPermission.Permission.Code);
+            permissions.Add(userPermission.Permission.GetPermissionCode());
         }
 
         // Add role-based permissions
@@ -122,7 +122,7 @@ public class UserRepository : IUserRepository
         {
             foreach (var rolePermission in userRole.Role.RolePermissions)
             {
-                permissions.Add(rolePermission.Permission.Code);
+                permissions.Add(rolePermission.Permission.GetPermissionCode());
             }
         }
 

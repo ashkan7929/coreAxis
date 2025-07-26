@@ -1,7 +1,7 @@
 using CoreAxis.Modules.AuthModule.Domain.Entities;
 using CoreAxis.Modules.AuthModule.Domain.Repositories;
 using CoreAxis.Modules.AuthModule.Infrastructure.Data;
-using CoreAxis.SharedKernel.Domain;
+using CoreAxis.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -72,11 +72,7 @@ public class RoleRepository : IRoleRepository
 
      public async Task AddRolePermissionAsync(Guid roleId, Guid permissionId, CancellationToken cancellationToken = default)
     {
-        var rolePermission = new RolePermission
-        {
-            RoleId = roleId,
-            PermissionId = permissionId
-        };
+        var rolePermission = new RolePermission(roleId, permissionId, Guid.Empty); // Using Guid.Empty for assignedBy as placeholder
         
         await _context.RolePermissions.AddAsync(rolePermission, cancellationToken);
     }

@@ -1,7 +1,7 @@
 using CoreAxis.Modules.AuthModule.Domain.Entities;
 using CoreAxis.Modules.AuthModule.Domain.Repositories;
 using CoreAxis.Modules.AuthModule.Infrastructure.Data;
-using CoreAxis.SharedKernel.Domain;
+using CoreAxis.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -44,7 +44,7 @@ public class AccessLogRepository : IAccessLogRepository
     public async Task<IEnumerable<AccessLog>> GetByDateRangeAsync(DateTime startDate, DateTime endDate, Guid? tenantId = null, int pageSize = 50, int pageNumber = 1, CancellationToken cancellationToken = default)
     {
         var query = _context.AccessLogs
-            .Where(al => al.AccessTime >= startDate && al.AccessTime <= endDate);
+            .Where(al => al.Timestamp >= startDate && al.Timestamp <= endDate);
 
         if (tenantId.HasValue)
         {
@@ -52,7 +52,7 @@ public class AccessLogRepository : IAccessLogRepository
         }
 
         return await query
-            .OrderByDescending(al => al.AccessTime)
+            .OrderByDescending(al => al.Timestamp)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
@@ -103,7 +103,7 @@ public class AccessLogRepository : IAccessLogRepository
     public async Task<IEnumerable<AccessLog>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _context.AccessLogs
-            .OrderByDescending(al => al.AccessTime)
+            .OrderByDescending(al => al.Timestamp)
             .ToListAsync(cancellationToken);
     }
 

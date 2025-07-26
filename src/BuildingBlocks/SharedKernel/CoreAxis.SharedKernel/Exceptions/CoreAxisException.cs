@@ -41,13 +41,25 @@ namespace CoreAxis.SharedKernel.Exceptions
     public class EntityNotFoundException : CoreAxisException
     {
         /// <summary>
+        /// Gets the name of the entity that was not found.
+        /// </summary>
+        public string EntityName { get; }
+
+        /// <summary>
+        /// Gets the ID of the entity that was not found.
+        /// </summary>
+        public object EntityId { get; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="EntityNotFoundException"/> class.
         /// </summary>
-        /// <param name="entityType">The type of entity that was not found.</param>
-        /// <param name="id">The ID of the entity that was not found.</param>
-        public EntityNotFoundException(string entityType, object id)
-            : base($"Entity of type {entityType} with ID {id} was not found.", "ENTITY_NOT_FOUND")
+        /// <param name="entityName">The name of the entity that was not found.</param>
+        /// <param name="entityId">The ID of the entity that was not found.</param>
+        public EntityNotFoundException(string entityName, object entityId)
+            : base($"Entity of type {entityName} with ID {entityId} was not found.", "ENTITY_NOT_FOUND")
         {
+            EntityName = entityName;
+            EntityId = entityId;
         }
     }
 
@@ -107,6 +119,27 @@ namespace CoreAxis.SharedKernel.Exceptions
         /// Gets the validation errors.
         /// </summary>
         public IDictionary<string, string[]> Errors { get; }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ValidationException"/> class.
+        /// </summary>
+        /// <param name="message">The exception message.</param>
+        public ValidationException(string message)
+            : base(message, "VALIDATION_ERROR")
+        {
+            Errors = new Dictionary<string, string[]>();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ValidationException"/> class.
+        /// </summary>
+        /// <param name="message">The exception message.</param>
+        /// <param name="errors">The validation errors.</param>
+        public ValidationException(string message, IDictionary<string, string[]> errors)
+            : base(message, "VALIDATION_ERROR")
+        {
+            Errors = errors;
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ValidationException"/> class.

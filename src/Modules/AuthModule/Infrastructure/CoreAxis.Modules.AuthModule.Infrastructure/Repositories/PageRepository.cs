@@ -1,7 +1,7 @@
 using CoreAxis.Modules.AuthModule.Domain.Entities;
 using CoreAxis.Modules.AuthModule.Domain.Repositories;
 using CoreAxis.Modules.AuthModule.Infrastructure.Data;
-using CoreAxis.SharedKernel.Domain;
+using CoreAxis.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -27,10 +27,10 @@ public class PageRepository : IPageRepository
             .FirstOrDefaultAsync(p => p.Code == code, cancellationToken);
     }
 
-    public async Task<Page?> GetByUrlAsync(string url, CancellationToken cancellationToken = default)
+    public async Task<Page?> GetByPathAsync(string path, CancellationToken cancellationToken = default)
     {
         return await _context.Pages
-            .FirstOrDefaultAsync(p => p.Url == url, cancellationToken);
+            .FirstOrDefaultAsync(p => p.Path == path, cancellationToken);
     }
 
     public async Task<IEnumerable<Page>> GetAllActiveAsync(CancellationToken cancellationToken = default)
@@ -47,10 +47,10 @@ public class PageRepository : IPageRepository
             .AnyAsync(p => p.Code == code, cancellationToken);
     }
 
-    public async Task<bool> IsUrlExistsAsync(string url, CancellationToken cancellationToken = default)
+    public async Task<bool> IsPathExistsAsync(string path, CancellationToken cancellationToken = default)
     {
         return await _context.Pages
-            .AnyAsync(p => p.Url == url, cancellationToken);
+            .AnyAsync(p => p.Path == path, cancellationToken);
     }
 
     public async Task<IEnumerable<Page>> GetByModuleAsync(string moduleName, CancellationToken cancellationToken = default)
