@@ -1,9 +1,10 @@
 using CoreAxis.Modules.AuthModule.Application.Commands.Users;
 using CoreAxis.Modules.AuthModule.Application.DTOs;
-using CoreAxis.SharedKernel.Domain;
+using CoreAxis.SharedKernel;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace CoreAxis.Modules.AuthModule.API.Controllers;
 
@@ -41,7 +42,7 @@ public class AuthController : ControllerBase
             return CreatedAtAction(nameof(GetUser), new { id = result.Value.Id }, result.Value);
         }
 
-        return BadRequest(result.Error);
+        return BadRequest(result.Errors);
     }
 
     /// <summary>
@@ -69,7 +70,7 @@ public class AuthController : ControllerBase
             return Ok(result.Value);
         }
 
-        return Unauthorized(result.Error);
+        return Unauthorized(result.Errors);
     }
 
     /// <summary>
@@ -82,11 +83,20 @@ public class AuthController : ControllerBase
     [Authorize]
     public async Task<ActionResult> ChangePassword([FromBody] ChangePasswordDto dto, CancellationToken cancellationToken = default)
     {
+        // Get UserId and TenantId from claims
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+
+        if (!Guid.TryParse(userIdClaim, out var userId) || !Guid.TryParse(tenantIdClaim, out var tenantId))
+        {
+            return BadRequest("Invalid user or tenant information");
+        }
+
         var command = new ChangePasswordCommand(
-            dto.UserId,
+            userId,
             dto.CurrentPassword,
             dto.NewPassword,
-            dto.TenantId);
+            tenantId);
 
         var result = await _mediator.Send(command, cancellationToken);
 
@@ -95,7 +105,7 @@ public class AuthController : ControllerBase
             return Ok(new { message = "Password changed successfully" });
         }
 
-        return BadRequest(result.Error);
+        return BadRequest(result.Errors);
     }
 
     /// <summary>

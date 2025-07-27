@@ -2,6 +2,7 @@ using CoreAxis.ApiGateway.HealthChecks;
 using CoreAxis.ApiGateway.Logging;
 using CoreAxis.BuildingBlocks;
 using CoreAxis.EventBus;
+using CoreAxis.Modules.AuthModule.API;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
@@ -32,7 +33,21 @@ builder.Services.AddCoreAxisHealthChecks();
 builder.Services.AddSingleton<IModuleRegistrar, ModuleRegistrar>();
 var serviceProvider = builder.Services.BuildServiceProvider();
 var moduleRegistrar = serviceProvider.GetRequiredService<IModuleRegistrar>();
+
+// Force load AuthModule assembly
+var authModuleAssembly = typeof(CoreAxis.Modules.AuthModule.API.AuthModule).Assembly;
+Console.WriteLine($"AuthModule assembly loaded: {authModuleAssembly.FullName}");
+
+// Debug: List all loaded assemblies
+var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+Console.WriteLine($"Total loaded assemblies: {loadedAssemblies.Length}");
+foreach (var assembly in loadedAssemblies)
+{
+    Console.WriteLine($"Assembly: {assembly.GetName().Name}");
+}
+
 var modules = moduleRegistrar.DiscoverAndRegisterModules(builder.Services);
+Console.WriteLine($"Discovered modules: {modules.Count()}");
 
 // Register ModuleEnricher for Serilog
 builder.Services.AddSingleton<ModuleEnricher>();

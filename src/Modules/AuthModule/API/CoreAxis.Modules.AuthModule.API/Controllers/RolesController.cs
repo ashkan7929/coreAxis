@@ -1,7 +1,7 @@
 using CoreAxis.Modules.AuthModule.Application.Commands.Roles;
 using CoreAxis.Modules.AuthModule.Application.DTOs;
 using CoreAxis.Modules.AuthModule.Application.Queries.Roles;
-using CoreAxis.SharedKernel.Domain;
+using CoreAxis.SharedKernel;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -42,7 +42,7 @@ public class RolesController : ControllerBase
             return CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, result.Value);
         }
 
-        return BadRequest(result.Error);
+        return BadRequest(result.Errors);
     }
 
     /// <summary>
@@ -78,7 +78,7 @@ public class RolesController : ControllerBase
             return Ok(result.Value);
         }
 
-        return BadRequest(result.Error);
+        return BadRequest(result.Errors);
     }
 
     /// <summary>

@@ -1,6 +1,6 @@
 using CoreAxis.Modules.AuthModule.Application.DTOs;
 using CoreAxis.Modules.AuthModule.Application.Queries.Users;
-using CoreAxis.SharedKernel.Domain;
+using CoreAxis.SharedKernel;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -37,7 +37,7 @@ public class UsersController : ControllerBase
             return Ok(result.Value);
         }
 
-        return NotFound(result.Error);
+        return NotFound(result.Errors);
     }
 
     /// <summary>
@@ -63,7 +63,7 @@ public class UsersController : ControllerBase
             return Ok(result.Value);
         }
 
-        return BadRequest(result.Error);
+        return BadRequest(result.Errors);
     }
 
     /// <summary>

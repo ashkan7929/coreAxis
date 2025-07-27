@@ -1,6 +1,6 @@
 using CoreAxis.Modules.AuthModule.Application.DTOs;
 using CoreAxis.Modules.AuthModule.Application.Queries.Permissions;
-using CoreAxis.SharedKernel.Domain;
+using CoreAxis.SharedKernel;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -35,7 +35,7 @@ public class PermissionsController : ControllerBase
             return Ok(result.Value);
         }
 
-        return BadRequest(result.Error);
+        return BadRequest(result.Errors);
     }
 
     /// <summary>
