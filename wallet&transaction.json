@@ -1,0 +1,70 @@
+{
+    "moduleName": "Wallet & Transaction",
+    "vision": "The Wallet & Transaction module manages multiple wallet types per user, records transactions (deposit, withdrawal, transfer, commission), integrates with providers, and offers reporting. It is fully multi-tenant and permission-protected.",
+    "tasks": [
+        {
+            "taskName": "Design Database Models",
+            "description": {
+                "nonTechnical": "Define how wallets, transactions, and providers are stored and related.",
+                "technical": "Create EF Core entities: Wallet (UserId, WalletTypeId, Balance, TenantId), WalletType (Name, Description), Transaction (WalletId, Amount, TransactionTypeId, Metadata, CreatedAt, TenantId), TransactionType, WalletProvider, WalletContract. Configure relationships and migrations."
+            },
+            "status": "pending"
+        },
+        {
+            "taskName": "Wallet CRUD APIs",
+            "description": {
+                "nonTechnical": "APIs to create wallets, view balances, and list wallets per user.",
+                "technical": "Implement endpoints: POST /api/wallets/init, GET /api/wallets (list user wallets), GET /api/wallets/{id}. Use Auth JWT for UserId & TenantId. Validate ACL for create/read."
+            },
+            "status": "pending"
+        },
+        {
+            "taskName": "Transaction Recording API",
+            "description": {
+                "nonTechnical": "Record any money movement (deposit, withdrawal, transfer) and update wallet balance atomically.",
+                "technical": "Endpoints: POST /api/wallets/deposit, POST /api/wallets/withdraw, POST /api/wallets/transfer. Use EF transactions to ensure atomicity. Validate balance before withdrawal. Publish domain events (e.g., TransactionCreatedEvent)."
+            },
+            "status": "pending"
+        },
+        {
+            "taskName": "Transaction Reporting API",
+            "description": {
+                "nonTechnical": "Allow users or admins to filter and view transaction history.",
+                "technical": "GET /api/wallets/transactions with filters (date range, type, status). Include pagination. Scope by TenantId and enforce ACL (user sees only their own, admin sees all)."
+            },
+            "status": "pending"
+        },
+        {
+            "taskName": "Provider and Contract Management",
+            "description": {
+                "nonTechnical": "Define providers (bank, gateway) and link them to users with contracts (limits, rules).",
+                "technical": "Entities: WalletProvider (Name, Type, ApiUrl, SupportsWithdraw/Deposit), WalletContract (UserId, ProviderId, MaxAmount, DailyLimit). Implement endpoints: POST /api/providers, POST /api/contracts. Validate with ACL (only admin roles)."
+            },
+            "status": "pending"
+        },
+        {
+            "taskName": "Integration with ACL",
+            "description": {
+                "nonTechnical": "Restrict operations (deposit, withdraw, view) based on permissions.",
+                "technical": "Use the HasPermission attribute for each API action. For example, only users with PERMISSION 'WALLET.WITHDRAW' can call withdraw API."
+            },
+            "status": "pending"
+        },
+        {
+            "taskName": "Event Handling for Commissions",
+            "description": {
+                "nonTechnical": "Allow other modules (like MLM) to trigger deposits automatically.",
+                "technical": "Subscribe to events (e.g., CommissionCalculatedEvent) and call deposit logic. Use MediatR or RabbitMQ consumer to handle cross-module integration."
+            },
+            "status": "pending"
+        },
+        {
+            "taskName": "Module Documentation & Tests",
+            "description": {
+                "nonTechnical": "Document how to use the Wallet API and write tests to ensure stability.",
+                "technical": "Write Module_README.md with ERD, API endpoints, and examples. Create unit tests for WalletService and TransactionService. Create integration tests for deposit/withdraw endpoints."
+            },
+            "status": "pending"
+        }
+    ]
+}

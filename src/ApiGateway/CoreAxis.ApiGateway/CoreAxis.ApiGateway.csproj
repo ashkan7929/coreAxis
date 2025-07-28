@@ -18,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\Modules\WalletModule\API\CoreAxis.Modules.WalletModule.API\CoreAxis.Modules.WalletModule.API.csproj" />
     <ProjectReference Include="..\..\Modules\AuthModule\API\CoreAxis.Modules.AuthModule.API\CoreAxis.Modules.AuthModule.API.csproj" />
     <ProjectReference Include="..\..\Modules\AuthModule\Infrastructure\CoreAxis.Modules.AuthModule.Infrastructure\CoreAxis.Modules.AuthModule.Infrastructure.csproj" />
     <ProjectReference Include="..\..\EventBus\CoreAxis.EventBus\CoreAxis.EventBus.csproj" />
