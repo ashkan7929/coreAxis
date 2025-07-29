@@ -1,0 +1,175 @@
+حتماً! در ادامه، راهنمای کامل و گام‌به‌گام توسعه‌ی ماژول **MLM (Multi-Level Marketing)** رو ارائه می‌دم، با در نظر گرفتن اصول زیرساخت CoreAxis که قبلاً پیاده‌سازی شده:
+
+---
+
+# ✅ **CoreAxis – MLM Module Development Guideline**
+
+## 🎯 هدف کلی
+
+ساخت یک ماژول ماژولار، تست‌پذیر، Multi-Tenant، و مستقل برای مدیریت شبکهٔ کاربران و محاسبه و پرداخت کمیسیون‌های مرحله‌ای و پله‌ای، متناسب با معماری Clean و معماری رویدادمحور CoreAxis.
+
+---
+
+## 🧱 ساختار کلی ماژول
+
+```
+/CoreAxis.Modules.MLMModule
+  ├── Domain
+  │   ├── Entities
+  │   ├── ValueObjects
+  │   ├── Enums
+  │   └── Events
+  ├── Application
+  │   ├── Commands
+  │   ├── Queries
+  │   ├── Services
+  │   └── Interfaces
+  ├── Infrastructure
+  │   ├── Repositories
+  │   └── EFConfigurations
+  ├── API
+  │   ├── Controllers
+  │   └── DTOs
+  ├── Resources
+  │   └── Localization files (.resx)
+  └── ModuleRegistration.cs
+```
+
+---
+
+## 🪜 مراحل توسعه (و نکات مهم)
+
+### 1. طراحی ساختار درختی MLM
+
+* **Entity**: `UserReferral`
+* فیلدها: `UserId`, `ParentUserId`, `Path`, `Level`, `CreatedAt`, `TenantId`
+* راهکار پیشنهادشده: **Materialized Path** برای قابلیت جستجوی سریع مسیر بالادستی.
+
+### 2. تعریف قوانین کمیسیون
+
+* **Entity**: `CommissionRuleSet`, `CommissionLevel`
+* قابلیت‌ها:
+
+  * تعریف قوانین به‌ازای هر محصول یا سطح کاربر
+  * عمق دلخواه (سطح ۱ تا N)
+  * محدودیت‌ها (مثلاً فقط اگر upline فعال باشه)
+
+### 3. پیاده‌سازی موتور محاسبه کمیسیون
+
+* Service در لایه Application: `CommissionCalculationService`
+* ورودی: `PaymentConfirmedEvent`
+* خروجی: `CommissionGeneratedEvent` برای هر سطح
+
+### 4. ذخیره‌سازی تراکنش کمیسیون
+
+* **Entity**: `CommissionTransaction`
+* فیلدها: `UserId`, `Amount`, `Level`, `SourcePaymentId`, `Status`, `IsSettled`, `WalletTransactionId`, `TenantId`
+
+### 5. اتصال به Wallet Module
+
+* از **Event Bus** استفاده کن (Publish `CommissionReadyToDepositEvent`)
+* Wallet باید در پاسخ `WalletCreditedEvent` ارسال کنه
+
+### 6. API عمومی برای نمایش کمیسیون‌ها
+
+* Endpoint ها:
+
+  * `/api/mlm/commissions/my`
+  * `/api/mlm/commissions/{userId}` (فقط ادمین)
+* فیلترها: تاریخ، وضعیت، سطح
+
+### 7. تست و پوشش سناریوها
+
+* واحد تست برای:
+
+  * درخت MLM
+  * اعمال قانون کمیسیون
+  * ارسال رویدادها
+
+---
+
+## 📄 قراردادهای رویداد (Event Contracts)
+
+### `PaymentConfirmedEvent`
+
+```json
+{
+  "userId": "string",
+  "amount": 250000,
+  "paymentId": "guid",
+  "productId": "guid",
+  "tenantId": "guid"
+}
+```
+
+### `CommissionGeneratedEvent`
+
+```json
+{
+  "commissionId": "guid",
+  "userId": "string",
+  "amount": 15000,
+  "level": 1,
+  "sourcePaymentId": "guid",
+  "tenantId": "guid"
+}
+```
+
+---
+
+## 🧪 پوشش تست پیشنهادی
+
+| سناریو                                         | نوع تست     | جزئیات                     |
+| ---------------------------------------------- | ----------- | -------------------------- |
+| کاربر خرید می‌کند و ۳ سطح کمیسیون تولید می‌شود | Integration | تست گردش کامل              |
+| کاربر upline غیرفعال است                       | Unit        | نباید کمیسیون بگیرد        |
+| قانون محصول خاص override شده                   | Unit        | بررسی اعمال override       |
+| تست ذخیره `CommissionTransaction`              | Unit        | بررسی audit و TenantId     |
+| اتصال به WalletModule                          | Integration | بررسی ارسال و دریافت event |
+
+---
+
+## 📋 قوانین توسعه و کیفیت
+
+* تمام داده‌ها **TenantId** داشته باشند.
+* همه چیز تست‌پذیر باشد (سرویس‌ها باید interface محور باشند).
+* هیچ اشاره‌ی مستقیم به سایر ماژول‌ها (Wallet) به جز از طریق EventBus نباید باشد.
+* رعایت کامل SOLID:
+
+  * کمیسیون جدا از کاربر
+  * Rule از CommissionEngine جدا
+* هر ماژول فایل `README.md` داشته باشد (هدف، رویدادها، ساختار، تست).
+
+---
+
+## 📁 نمونه فایل README.md برای این ماژول
+
+```markdown
+# MLM Module
+
+## Purpose
+Handle user network, commission rules, and payout process in multi-level format.
+
+## Domain Entities
+- UserReferral
+- CommissionRuleSet
+- CommissionTransaction
+
+## Events
+- PaymentConfirmedEvent → triggers commission generation
+- CommissionGeneratedEvent → triggers wallet deposit
+
+## APIs
+- [GET] /mlm/commissions/my
+- [GET] /mlm/commissions/{userId}
+
+## Tests
+- Application unit tests
+- API integration test
+
+## Notes
+- Multi-tenant support
+- Localization supported (.resx)
+```
+
+---

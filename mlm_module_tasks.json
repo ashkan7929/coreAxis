@@ -1,0 +1,78 @@
+{
+  "module": "MLM - Multi-Level Commission",
+  "vision": "Enable dynamic multi-level commission tracking and payout system for affiliate/referral-based business logic, integrated with user tree, wallet, and transaction modules.",
+  "mlm_tasks": [
+    {
+      "taskName": "Design MLM Network Tree Structure",
+      "description": {
+        "nonTechnical": "Define how users are linked to each other in a referral or agent-based hierarchy. This is the base of all commission logic.",
+        "technical": "In the Domain layer, add `UserReferral` entity to store parent-child relationship. Use Materialized Path or Adjacency List. Index for fast querying parent chain. Include `TenantId` for isolation."
+      },
+      "status": "pending"
+    },
+    {
+      "taskName": "Implement MLM Commission Rule Model",
+      "description": {
+        "nonTechnical": "Define the rules for how much commission is earned at each level, per business logic (e.g., 10% direct, 5% indirect).",
+        "technical": "Create entities: `CommissionRuleSet`, `CommissionLevel`, `ProductRuleBinding`. Allow dynamic level depth, optional product-based override, minimum conditions (e.g., active agent, threshold)."
+      },
+      "status": "pending"
+    },
+    {
+      "taskName": "Commission Calculation Engine",
+      "description": {
+        "nonTechnical": "After each purchase, calculate commission for uplines based on the current rule set.",
+        "technical": "Trigger commission engine from PaymentConfirmed event (via EventBus). Walk up user tree, apply rules, emit `CommissionGeneratedEvent` for each upline. Add audit log and errors."
+      },
+      "status": "pending"
+    },
+    {
+      "taskName": "Create Commission Transaction Entity",
+      "description": {
+        "nonTechnical": "Track each generated commission (who received it, for what, and whether it was paid).",
+        "technical": "Add `CommissionTransaction` entity with fields: UserId, SourcePaymentId, Level, RuleId, Amount, Status. Integrate with WalletModule via internal API or event."
+      },
+      "status": "pending"
+    },
+    {
+      "taskName": "Integrate With Wallet Module",
+      "description": {
+        "nonTechnical": "Each commission must be credited to the user's wallet for later use or withdrawal.",
+        "technical": "Upon `CommissionTransaction` approval, publish event to WalletModule (or call Wallet API). Ensure TenantId and correlation ID are passed."
+      },
+      "status": "pending"
+    },
+    {
+      "taskName": "Commission History & Reporting API",
+      "description": {
+        "nonTechnical": "Users and admins should be able to view past commission earnings with filters.",
+        "technical": "In the API project, expose endpoints: `/commissions/my`, `/commissions/{userId}`, with filters by date, level, status. Use paginated responses and localization for labels."
+      },
+      "status": "pending"
+    },
+    {
+      "taskName": "Admin Rule Management UI",
+      "description": {
+        "nonTechnical": "Admins can define or update commission rules per tenant or product.",
+        "technical": "Expose `/commission-rules` endpoints in API. Support CRUD with validations. Future plan: integrate into PanelBuilder for full UI."
+      },
+      "status": "pending"
+    },
+    {
+      "taskName": "Unit Tests & Sample Scenarios",
+      "description": {
+        "nonTechnical": "Test the rule logic under various scenarios (different levels, conditions).",
+        "technical": "Add unit tests for: 1) user tree parsing, 2) rule application, 3) event emission. Include scenario-based test data in `MLMModule.Tests`."
+      },
+      "status": "pending"
+    },
+    {
+      "taskName": "Documentation & Developer Guide",
+      "description": {
+        "nonTechnical": "Provide full documentation on how MLM works, for future developers and maintainers.",
+        "technical": "Write `README.md` for module including: data structure, sample rule set, trigger flow, public APIs, integration contract, and event contracts."
+      },
+      "status": "pending"
+    }
+  ]
+}
