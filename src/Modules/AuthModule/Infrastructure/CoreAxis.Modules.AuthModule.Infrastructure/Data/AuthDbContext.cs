@@ -1,5 +1,6 @@
 using CoreAxis.Modules.AuthModule.Domain.Entities;
 using CoreAxis.SharedKernel;
+using CoreAxis.SharedKernel.DomainEvents;
 using Microsoft.EntityFrameworkCore;
 
 namespace CoreAxis.Modules.AuthModule.Infrastructure.Data;
@@ -23,6 +24,9 @@ public class AuthDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Ignore DomainEvent as it's not an entity but a base class for domain events
+        modelBuilder.Ignore<DomainEvent>();
 
         // Configure User entity
         modelBuilder.Entity<User>(entity =>
@@ -156,9 +160,24 @@ public class AuthDbContext : DbContext
             {
                 case EntityState.Added:
                     entry.Entity.CreatedOn = DateTime.UtcNow;
+                    // Set CreatedBy and LastModifiedBy to system for new entities
+                    // For User entities, we'll set it to the user's own ID after it's generated
+                    if (string.IsNullOrEmpty(entry.Entity.CreatedBy))
+                    {
+                        entry.Entity.CreatedBy = entry.Entity is User ? entry.Entity.Id.ToString() : "System";
+                    }
+                    if (string.IsNullOrEmpty(entry.Entity.LastModifiedBy))
+                    {
+                        entry.Entity.LastModifiedBy = entry.Entity is User ? entry.Entity.Id.ToString() : "System";
+                    }
                     break;
                 case EntityState.Modified:
                     entry.Entity.LastModifiedOn = DateTime.UtcNow;
+                    // Set LastModifiedBy to system if not already set
+                    if (string.IsNullOrEmpty(entry.Entity.LastModifiedBy))
+                    {
+                        entry.Entity.LastModifiedBy = "System";
+                    }
                     break;
             }
         }

@@ -14,9 +14,20 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddAuthModuleInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        // Add DbContext
+        // Add DbContext - Use InMemory database for development
         services.AddDbContext<AuthDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+        {
+            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrEmpty(connectionString) || connectionString.Contains("localhost"))
+            {
+                // Use in-memory database for development
+                options.UseInMemoryDatabase("CoreAxisAuthDb");
+            }
+            else
+            {
+                options.UseSqlServer(connectionString);
+            }
+        });
 
         // Add Repositories
         services.AddScoped<IUserRepository, UserRepository>();

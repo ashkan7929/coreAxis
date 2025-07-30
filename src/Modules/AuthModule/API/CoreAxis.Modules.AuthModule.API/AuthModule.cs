@@ -1,6 +1,7 @@
 using CoreAxis.BuildingBlocks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 
 namespace CoreAxis.Modules.AuthModule.API
 {
@@ -25,9 +26,12 @@ namespace CoreAxis.Modules.AuthModule.API
         /// <param name="services">The service collection to register services with.</param>
         public void RegisterServices(IServiceCollection services)
         {
-            // For now, we'll add a basic configuration
-            // The actual service registration will be handled by the ApiGateway
-            // when it references the AuthModule.API project
+            // Get configuration from the service provider
+            var serviceProvider = services.BuildServiceProvider();
+            var configuration = serviceProvider.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
+            
+            // Register all AuthModule services including MediatR, repositories, and other dependencies
+            services.AddAuthModuleApi(configuration);
             
             // Add controllers from this module
             services.AddControllers()
