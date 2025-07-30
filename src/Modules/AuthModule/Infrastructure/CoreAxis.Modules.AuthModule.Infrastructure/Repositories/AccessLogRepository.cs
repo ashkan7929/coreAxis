@@ -140,4 +140,16 @@ public class AccessLogRepository : IAccessLogRepository
             .OrderByDescending(al => al.Timestamp)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task DeleteByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var accessLogs = await _context.AccessLogs
+            .Where(al => al.UserId == userId)
+            .ToListAsync(cancellationToken);
+
+        if (accessLogs.Any())
+        {
+            _context.AccessLogs.RemoveRange(accessLogs);
+        }
+    }
 }

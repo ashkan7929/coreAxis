@@ -9,13 +9,16 @@ public record DeleteUserCommand(Guid UserId) : IRequest<Result<bool>>;
 public class DeleteUserCommandHandler : IRequestHandler<DeleteUserCommand, Result<bool>>
 {
     private readonly IUserRepository _userRepository;
+    private readonly IAccessLogRepository _accessLogRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public DeleteUserCommandHandler(
         IUserRepository userRepository,
+        IAccessLogRepository accessLogRepository,
         IUnitOfWork unitOfWork)
     {
         _userRepository = userRepository;
+        _accessLogRepository = accessLogRepository;
         _unitOfWork = unitOfWork;
     }
 
@@ -41,7 +44,10 @@ public class DeleteUserCommandHandler : IRequestHandler<DeleteUserCommand, Resul
             }
         }
 
-        // Remove all user roles first
+        // Delete access logs first
+        await _accessLogRepository.DeleteByUserIdAsync(request.UserId);
+        
+        // Remove all user roles
         await _userRepository.RemoveAllUserRolesAsync(request.UserId);
         
         // Delete the user

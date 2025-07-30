@@ -10,4 +10,5 @@ public interface IAccessLogRepository : IRepository<AccessLog>
     Task<IEnumerable<AccessLog>> GetFailedLoginsAsync(DateTime? fromDate = null, CancellationToken cancellationToken = default);
     Task<IEnumerable<AccessLog>> GetByActionAsync(string action, DateTime? fromDate = null, CancellationToken cancellationToken = default);
     Task<int> GetFailedLoginCountAsync(string username, DateTime fromDate, CancellationToken cancellationToken = default);
+    Task DeleteByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
 }

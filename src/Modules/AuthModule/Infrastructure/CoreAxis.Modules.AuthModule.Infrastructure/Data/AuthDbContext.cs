@@ -146,6 +146,12 @@ public class AuthDbContext : DbContext
             entity.Property(e => e.IpAddress).HasMaxLength(45); // IPv6 support
             entity.HasIndex(e => e.Timestamp);
             entity.HasIndex(e => new { e.UserId, e.Timestamp });
+            
+            // Configure foreign key relationship with User
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.AccessLogs)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 
