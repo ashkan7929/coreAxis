@@ -8,15 +8,13 @@ public class TransactionCreatedEvent : DomainEvent
     public Guid WalletId { get; }
     public decimal Amount { get; }
     public Guid TransactionTypeId { get; }
-    public Guid TenantId { get; }
 
-    public TransactionCreatedEvent(Guid transactionId, Guid walletId, decimal amount, Guid transactionTypeId, Guid tenantId)
+    public TransactionCreatedEvent(Guid transactionId, Guid walletId, decimal amount, Guid transactionTypeId)
     {
         TransactionId = transactionId;
         WalletId = walletId;
         Amount = amount;
         TransactionTypeId = transactionTypeId;
-        TenantId = tenantId;
     }
 }
 

@@ -26,12 +26,10 @@ public class UserReferralController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<UserReferralDto>> CreateUserReferral([FromBody] CreateUserReferralDto request)
     {
-        var tenantId = GetTenantId();
         var command = new CreateUserReferralCommand
         {
             UserId = request.UserId,
-            ParentUserId = request.ParentUserId,
-            TenantId = tenantId
+            ParentUserId = request.ParentUserId
         };
 
         var result = await _mediator.Send(command);
@@ -85,7 +83,7 @@ public class UserReferralController : ControllerBase
     [HttpGet("{userId}/upline")]
     public async Task<ActionResult<IEnumerable<UserReferralDto>>> GetUserUpline(Guid userId, [FromQuery] int? levels = null)
     {
-        var query = new GetUserUplineQuery { UserId = userId, MaxLevels = levels, TenantId = GetTenantId() };
+        var query = new GetUserUplineQuery { UserId = userId, MaxLevels = levels };
         var result = await _mediator.Send(query);
         return Ok(result);
     }
@@ -96,7 +94,7 @@ public class UserReferralController : ControllerBase
     [HttpGet("{userId}/downline")]
     public async Task<ActionResult<IEnumerable<UserReferralDto>>> GetUserDownline(Guid userId, [FromQuery] int? levels = null)
     {
-        var query = new GetUserDownlineQuery { UserId = userId, MaxLevels = levels, TenantId = GetTenantId() };
+        var query = new GetUserDownlineQuery { UserId = userId, MaxLevels = levels };
         var result = await _mediator.Send(query);
         return Ok(result);
     }
@@ -121,8 +119,7 @@ public class UserReferralController : ControllerBase
         var query = new GetNetworkTreeQuery 
         { 
             UserId = userId, 
-            MaxDepth = maxDepth ?? 5,
-            TenantId = GetTenantId()
+            MaxDepth = maxDepth ?? 5
         };
         var result = await _mediator.Send(query);
         return Ok(result);
@@ -134,12 +131,10 @@ public class UserReferralController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult<UserReferralDto>> UpdateUserReferral(Guid id, [FromBody] UpdateUserReferralDto request)
     {
-        var tenantId = GetTenantId();
         var command = new UpdateUserReferralCommand
         {
             Id = id,
-            ParentUserId = request.ParentUserId,
-            TenantId = tenantId
+            ParentUserId = request.ParentUserId
         };
 
         var result = await _mediator.Send(command);
@@ -152,8 +147,7 @@ public class UserReferralController : ControllerBase
     [HttpPost("{userId}/activate")]
     public async Task<ActionResult<bool>> ActivateUserReferral(Guid userId)
     {
-        var tenantId = GetTenantId();
-        var command = new ActivateUserReferralCommand { UserId = userId, TenantId = tenantId };
+        var command = new ActivateUserReferralCommand { UserId = userId };
         var result = await _mediator.Send(command);
         return Ok(result);
     }
@@ -164,8 +158,7 @@ public class UserReferralController : ControllerBase
     [HttpPost("{userId}/deactivate")]
     public async Task<ActionResult<bool>> DeactivateUserReferral(Guid userId)
     {
-        var tenantId = GetTenantId();
-        var command = new DeactivateUserReferralCommand { UserId = userId, TenantId = tenantId };
+        var command = new DeactivateUserReferralCommand { UserId = userId };
         var result = await _mediator.Send(command);
         return Ok(result);
     }
@@ -176,15 +169,10 @@ public class UserReferralController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteUserReferral(Guid id)
     {
-        var tenantId = GetTenantId();
-        var command = new DeleteUserReferralCommand { Id = id, TenantId = tenantId };
+        var command = new DeleteUserReferralCommand { Id = id };
         await _mediator.Send(command);
         return NoContent();
     }
 
-    private Guid GetTenantId()
-    {
-        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
-        return Guid.TryParse(tenantIdClaim, out var tenantId) ? tenantId : Guid.Empty;
-    }
+
 }

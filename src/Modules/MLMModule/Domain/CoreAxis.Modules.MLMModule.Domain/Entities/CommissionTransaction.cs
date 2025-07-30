@@ -37,7 +37,6 @@ public class CommissionTransaction : EntityBase
         decimal amount,
         decimal sourceAmount,
         decimal percentage,
-        Guid tenantId,
         Guid? productId = null)
     {
         UserId = userId;
@@ -48,13 +47,12 @@ public class CommissionTransaction : EntityBase
         SourceAmount = sourceAmount;
         Percentage = percentage;
         ProductId = productId;
-        TenantId = tenantId;
         CreatedOn = DateTime.UtcNow;
         
         ValidateAmount();
         ValidateLevel();
         
-        AddDomainEvent(new CommissionGeneratedEvent(Id, userId, amount, level, sourcePaymentId, tenantId));
+        AddDomainEvent(new CommissionGeneratedEvent(Id, userId, amount, level, sourcePaymentId));
     }
     
     public void Approve(string? notes = null)
@@ -67,7 +65,7 @@ public class CommissionTransaction : EntityBase
         Notes = notes;
         LastModifiedOn = DateTime.UtcNow;
         
-        AddDomainEvent(new CommissionApprovedEvent(Id, UserId, Amount, TenantId));
+        AddDomainEvent(new CommissionApprovedEvent(Id, UserId, Amount));
     }
     
     public void Reject(string rejectionReason)
@@ -83,7 +81,7 @@ public class CommissionTransaction : EntityBase
         RejectionReason = rejectionReason;
         LastModifiedOn = DateTime.UtcNow;
         
-        AddDomainEvent(new CommissionRejectedEvent(Id, UserId, Amount, rejectionReason, TenantId));
+        AddDomainEvent(new CommissionRejectedEvent(Id, UserId, Amount, rejectionReason));
     }
     
     public void MarkAsPaid(Guid walletTransactionId)
@@ -97,7 +95,7 @@ public class CommissionTransaction : EntityBase
         PaidAt = DateTime.UtcNow;
         LastModifiedOn = DateTime.UtcNow;
         
-        AddDomainEvent(new CommissionPaidEvent(Id, UserId, Amount, walletTransactionId, TenantId));
+        AddDomainEvent(new CommissionPaidEvent(Id, UserId, Amount, walletTransactionId));
     }
     
     public void MarkAsExpired()
@@ -108,7 +106,7 @@ public class CommissionTransaction : EntityBase
         Status = CommissionStatus.Expired;
         LastModifiedOn = DateTime.UtcNow;
         
-        AddDomainEvent(new CommissionExpiredEvent(Id, UserId, Amount, TenantId));
+        AddDomainEvent(new CommissionExpiredEvent(Id, UserId, Amount));
     }
     
     public void UpdateNotes(string notes)

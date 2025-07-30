@@ -23,7 +23,7 @@ public class CreateUserReferralCommandHandler : IRequestHandler<CreateUserReferr
     public async Task<UserReferralDto> Handle(CreateUserReferralCommand request, CancellationToken cancellationToken)
     {
         // Check if user already has a referral record
-        var existingReferral = await _userReferralRepository.GetByUserIdAsync(request.UserId, request.TenantId);
+        var existingReferral = await _userReferralRepository.GetByUserIdAsync(request.UserId);
         if (existingReferral != null)
         {
             throw new InvalidOperationException("User already has a referral record");
@@ -33,7 +33,7 @@ public class CreateUserReferralCommandHandler : IRequestHandler<CreateUserReferr
         UserReferral? parentReferral = null;
         if (request.ParentUserId.HasValue)
         {
-            parentReferral = await _userReferralRepository.GetByUserIdAsync(request.ParentUserId.Value, request.TenantId);
+            parentReferral = await _userReferralRepository.GetByUserIdAsync(request.ParentUserId.Value);
             if (parentReferral == null)
             {
                 throw new InvalidOperationException("Parent user referral not found");
@@ -46,8 +46,7 @@ public class CreateUserReferralCommandHandler : IRequestHandler<CreateUserReferr
 
         var userReferral = new UserReferral(
             request.UserId,
-            request.ParentUserId,
-            request.TenantId);
+            request.ParentUserId);
         
         userReferral.SetPath(path, level);
 
@@ -83,7 +82,7 @@ public class UpdateUserReferralCommandHandler : IRequestHandler<UpdateUserReferr
     public async Task<UserReferralDto> Handle(UpdateUserReferralCommand request, CancellationToken cancellationToken)
     {
         var userReferral = await _userReferralRepository.GetByIdAsync(request.Id);
-        if (userReferral == null || userReferral.TenantId != request.TenantId)
+        if (userReferral == null)
         {
             throw new InvalidOperationException("User referral not found");
         }
@@ -94,7 +93,7 @@ public class UpdateUserReferralCommandHandler : IRequestHandler<UpdateUserReferr
             UserReferral? newParent = null;
             if (request.ParentUserId.HasValue)
             {
-                newParent = await _userReferralRepository.GetByUserIdAsync(request.ParentUserId.Value, request.TenantId);
+                newParent = await _userReferralRepository.GetByUserIdAsync(request.ParentUserId.Value);
                 if (newParent == null)
                 {
                     throw new InvalidOperationException("New parent user referral not found");
@@ -139,7 +138,7 @@ public class ActivateUserReferralCommandHandler : IRequestHandler<ActivateUserRe
 
     public async Task<bool> Handle(ActivateUserReferralCommand request, CancellationToken cancellationToken)
     {
-        var userReferral = await _userReferralRepository.GetByUserIdAsync(request.UserId, request.TenantId);
+        var userReferral = await _userReferralRepository.GetByUserIdAsync(request.UserId);
         if (userReferral == null)
         {
             return false;
@@ -168,7 +167,7 @@ public class DeactivateUserReferralCommandHandler : IRequestHandler<DeactivateUs
 
     public async Task<bool> Handle(DeactivateUserReferralCommand request, CancellationToken cancellationToken)
     {
-        var userReferral = await _userReferralRepository.GetByUserIdAsync(request.UserId, request.TenantId);
+        var userReferral = await _userReferralRepository.GetByUserIdAsync(request.UserId);
         if (userReferral == null)
         {
             return false;
@@ -198,13 +197,13 @@ public class DeleteUserReferralCommandHandler : IRequestHandler<DeleteUserReferr
     public async Task<bool> Handle(DeleteUserReferralCommand request, CancellationToken cancellationToken)
     {
         var userReferral = await _userReferralRepository.GetByIdAsync(request.Id);
-        if (userReferral == null || userReferral.TenantId != request.TenantId)
+        if (userReferral == null)
         {
             return false;
         }
 
         // Check if user has children - prevent deletion if they do
-        var children = await _userReferralRepository.GetChildrenAsync(userReferral.UserId, request.TenantId);
+        var children = await _userReferralRepository.GetChildrenAsync(userReferral.UserId);
         if (children.Any())
         {
             throw new InvalidOperationException("Cannot delete user referral with existing children");

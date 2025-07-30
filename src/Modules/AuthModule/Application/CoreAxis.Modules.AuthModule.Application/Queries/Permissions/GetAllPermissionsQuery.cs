@@ -2,6 +2,7 @@ using CoreAxis.Modules.AuthModule.Application.DTOs;
 using CoreAxis.Modules.AuthModule.Domain.Repositories;
 using CoreAxis.SharedKernel;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace CoreAxis.Modules.AuthModule.Application.Queries.Permissions;
 
@@ -25,7 +26,7 @@ public class GetAllPermissionsQueryHandler : IRequestHandler<GetAllPermissionsQu
 
     public async Task<Result<IEnumerable<PermissionDto>>> Handle(GetAllPermissionsQuery request, CancellationToken cancellationToken)
     {
-        var permissions = await _permissionRepository.GetAllActiveAsync(cancellationToken);
+        var permissions = await _permissionRepository.GetAll().ToListAsync(cancellationToken);
         var pages = await _pageRepository.GetAllActiveAsync(cancellationToken);
         var actions = await _actionRepository.GetAllActiveAsync(cancellationToken);
         

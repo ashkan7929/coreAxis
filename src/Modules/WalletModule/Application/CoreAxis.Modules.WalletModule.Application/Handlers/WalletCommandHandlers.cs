@@ -40,7 +40,7 @@ public class CreateWalletCommandHandler : IRequestHandler<CreateWalletCommand, W
         }
 
         // Create new wallet
-        var wallet = new Wallet(request.UserId, request.WalletTypeId, request.TenantId, request.Currency);
+        var wallet = new Wallet(request.UserId, request.WalletTypeId, request.Currency);
         await _walletRepository.AddAsync(wallet, cancellationToken);
 
         _logger.LogInformation("Wallet created for user {UserId} with type {WalletTypeId}", request.UserId, request.WalletTypeId);
@@ -107,7 +107,7 @@ public class DepositCommandHandler : IRequestHandler<DepositCommand, Transaction
             }
 
             // Get deposit transaction type
-            var transactionType = await _transactionTypeRepository.GetByCodeAsync("DEPOSIT", request.TenantId, cancellationToken);
+            var transactionType = await _transactionTypeRepository.GetByCodeAsync("DEPOSIT", cancellationToken);
             if (transactionType == null)
             {
                 return new TransactionResultDto
@@ -128,7 +128,6 @@ public class DepositCommandHandler : IRequestHandler<DepositCommand, Transaction
                 request.Amount,
                 wallet.Balance,
                 request.Description,
-                request.TenantId,
                 request.Reference,
                 request.Metadata);
 

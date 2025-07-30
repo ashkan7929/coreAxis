@@ -5,9 +5,9 @@ namespace CoreAxis.Modules.AuthModule.Domain.Repositories;
 
 public interface IRoleRepository : IRepository<Role>
 {
-    Task<Role?> GetByNameAsync(string name, Guid tenantId, CancellationToken cancellationToken = default);
-    Task<bool> IsNameExistsAsync(string name, Guid tenantId, CancellationToken cancellationToken = default);
-    Task<IEnumerable<Role>> GetByTenantAsync(Guid tenantId, CancellationToken cancellationToken = default);
+    Task<Role?> GetByNameAsync(string name, CancellationToken cancellationToken = default);
+    Task<bool> IsNameExistsAsync(string name, CancellationToken cancellationToken = default);
+
     Task<Role?> GetWithPermissionsAsync(Guid id, CancellationToken cancellationToken = default);
     Task<IEnumerable<Role>> GetSystemRolesAsync(CancellationToken cancellationToken = default);
     Task<IEnumerable<RolePermission>> GetRolePermissionsAsync(Guid roleId, CancellationToken cancellationToken = default);

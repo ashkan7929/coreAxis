@@ -10,7 +10,6 @@ namespace CoreAxis.Modules.AuthModule.Application.Commands.Users;
 public record LoginCommand(
     string Username,
     string Password,
-    Guid TenantId,
     string IpAddress
 ) : IRequest<Result<LoginResultDto>>;
 
@@ -39,24 +38,24 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
     public async Task<Result<LoginResultDto>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
         // Get user by username
-        var user = await _userRepository.GetByUsernameAsync(request.Username, request.TenantId, cancellationToken);
+        var user = await _userRepository.GetByUsernameAsync(request.Username, cancellationToken);
         if (user == null)
         {
-            await LogFailedAttempt(request.Username, request.IpAddress, request.TenantId, "User not found", cancellationToken);
+            await LogFailedAttempt(request.Username, request.IpAddress, "User not found", cancellationToken);
             return Result<LoginResultDto>.Failure("Invalid username or password");
         }
 
         // Check if user is active
         if (!user.IsActive)
         {
-            await LogFailedAttempt(request.Username, request.IpAddress, request.TenantId, "User inactive", cancellationToken);
+            await LogFailedAttempt(request.Username, request.IpAddress, "User inactive", cancellationToken);
             return Result<LoginResultDto>.Failure("Account is inactive");
         }
 
         // Check if user is locked
         if (user.IsLocked)
         {
-            await LogFailedAttempt(request.Username, request.IpAddress, request.TenantId, "User locked", cancellationToken);
+            await LogFailedAttempt(request.Username, request.IpAddress, "User locked", cancellationToken);
             return Result<LoginResultDto>.Failure("Account is locked");
         }
 
@@ -65,7 +64,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
         {
             user.RecordFailedLogin();
             _userRepository.Update(user);
-            await LogFailedAttempt(request.Username, request.IpAddress, request.TenantId, "Invalid password", cancellationToken);
+            await LogFailedAttempt(request.Username, request.IpAddress, "Invalid password", cancellationToken);
             await _unitOfWork.SaveChangesAsync();
             return Result<LoginResultDto>.Failure("Invalid username or password");
         }
@@ -75,7 +74,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
         _userRepository.Update(user);
 
         // Log successful login
-        var loginLog = AccessLog.CreateLoginAttempt(user.Username, request.IpAddress, request.TenantId, true, userId: user.Id);
+        var loginLog = AccessLog.CreateLoginAttempt(user.Username, request.IpAddress, true, userId: user.Id);
         await _accessLogRepository.AddAsync(loginLog);
         await _unitOfWork.SaveChangesAsync();
 
@@ -91,8 +90,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
             IsLocked = user.IsLocked,
             CreatedAt = user.CreatedOn,
             LastLoginAt = user.LastLoginAt,
-            FailedLoginAttempts = user.FailedLoginAttempts,
-            TenantId = user.TenantId ?? Guid.Empty
+            FailedLoginAttempts = user.FailedLoginAttempts
         };
 
         var result = new LoginResultDto
@@ -105,9 +103,9 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
         return Result<LoginResultDto>.Success(result);
     }
 
-    private async Task LogFailedAttempt(string username, string ipAddress, Guid tenantId, string reason, CancellationToken cancellationToken)
+    private async Task LogFailedAttempt(string username, string ipAddress, string reason, CancellationToken cancellationToken)
     {
-        var failedLog = AccessLog.CreateLoginAttempt(username, ipAddress, tenantId, false, errorMessage: reason);
+        var failedLog = AccessLog.CreateLoginAttempt(username, ipAddress, false, errorMessage: reason);
         await _accessLogRepository.AddAsync(failedLog);
         await _unitOfWork.SaveChangesAsync();
     }

@@ -13,8 +13,7 @@ namespace CoreAxis.Modules.AuthModule.Application.Commands.Users;
 public record CreateUserCommand(
     string Username,
     string Email,
-    string Password,
-    Guid TenantId
+    string Password
 ) : IRequest<Result<UserDto>>;
 
 public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Result<UserDto>>
@@ -39,14 +38,14 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Resul
     public async Task<Result<UserDto>> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
         // Check if username already exists
-        var existingUser = await _userRepository.GetByUsernameAsync(request.Username, request.TenantId, cancellationToken);
+        var existingUser = await _userRepository.GetByUsernameAsync(request.Username, cancellationToken);
         if (existingUser != null)
         {
             return Result<UserDto>.Failure("Username already exists");
         }
 
         // Check if email already exists
-        var existingEmail = await _userRepository.GetByEmailAsync(request.Email, request.TenantId, cancellationToken);
+        var existingEmail = await _userRepository.GetByEmailAsync(request.Email, cancellationToken);
         if (existingEmail != null)
         {
             return Result<UserDto>.Failure("Email already exists");
@@ -59,8 +58,7 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Resul
         var user = new User(
             request.Username,
             request.Email,
-            passwordHash,
-            request.TenantId);
+            passwordHash);
 
         await _userRepository.AddAsync(user);
         await _unitOfWork.SaveChangesAsync();
@@ -68,9 +66,9 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Resul
         // Publish domain event
         var userRegisteredEvent = new UserRegisteredIntegrationEvent(
             user.Id,
-            user.Username,
             user.Email,
-            user.TenantId ?? Guid.Empty);
+            user.Username,
+            user.Username); // Using username as both FirstName and LastName as placeholders
         
         await _eventBus.PublishAsync(userRegisteredEvent);
 
@@ -83,8 +81,7 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Resul
             IsLocked = user.IsLocked,
             CreatedAt = user.CreatedOn,
             LastLoginAt = user.LastLoginAt,
-            FailedLoginAttempts = user.FailedLoginAttempts,
-            TenantId = user.TenantId ?? Guid.Empty
+            FailedLoginAttempts = user.FailedLoginAttempts
         };
 
         return Result<UserDto>.Success(userDto);

@@ -35,8 +35,8 @@ public class AuthDbContext : DbContext
             entity.Property(e => e.Username).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
             entity.Property(e => e.PasswordHash).IsRequired().HasMaxLength(500);
-            entity.HasIndex(e => new { e.Username, e.TenantId }).IsUnique();
-            entity.HasIndex(e => new { e.Email, e.TenantId }).IsUnique();
+            entity.HasIndex(e => e.Username).IsUnique();
+            entity.HasIndex(e => e.Email).IsUnique();
         });
 
         // Configure Role entity
@@ -45,7 +45,7 @@ public class AuthDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Description).HasMaxLength(500);
-            entity.HasIndex(e => new { e.Name, e.TenantId }).IsUnique();
+            entity.HasIndex(e => e.Name).IsUnique();
         });
 
         // Configure Permission entity

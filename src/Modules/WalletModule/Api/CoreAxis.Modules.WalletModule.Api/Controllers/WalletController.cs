@@ -27,13 +27,11 @@ public class WalletController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<WalletDto>> CreateWallet([FromBody] CreateWalletDto request)
     {
-        var tenantId = GetTenantId();
         var command = new CreateWalletCommand
         {
             UserId = request.UserId,
             WalletTypeId = request.WalletTypeId,
-            Currency = request.Currency,
-            TenantId = tenantId
+            Currency = request.Currency
         };
 
         var result = await _mediator.Send(command);
@@ -123,7 +121,6 @@ public class WalletController : ControllerBase
     [HttpPost("{id}/transfer")]
     public async Task<ActionResult<TransactionResultDto>> Transfer(Guid id, [FromBody] TransferRequestDto request)
     {
-        var tenantId = GetTenantId();
         var userId = GetUserId();
         var command = new TransferCommand
         {
@@ -133,7 +130,6 @@ public class WalletController : ControllerBase
             Description = request.Description,
             Reference = request.Reference,
             Metadata = request.Metadata,
-            TenantId = tenantId,
             UserId = userId
         };
 
@@ -152,7 +148,6 @@ public class WalletController : ControllerBase
         [FromQuery] Guid? transactionTypeId = null,
         [FromQuery] TransactionStatus? status = null)
     {
-        var tenantId = GetTenantId();
         var query = new GetTransactionsQuery
         {
             Filter = new TransactionFilterDto
@@ -162,22 +157,11 @@ public class WalletController : ControllerBase
                 ToDate = endDate,
                 TransactionTypeId = transactionTypeId,
                 Status = status
-            },
-            TenantId = tenantId
+            }
         };
 
         var result = await _mediator.Send(query);
         return Ok(result);
-    }
-
-    private Guid GetTenantId()
-    {
-        var tenantIdClaim = User.FindFirst("tenant_id") ?? User.FindFirst(ClaimTypes.GroupSid);
-        if (tenantIdClaim != null && Guid.TryParse(tenantIdClaim.Value, out var tenantId))
-        {
-            return tenantId;
-        }
-        throw new UnauthorizedAccessException("Tenant ID not found in claims");
     }
 
     private Guid GetUserId()

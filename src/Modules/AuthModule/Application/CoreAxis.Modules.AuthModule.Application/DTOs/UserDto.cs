@@ -10,7 +10,6 @@ public class UserDto
     public DateTime CreatedAt { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public int FailedLoginAttempts { get; set; }
-    public Guid TenantId { get; set; }
     public List<RoleDto> Roles { get; set; } = new();
 }
 
@@ -19,7 +18,6 @@ public class CreateUserDto
     public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
-    public Guid TenantId { get; set; }
 }
 
 public class UpdateUserDto
@@ -39,7 +37,6 @@ public class LoginDto
 {
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
-    public Guid TenantId { get; set; }
 }
 
 public class LoginResultDto

@@ -36,13 +36,7 @@ public class WalletRepository : IWalletRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<Wallet>> GetByTenantIdAsync(Guid tenantId, CancellationToken cancellationToken = default)
-    {
-        return await _context.Wallets
-            .Include(w => w.WalletType)
-            .Where(w => w.TenantId == tenantId)
-            .ToListAsync(cancellationToken);
-    }
+
 
     public async Task AddAsync(Wallet wallet, CancellationToken cancellationToken = default)
     {

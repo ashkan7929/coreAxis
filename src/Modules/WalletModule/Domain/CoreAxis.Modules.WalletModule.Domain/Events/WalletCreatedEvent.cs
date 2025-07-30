@@ -7,13 +7,11 @@ public class WalletCreatedEvent : DomainEvent
     public Guid WalletId { get; }
     public Guid UserId { get; }
     public Guid WalletTypeId { get; }
-    public Guid TenantId { get; }
 
-    public WalletCreatedEvent(Guid walletId, Guid userId, Guid walletTypeId, Guid tenantId)
+    public WalletCreatedEvent(Guid walletId, Guid userId, Guid walletTypeId)
     {
         WalletId = walletId;
         UserId = userId;
         WalletTypeId = walletTypeId;
-        TenantId = tenantId;
     }
 }

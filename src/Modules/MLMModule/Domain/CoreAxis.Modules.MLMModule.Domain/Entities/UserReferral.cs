@@ -18,11 +18,10 @@ public class UserReferral : EntityBase
     
     private UserReferral() { } // For EF Core
     
-    public UserReferral(Guid userId, Guid? parentUserId, Guid tenantId)
+    public UserReferral(Guid userId, Guid? parentUserId)
     {
         UserId = userId;
         ParentUserId = parentUserId;
-        TenantId = tenantId;
         JoinedAt = DateTime.UtcNow;
         CreatedOn = DateTime.UtcNow;
         

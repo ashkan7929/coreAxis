@@ -14,12 +14,11 @@ public class TransactionType : EntityBase
 
     private TransactionType() { } // For EF Core
 
-    public TransactionType(string name, string description, string code, Guid tenantId)
+    public TransactionType(string name, string description, string code)
     {
         Name = name;
         Description = description;
         Code = code;
-        TenantId = tenantId;
         CreatedOn = DateTime.UtcNow;
     }
 

@@ -65,7 +65,7 @@ public class WithdrawCommandHandler : IRequestHandler<WithdrawCommand, Transacti
             }
 
             // Get withdraw transaction type
-            var transactionType = await _transactionTypeRepository.GetByCodeAsync("WITHDRAW", request.TenantId, cancellationToken);
+            var transactionType = await _transactionTypeRepository.GetByCodeAsync("WITHDRAW", cancellationToken);
             if (transactionType == null)
             {
                 return new TransactionResultDto
@@ -86,7 +86,6 @@ public class WithdrawCommandHandler : IRequestHandler<WithdrawCommand, Transacti
                 -request.Amount, // Negative for withdrawal
                 wallet.Balance,
                 request.Description,
-                request.TenantId,
                 request.Reference,
                 request.Metadata);
 
@@ -202,8 +201,8 @@ public class TransferCommandHandler : IRequestHandler<TransferCommand, Transacti
             }
 
             // Get transfer transaction types
-            var transferOutType = await _transactionTypeRepository.GetByCodeAsync("TRANSFER_OUT", request.TenantId, cancellationToken);
-            var transferInType = await _transactionTypeRepository.GetByCodeAsync("TRANSFER_IN", request.TenantId, cancellationToken);
+            var transferOutType = await _transactionTypeRepository.GetByCodeAsync("TRANSFER_OUT", cancellationToken);
+            var transferInType = await _transactionTypeRepository.GetByCodeAsync("TRANSFER_IN", cancellationToken);
 
             if (transferOutType == null || transferInType == null)
             {
@@ -226,7 +225,6 @@ public class TransferCommandHandler : IRequestHandler<TransferCommand, Transacti
                 -request.Amount,
                 fromWallet.Balance,
                 request.Description,
-                request.TenantId,
                 request.Reference,
                 request.Metadata);
 
@@ -236,7 +234,6 @@ public class TransferCommandHandler : IRequestHandler<TransferCommand, Transacti
                 request.Amount,
                 toWallet.Balance,
                 request.Description,
-                request.TenantId,
                 request.Reference,
                 request.Metadata,
                 outTransaction.Id);
@@ -248,7 +245,6 @@ public class TransferCommandHandler : IRequestHandler<TransferCommand, Transacti
                 -request.Amount,
                 fromWallet.Balance,
                 request.Description,
-                request.TenantId,
                 request.Reference,
                 request.Metadata,
                 inTransaction.Id);

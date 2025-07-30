@@ -17,12 +17,11 @@ public class CommissionLevel : EntityBase
     
     private CommissionLevel() { } // For EF Core
     
-    public CommissionLevel(Guid commissionRuleSetId, int level, decimal percentage, Guid tenantId)
+    public CommissionLevel(Guid commissionRuleSetId, int level, decimal percentage)
     {
         CommissionRuleSetId = commissionRuleSetId;
         Level = level;
         Percentage = percentage;
-        TenantId = tenantId;
         CreatedOn = DateTime.UtcNow;
         
         ValidatePercentage();

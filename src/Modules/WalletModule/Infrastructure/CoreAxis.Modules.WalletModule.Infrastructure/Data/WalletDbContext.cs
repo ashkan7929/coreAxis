@@ -48,11 +48,6 @@ public class WalletDbContext : DbContext
                 modelBuilder.Entity(entityType.ClrType)
                     .Property(nameof(EntityBase.LastModifiedBy))
                     .HasMaxLength(256);
-
-                // Add index on TenantId for multi-tenancy
-                modelBuilder.Entity(entityType.ClrType)
-                    .HasIndex(nameof(EntityBase.TenantId))
-                    .HasDatabaseName($"IX_{entityType.GetTableName()}_TenantId");
             }
         }
     }

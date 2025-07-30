@@ -21,47 +21,41 @@ public class UserRepository : IUserRepository
         return await _context.Users.FindAsync(id);
     }
 
-    public async Task<User?> GetByUsernameAsync(string username, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<User?> GetByUsernameAsync(string username, CancellationToken cancellationToken = default)
     {
         return await _context.Users
-            .FirstOrDefaultAsync(u => u.Username == username && u.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Username == username, cancellationToken);
     }
 
-    public async Task<User?> GetByEmailAsync(string email, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         return await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == email && u.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
     }
 
-    public async Task<bool> IsUsernameExistsAsync(string username, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<bool> IsUsernameExistsAsync(string username, CancellationToken cancellationToken = default)
     {
         return await _context.Users
-            .AnyAsync(u => u.Username == username && u.TenantId == tenantId, cancellationToken);
+            .AnyAsync(u => u.Username == username, cancellationToken);
     }
 
-    public async Task<bool> IsEmailExistsAsync(string email, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<bool> IsEmailExistsAsync(string email, CancellationToken cancellationToken = default)
     {
         return await _context.Users
-            .AnyAsync(u => u.Email == email && u.TenantId == tenantId, cancellationToken);
+            .AnyAsync(u => u.Email == email, cancellationToken);
     }
 
-    public async Task<IEnumerable<User>> GetByTenantAsync(Guid tenantId, CancellationToken cancellationToken = default)
-    {
-        return await _context.Users
-            .Where(u => u.TenantId == tenantId)
-            .OrderBy(u => u.Username)
-            .ToListAsync(cancellationToken);
-    }
+    
 
-    public async Task<User?> GetWithRolesAsync(Guid userId, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<User?> GetWithRolesAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return await _context.Users
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
     }
 
-    public async Task<User?> GetWithPermissionsAsync(Guid userId, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<User?> GetWithPermissionsAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return await _context.Users
             .Include(u => u.UserPermissions)
@@ -70,7 +64,7 @@ public class UserRepository : IUserRepository
                 .ThenInclude(ur => ur.Role)
                     .ThenInclude(r => r.RolePermissions)
                         .ThenInclude(rp => rp.Permission)
-            .FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
     }
 
     public async Task AddAsync(User user, CancellationToken cancellationToken = default)
@@ -95,7 +89,7 @@ public class UserRepository : IUserRepository
         return await _context.Users.ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<string>> GetUserPermissionsAsync(Guid userId, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<string>> GetUserPermissionsAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var user = await _context.Users
             .Include(u => u.UserPermissions)
@@ -104,7 +98,7 @@ public class UserRepository : IUserRepository
                 .ThenInclude(ur => ur.Role)
                     .ThenInclude(r => r.RolePermissions)
                         .ThenInclude(rp => rp.Permission)
-            .FirstOrDefaultAsync(u => u.Id == userId && u.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
         if (user == null)
             return new List<string>();

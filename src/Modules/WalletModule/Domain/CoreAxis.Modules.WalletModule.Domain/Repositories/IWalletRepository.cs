@@ -7,7 +7,7 @@ public interface IWalletRepository
     Task<Wallet?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<Wallet?> GetByUserAndTypeAsync(Guid userId, Guid walletTypeId, CancellationToken cancellationToken = default);
     Task<IEnumerable<Wallet>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
-    Task<IEnumerable<Wallet>> GetByTenantIdAsync(Guid tenantId, CancellationToken cancellationToken = default);
+
     Task AddAsync(Wallet wallet, CancellationToken cancellationToken = default);
     Task UpdateAsync(Wallet wallet, CancellationToken cancellationToken = default);
     Task DeleteAsync(Wallet wallet, CancellationToken cancellationToken = default);

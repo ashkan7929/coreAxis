@@ -33,29 +33,28 @@ public class MLMService : IMLMService
         Guid sourcePaymentId,
         Guid productId,
         decimal amount,
-        Guid buyerUserId,
-        Guid tenantId)
+        Guid buyerUserId)
     {
         _logger.LogInformation("Processing commission for payment {PaymentId}, product {ProductId}, amount {Amount}", 
             sourcePaymentId, productId, amount);
 
         // Get commission rule set for the product
-        var ruleSet = await _ruleSetRepository.GetByProductIdAsync(productId, tenantId);
+        var ruleSet = await _ruleSetRepository.GetByProductIdAsync(productId);
         if (ruleSet == null)
         {
             // Fall back to default rule set
-            ruleSet = await _ruleSetRepository.GetDefaultAsync(tenantId);
+            ruleSet = await _ruleSetRepository.GetDefaultAsync();
         }
 
         if (ruleSet == null || !ruleSet.IsActive)
         {
-            _logger.LogWarning("No active commission rule set found for product {ProductId} or tenant {TenantId}", 
-                productId, tenantId);
+            _logger.LogWarning("No active commission rule set found for product {ProductId}", 
+                productId);
             return Enumerable.Empty<CommissionTransactionDto>();
         }
 
         // Get upline chain for the buyer
-        var uplineChain = await GetUplineChainAsync(buyerUserId, tenantId, ruleSet.MaxLevels);
+        var uplineChain = await GetUplineChainAsync(buyerUserId, ruleSet.MaxLevels);
         var uplineList = uplineChain.ToList();
 
         if (!uplineList.Any())
@@ -104,7 +103,6 @@ public class MLMService : IMLMService
                 commissionAmount,
                 amount,
                 level.Percentage,
-                tenantId,
                 productId);
 
             commissions.Add(commission);
@@ -126,14 +124,13 @@ public class MLMService : IMLMService
     public async Task<IEnumerable<CommissionCalculationDto>> CalculatePotentialCommissionsAsync(
         Guid productId,
         decimal amount,
-        Guid buyerUserId,
-        Guid tenantId)
+        Guid buyerUserId)
     {
         // Get commission rule set for the product
-        var ruleSet = await _ruleSetRepository.GetByProductIdAsync(productId, tenantId);
+        var ruleSet = await _ruleSetRepository.GetByProductIdAsync(productId);
         if (ruleSet == null)
         {
-            ruleSet = await _ruleSetRepository.GetDefaultAsync(tenantId);
+            ruleSet = await _ruleSetRepository.GetDefaultAsync();
         }
 
         if (ruleSet == null || !ruleSet.IsActive)
@@ -142,7 +139,7 @@ public class MLMService : IMLMService
         }
 
         // Get upline chain
-        var uplineChain = await GetUplineChainAsync(buyerUserId, tenantId, ruleSet.MaxLevels);
+        var uplineChain = await GetUplineChainAsync(buyerUserId, ruleSet.MaxLevels);
         var uplineList = uplineChain.ToList();
 
         var calculations = new List<CommissionCalculationDto>();
@@ -179,21 +176,20 @@ public class MLMService : IMLMService
 
     public async Task<NetworkTreeNodeDto> BuildNetworkTreeAsync(
         Guid userId,
-        Guid tenantId,
         int maxDepth = 10)
     {
-        var userReferral = await _userReferralRepository.GetByUserIdAsync(userId, tenantId);
+        var userReferral = await _userReferralRepository.GetByUserIdAsync(userId);
         if (userReferral == null)
         {
             throw new InvalidOperationException($"User referral not found for user {userId}");
         }
 
-        return await BuildNetworkTreeRecursiveAsync(userReferral, tenantId, 0, maxDepth);
+        return await BuildNetworkTreeRecursiveAsync(userReferral, 0, maxDepth);
     }
 
-    public async Task<MLMNetworkStatsDto> GetNetworkStatsAsync(Guid userId, Guid tenantId)
+    public async Task<MLMNetworkStatsDto> GetNetworkStatsAsync(Guid userId)
     {
-        var userReferral = await _userReferralRepository.GetByUserIdAsync(userId, tenantId);
+        var userReferral = await _userReferralRepository.GetByUserIdAsync(userId);
         if (userReferral == null)
         {
             return new MLMNetworkStatsDto
@@ -208,16 +204,16 @@ public class MLMService : IMLMService
             };
         }
 
-        var directChildren = await _userReferralRepository.GetChildrenAsync(userId, tenantId);
+        var directChildren = await _userReferralRepository.GetChildrenAsync(userId);
         var directChildrenList = directChildren.ToList();
         
-        var totalNetworkSize = await _userReferralRepository.GetNetworkSizeAsync(userId, tenantId);
+        var totalNetworkSize = await _userReferralRepository.GetNetworkSizeAsync(userId);
         var activeReferrals = directChildrenList.Count(c => c.IsActive);
         
-        var totalCommissions = await _commissionRepository.GetTotalEarningsAsync(userId, tenantId);
-        var pendingCommissions = await _commissionRepository.GetTotalPendingAsync(userId, tenantId);
+        var totalCommissions = await _commissionRepository.GetTotalEarningsAsync(userId);
+        var pendingCommissions = await _commissionRepository.GetTotalPendingAsync(userId);
         
-        var networkDepth = await CalculateNetworkDepthAsync(userId, tenantId);
+        var networkDepth = await CalculateNetworkDepthAsync(userId);
 
         return new MLMNetworkStatsDto
         {
@@ -233,8 +229,7 @@ public class MLMService : IMLMService
 
     public async Task<bool> ValidateReferralRelationshipAsync(
         Guid parentUserId,
-        Guid childUserId,
-        Guid tenantId)
+        Guid childUserId)
     {
         // Cannot refer yourself
         if (parentUserId == childUserId)
@@ -243,21 +238,21 @@ public class MLMService : IMLMService
         }
 
         // Check if child already has a parent
-        var existingChild = await _userReferralRepository.GetByUserIdAsync(childUserId, tenantId);
+        var existingChild = await _userReferralRepository.GetByUserIdAsync(childUserId);
         if (existingChild != null)
         {
             return false;
         }
 
         // Check if parent exists and is active
-        var parent = await _userReferralRepository.GetByUserIdAsync(parentUserId, tenantId);
+        var parent = await _userReferralRepository.GetByUserIdAsync(parentUserId);
         if (parent == null || !parent.IsActive)
         {
             return false;
         }
 
         // Check for circular reference (child cannot be in parent's upline)
-        var parentUpline = await GetUplineChainAsync(parentUserId, tenantId);
+        var parentUpline = await GetUplineChainAsync(parentUserId);
         if (parentUpline.Any(u => u.UserId == childUserId))
         {
             return false;
@@ -268,7 +263,6 @@ public class MLMService : IMLMService
 
     public async Task<IEnumerable<UserReferralDto>> GetUplineChainAsync(
         Guid userId,
-        Guid tenantId,
         int maxLevels = 10)
     {
         var uplineChain = new List<UserReferralDto>();
@@ -277,13 +271,13 @@ public class MLMService : IMLMService
 
         while (level < maxLevels)
         {
-            var userReferral = await _userReferralRepository.GetByUserIdAsync(currentUserId, tenantId);
+            var userReferral = await _userReferralRepository.GetByUserIdAsync(currentUserId);
             if (userReferral?.ParentUserId == null)
             {
                 break;
             }
 
-            var parentReferral = await _userReferralRepository.GetByUserIdAsync(userReferral.ParentUserId.Value, tenantId);
+            var parentReferral = await _userReferralRepository.GetByUserIdAsync(userReferral.ParentUserId.Value);
             if (parentReferral == null)
             {
                 break;
@@ -297,10 +291,10 @@ public class MLMService : IMLMService
         return uplineChain;
     }
 
-    public async Task<int> ProcessExpiredCommissionsAsync(Guid tenantId, DateTime expirationDate)
+    public async Task<int> ProcessExpiredCommissionsAsync(DateTime expirationDate)
     {
         var pendingCommissions = await _commissionRepository.GetByStatusAsync(
-            CommissionStatus.Pending, tenantId);
+            CommissionStatus.Pending);
 
         var expiredCommissions = pendingCommissions
             .Where(c => c.CreatedOn <= expirationDate)
@@ -313,15 +307,14 @@ public class MLMService : IMLMService
             await _eventDispatcher.DispatchAsync(commission.DomainEvents);
         }
 
-        _logger.LogInformation("Processed {Count} expired commissions for tenant {TenantId}", 
-            expiredCommissions.Count, tenantId);
+        _logger.LogInformation("Processed {Count} expired commissions", 
+            expiredCommissions.Count);
 
         return expiredCommissions.Count;
     }
 
     private async Task<NetworkTreeNodeDto> BuildNetworkTreeRecursiveAsync(
         UserReferral userReferral,
-        Guid tenantId,
         int currentDepth,
         int maxDepth)
     {
@@ -336,10 +329,10 @@ public class MLMService : IMLMService
 
         if (currentDepth < maxDepth)
         {
-            var children = await _userReferralRepository.GetChildrenAsync(userReferral.UserId, tenantId);
+            var children = await _userReferralRepository.GetChildrenAsync(userReferral.UserId);
             foreach (var child in children)
             {
-                var childNode = await BuildNetworkTreeRecursiveAsync(child, tenantId, currentDepth + 1, maxDepth);
+                var childNode = await BuildNetworkTreeRecursiveAsync(child, currentDepth + 1, maxDepth);
                 node.Children.Add(childNode);
             }
         }
@@ -347,30 +340,30 @@ public class MLMService : IMLMService
         return node;
     }
 
-    private async Task<int> CalculateNetworkDepthAsync(Guid userId, Guid tenantId)
+    private async Task<int> CalculateNetworkDepthAsync(Guid userId)
     {
-        return await CalculateDepthRecursiveAsync(userId, tenantId, 0);
+        return await CalculateDepthRecursiveAsync(userId, 0);
     }
 
-    private async Task<int> CalculateDepthRecursiveAsync(Guid userId, Guid tenantId, int currentDepth)
+    private async Task<int> CalculateDepthRecursiveAsync(Guid userId, int currentDepth)
     {
         var maxDepth = currentDepth;
         
-        var children = await _userReferralRepository.GetChildrenAsync(userId, tenantId);
+        var children = await _userReferralRepository.GetChildrenAsync(userId);
         foreach (var child in children)
         {
-            var childDepth = await CalculateDepthRecursiveAsync(child.UserId, tenantId, currentDepth + 1);
+            var childDepth = await CalculateDepthRecursiveAsync(child.UserId, currentDepth + 1);
             maxDepth = Math.Max(maxDepth, childDepth);
         }
         
         return maxDepth;
     }
 
-    private async Task<decimal> GetUserTotalSalesAsync(Guid userId, Guid tenantId)
+    private async Task<decimal> GetUserTotalSalesAsync(Guid userId)
     {
         // This would typically integrate with a sales/order system
         // For now, we'll return the total commission earnings as a proxy
-        return await _commissionRepository.GetTotalEarningsAsync(userId, tenantId);
+        return await _commissionRepository.GetTotalEarningsAsync(userId);
     }
 
     private static CommissionTransactionDto MapToDto(CommissionTransaction commission)

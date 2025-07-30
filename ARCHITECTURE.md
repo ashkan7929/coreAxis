@@ -2,7 +2,7 @@
 
 ## Overview
 
-CoreAxis is a clean, scalable, modular SaaS platform built with .NET Core, following SOLID principles and clean architecture. It is designed to support multi-tenant businesses with extensible modules and multi-language support. The foundation is future-proof, allowing hundreds of modules to communicate seamlessly.
+CoreAxis is a clean, scalable, modular SaaS platform built with .NET Core, following SOLID principles and clean architecture. It is designed to support with extensible modules and multi-language support. The foundation is future-proof, allowing hundreds of modules to communicate seamlessly.
 
 ## Solution Structure
 

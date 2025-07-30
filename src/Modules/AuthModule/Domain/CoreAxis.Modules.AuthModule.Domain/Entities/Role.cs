@@ -14,11 +14,10 @@ public class Role : EntityBase
 
     private Role() { } // For EF Core
 
-    public Role(string name, Guid tenantId, string? description = null, bool isSystemRole = false)
+    public Role(string name, string? description = null, bool isSystemRole = false)
     {
         Name = name;
         Description = description;
-        TenantId = tenantId;
         IsSystemRole = isSystemRole;
     }
 

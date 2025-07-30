@@ -2,18 +2,18 @@ using CoreAxis.SharedKernel.IntegrationEvents;
 
 namespace CoreAxis.Modules.AuthModule.Application.IntegrationEvents;
 
-public class UserRegisteredIntegrationEvent : IntegrationEvent
+public class UserRegisteredIntegrationEvent : IntegrationEvent, IIntegrationEvent
 {
     public Guid UserId { get; }
-    public string Username { get; }
     public string Email { get; }
-    public Guid TenantId { get; }
-
-    public UserRegisteredIntegrationEvent(Guid userId, string username, string email, Guid tenantId)
+    public string FirstName { get; }
+    public string LastName { get; }
+    
+    public UserRegisteredIntegrationEvent(Guid userId, string email, string firstName, string lastName)
     {
         UserId = userId;
-        Username = username;
         Email = email;
-        TenantId = tenantId;
+        FirstName = firstName;
+        LastName = lastName;
     }
 }

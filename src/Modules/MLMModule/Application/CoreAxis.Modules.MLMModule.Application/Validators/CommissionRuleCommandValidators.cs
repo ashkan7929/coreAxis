@@ -7,9 +7,7 @@ public class CreateCommissionRuleSetCommandValidator : AbstractValidator<CreateC
 {
     public CreateCommissionRuleSetCommandValidator()
     {
-        RuleFor(x => x.TenantId)
-            .NotEmpty()
-            .WithMessage("Tenant ID is required.");
+
 
         RuleFor(x => x.Name)
             .NotEmpty()
@@ -82,9 +80,7 @@ public class UpdateCommissionRuleSetCommandValidator : AbstractValidator<UpdateC
             .NotEmpty()
             .WithMessage("Rule set ID is required.");
 
-        RuleFor(x => x.TenantId)
-            .NotEmpty()
-            .WithMessage("Tenant ID is required.");
+
 
         RuleFor(x => x.Name)
             .NotEmpty()
@@ -112,9 +108,7 @@ public class ActivateCommissionRuleSetCommandValidator : AbstractValidator<Activ
             .NotEmpty()
             .WithMessage("Rule set ID is required.");
 
-        RuleFor(x => x.TenantId)
-            .NotEmpty()
-            .WithMessage("Tenant ID is required.");
+
     }
 }
 
@@ -126,9 +120,7 @@ public class DeactivateCommissionRuleSetCommandValidator : AbstractValidator<Dea
             .NotEmpty()
             .WithMessage("Rule set ID is required.");
 
-        RuleFor(x => x.TenantId)
-            .NotEmpty()
-            .WithMessage("Tenant ID is required.");
+
     }
 }
 
@@ -140,9 +132,7 @@ public class SetDefaultCommissionRuleSetCommandValidator : AbstractValidator<Set
             .NotEmpty()
             .WithMessage("Rule set ID is required.");
 
-        RuleFor(x => x.TenantId)
-            .NotEmpty()
-            .WithMessage("Tenant ID is required.");
+
     }
 }
 
@@ -154,9 +144,7 @@ public class DeleteCommissionRuleSetCommandValidator : AbstractValidator<DeleteC
             .NotEmpty()
             .WithMessage("Rule set ID is required.");
 
-        RuleFor(x => x.TenantId)
-            .NotEmpty()
-            .WithMessage("Tenant ID is required.");
+
     }
 }
 
@@ -168,9 +156,7 @@ public class AddProductRuleBindingCommandValidator : AbstractValidator<AddProduc
             .NotEmpty()
             .WithMessage("Commission rule set ID is required.");
 
-        RuleFor(x => x.TenantId)
-            .NotEmpty()
-            .WithMessage("Tenant ID is required.");
+
 
         RuleFor(x => x.ProductId)
             .NotEmpty()

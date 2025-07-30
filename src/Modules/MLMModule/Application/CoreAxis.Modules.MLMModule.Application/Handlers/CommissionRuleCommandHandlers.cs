@@ -25,7 +25,6 @@ public class CreateCommissionRuleSetCommandHandler : IRequestHandler<CreateCommi
         var ruleSet = new CommissionRuleSet(
             request.Name,
             request.Description,
-            request.TenantId,
             request.MaxLevels);
 
         // Add commission levels
@@ -36,8 +35,7 @@ public class CreateCommissionRuleSetCommandHandler : IRequestHandler<CreateCommi
                 var level = new CommissionLevel(
                     ruleSet.Id,
                     levelDto.Level,
-                    levelDto.Percentage,
-                    request.TenantId);
+                    levelDto.Percentage);
                 
                 ruleSet.AddLevel(level);
             }
@@ -87,7 +85,7 @@ public class UpdateCommissionRuleSetCommandHandler : IRequestHandler<UpdateCommi
     public async Task<CommissionRuleSetDto> Handle(UpdateCommissionRuleSetCommand request, CancellationToken cancellationToken)
     {
         var ruleSet = await _ruleSetRepository.GetByIdAsync(request.Id);
-        if (ruleSet == null || ruleSet.TenantId != request.TenantId)
+        if (ruleSet == null)
         {
             throw new InvalidOperationException("Commission rule set not found.");
         }
@@ -147,7 +145,7 @@ public class ActivateCommissionRuleSetCommandHandler : IRequestHandler<ActivateC
     public async Task<bool> Handle(ActivateCommissionRuleSetCommand request, CancellationToken cancellationToken)
     {
         var ruleSet = await _ruleSetRepository.GetByIdAsync(request.RuleSetId);
-        if (ruleSet == null || ruleSet.TenantId != request.TenantId)
+        if (ruleSet == null)
         {
             return false;
         }
@@ -176,7 +174,7 @@ public class DeactivateCommissionRuleSetCommandHandler : IRequestHandler<Deactiv
     public async Task<bool> Handle(DeactivateCommissionRuleSetCommand request, CancellationToken cancellationToken)
     {
         var ruleSet = await _ruleSetRepository.GetByIdAsync(request.RuleSetId);
-        if (ruleSet == null || ruleSet.TenantId != request.TenantId)
+        if (ruleSet == null)
         {
             return false;
         }
@@ -211,13 +209,13 @@ public class SetDefaultCommissionRuleSetCommandHandler : IRequestHandler<SetDefa
     public async Task<bool> Handle(SetDefaultCommissionRuleSetCommand request, CancellationToken cancellationToken)
     {
         var ruleSet = await _ruleSetRepository.GetByIdAsync(request.RuleSetId);
-        if (ruleSet == null || ruleSet.TenantId != request.TenantId)
+        if (ruleSet == null)
         {
             return false;
         }
 
         // Remove default from existing default rule set
-        var existingDefault = await _ruleSetRepository.GetDefaultAsync(request.TenantId);
+        var existingDefault = await _ruleSetRepository.GetDefaultAsync();
         if (existingDefault != null && existingDefault.Id != ruleSet.Id)
         {
             existingDefault.RemoveAsDefault();
@@ -248,7 +246,7 @@ public class DeleteCommissionRuleSetCommandHandler : IRequestHandler<DeleteCommi
     public async Task<bool> Handle(DeleteCommissionRuleSetCommand request, CancellationToken cancellationToken)
     {
         var ruleSet = await _ruleSetRepository.GetByIdAsync(request.RuleSetId);
-        if (ruleSet == null || ruleSet.TenantId != request.TenantId)
+        if (ruleSet == null)
         {
             return false;
         }
@@ -282,7 +280,7 @@ public class AddProductRuleBindingCommandHandler : IRequestHandler<AddProductRul
     public async Task<ProductRuleBindingDto> Handle(AddProductRuleBindingCommand request, CancellationToken cancellationToken)
     {
         var ruleSet = await _ruleSetRepository.GetByIdAsync(request.CommissionRuleSetId);
-        if (ruleSet == null || ruleSet.TenantId != request.TenantId)
+        if (ruleSet == null)
         {
             throw new InvalidOperationException("Commission rule set not found.");
         }
@@ -295,8 +293,7 @@ public class AddProductRuleBindingCommandHandler : IRequestHandler<AddProductRul
 
         var binding = new ProductRuleBinding(
             request.CommissionRuleSetId,
-            request.ProductId,
-            request.TenantId);
+            request.ProductId);
 
         if (request.ValidFrom.HasValue || request.ValidTo.HasValue)
         {

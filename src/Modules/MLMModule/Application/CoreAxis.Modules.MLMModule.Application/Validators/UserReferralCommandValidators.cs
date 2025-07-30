@@ -7,9 +7,7 @@ public class CreateUserReferralCommandValidator : AbstractValidator<CreateUserRe
 {
     public CreateUserReferralCommandValidator()
     {
-        RuleFor(x => x.TenantId)
-            .NotEmpty()
-            .WithMessage("Tenant ID is required.");
+
 
         RuleFor(x => x.UserId)
             .NotEmpty()
@@ -30,9 +28,7 @@ public class UpdateUserReferralCommandValidator : AbstractValidator<UpdateUserRe
             .NotEmpty()
             .WithMessage("Referral ID is required.");
 
-        RuleFor(x => x.TenantId)
-            .NotEmpty()
-            .WithMessage("Tenant ID is required.");
+
     }
 }
 
@@ -44,9 +40,7 @@ public class ActivateUserReferralCommandValidator : AbstractValidator<ActivateUs
             .NotEmpty()
             .WithMessage("User ID is required.");
 
-        RuleFor(x => x.TenantId)
-            .NotEmpty()
-            .WithMessage("Tenant ID is required.");
+
     }
 }
 
@@ -58,9 +52,7 @@ public class DeactivateUserReferralCommandValidator : AbstractValidator<Deactiva
             .NotEmpty()
             .WithMessage("User ID is required.");
 
-        RuleFor(x => x.TenantId)
-            .NotEmpty()
-            .WithMessage("Tenant ID is required.");
+
     }
 }
 
@@ -72,8 +64,6 @@ public class DeleteUserReferralCommandValidator : AbstractValidator<DeleteUserRe
             .NotEmpty()
             .WithMessage("Referral ID is required.");
 
-        RuleFor(x => x.TenantId)
-            .NotEmpty()
-            .WithMessage("Tenant ID is required.");
+
     }
 }

@@ -9,7 +9,7 @@ public class AccessLogDto
     public string IpAddress { get; set; } = string.Empty;
     public bool IsSuccess { get; set; }
     public DateTime Timestamp { get; set; }
-    public Guid TenantId { get; set; }
+
 }
 
 public class CreateAccessLogDto
@@ -19,7 +19,7 @@ public class CreateAccessLogDto
     public string Action { get; set; } = string.Empty;
     public string IpAddress { get; set; } = string.Empty;
     public bool IsSuccess { get; set; }
-    public Guid TenantId { get; set; }
+
 }
 
 public class AccessLogFilterDto
@@ -29,7 +29,7 @@ public class AccessLogFilterDto
     public bool? IsSuccess { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
-    public Guid TenantId { get; set; }
+
     public int PageSize { get; set; } = 50;
     public int PageNumber { get; set; } = 1;
 }

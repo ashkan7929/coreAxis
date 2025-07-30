@@ -2,23 +2,24 @@ using CoreAxis.Modules.AuthModule.Application.DTOs;
 using CoreAxis.Modules.AuthModule.Domain.Repositories;
 using CoreAxis.SharedKernel;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace CoreAxis.Modules.AuthModule.Application.Queries.Roles;
 
-public record GetRolesByTenantQuery(Guid TenantId) : IRequest<Result<IEnumerable<RoleDto>>>;
+public record GetRolesQuery() : IRequest<Result<IEnumerable<RoleDto>>>;
 
-public class GetRolesByTenantQueryHandler : IRequestHandler<GetRolesByTenantQuery, Result<IEnumerable<RoleDto>>>
+public class GetRolesQueryHandler : IRequestHandler<GetRolesQuery, Result<IEnumerable<RoleDto>>>
 {
     private readonly IRoleRepository _roleRepository;
 
-    public GetRolesByTenantQueryHandler(IRoleRepository roleRepository)
+    public GetRolesQueryHandler(IRoleRepository roleRepository)
     {
         _roleRepository = roleRepository;
     }
 
-    public async Task<Result<IEnumerable<RoleDto>>> Handle(GetRolesByTenantQuery request, CancellationToken cancellationToken)
+    public async Task<Result<IEnumerable<RoleDto>>> Handle(GetRolesQuery request, CancellationToken cancellationToken)
     {
-        var roles = await _roleRepository.GetByTenantAsync(request.TenantId, cancellationToken);
+        var roles = await _roleRepository.GetAll().ToListAsync(cancellationToken);
         
         var roleDtos = roles.Select(role => new RoleDto
         {
@@ -28,7 +29,7 @@ public class GetRolesByTenantQueryHandler : IRequestHandler<GetRolesByTenantQuer
             IsActive = role.IsActive,
             IsSystemRole = role.IsSystemRole,
             CreatedAt = role.CreatedOn,
-            TenantId = role.TenantId ?? Guid.Empty
+            
         }).ToList();
 
         return Result<IEnumerable<RoleDto>>.Success(roleDtos);

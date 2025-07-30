@@ -8,14 +8,12 @@ public class CommissionPaidEvent : DomainEvent
     public Guid UserId { get; }
     public decimal Amount { get; }
     public Guid WalletTransactionId { get; }
-    public Guid? TenantId { get; }
     
-    public CommissionPaidEvent(Guid commissionId, Guid userId, decimal amount, Guid walletTransactionId, Guid? tenantId)
+    public CommissionPaidEvent(Guid commissionId, Guid userId, decimal amount, Guid walletTransactionId)
     {
         CommissionId = commissionId;
         UserId = userId;
         Amount = amount;
         WalletTransactionId = walletTransactionId;
-        TenantId = tenantId;
     }
 }

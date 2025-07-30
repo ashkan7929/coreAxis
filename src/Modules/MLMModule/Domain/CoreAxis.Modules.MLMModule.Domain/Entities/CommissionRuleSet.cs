@@ -18,11 +18,10 @@ public class CommissionRuleSet : EntityBase
     
     private CommissionRuleSet() { } // For EF Core
     
-    public CommissionRuleSet(string name, string description, Guid tenantId, int maxLevels = 10)
+    public CommissionRuleSet(string name, string description, int maxLevels = 10)
     {
         Name = name;
         Description = description;
-        TenantId = tenantId;
         MaxLevels = maxLevels;
         CreatedOn = DateTime.UtcNow;
     }

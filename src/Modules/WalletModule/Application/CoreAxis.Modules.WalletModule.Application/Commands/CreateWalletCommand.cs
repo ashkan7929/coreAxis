@@ -8,7 +8,6 @@ public class CreateWalletCommand : IRequest<WalletDto>
     public Guid UserId { get; set; }
     public Guid WalletTypeId { get; set; }
     public string Currency { get; set; } = "USD";
-    public Guid TenantId { get; set; }
 }
 
 public class DepositCommand : IRequest<TransactionResultDto>
@@ -18,7 +17,6 @@ public class DepositCommand : IRequest<TransactionResultDto>
     public string Description { get; set; } = string.Empty;
     public string? Reference { get; set; }
     public object? Metadata { get; set; }
-    public Guid TenantId { get; set; }
     public Guid UserId { get; set; }
 }
 
@@ -29,7 +27,6 @@ public class WithdrawCommand : IRequest<TransactionResultDto>
     public string Description { get; set; } = string.Empty;
     public string? Reference { get; set; }
     public object? Metadata { get; set; }
-    public Guid TenantId { get; set; }
     public Guid UserId { get; set; }
 }
 
@@ -41,6 +38,5 @@ public class TransferCommand : IRequest<TransactionResultDto>
     public string Description { get; set; } = string.Empty;
     public string? Reference { get; set; }
     public object? Metadata { get; set; }
-    public Guid TenantId { get; set; }
     public Guid UserId { get; set; }
 }

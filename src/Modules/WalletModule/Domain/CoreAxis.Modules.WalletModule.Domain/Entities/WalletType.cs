@@ -13,11 +13,10 @@ public class WalletType : EntityBase
 
     private WalletType() { } // For EF Core
 
-    public WalletType(string name, string description, Guid tenantId)
+    public WalletType(string name, string description)
     {
         Name = name;
         Description = description;
-        TenantId = tenantId;
         CreatedOn = DateTime.UtcNow;
     }
 

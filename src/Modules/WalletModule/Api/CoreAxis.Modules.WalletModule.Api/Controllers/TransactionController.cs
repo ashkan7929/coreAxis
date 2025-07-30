@@ -47,7 +47,6 @@ public class TransactionController : ControllerBase
         [FromQuery] Guid? transactionTypeId = null,
         [FromQuery] TransactionStatus? status = null)
     {
-        var tenantId = GetTenantId();
         var query = new GetTransactionsQuery
         {
             Filter = new TransactionFilterDto
@@ -58,8 +57,7 @@ public class TransactionController : ControllerBase
                 ToDate = endDate,
                 TransactionTypeId = transactionTypeId,
                 Status = status
-            },
-            TenantId = tenantId
+            }
         };
 
         var result = await _mediator.Send(query);
@@ -77,7 +75,6 @@ public class TransactionController : ControllerBase
         [FromQuery] Guid? transactionTypeId = null,
         [FromQuery] TransactionStatus? status = null)
     {
-        var tenantId = GetTenantId();
         var query = new GetTransactionsQuery
         {
             Filter = new TransactionFilterDto
@@ -87,21 +84,12 @@ public class TransactionController : ControllerBase
                 ToDate = endDate,
                 TransactionTypeId = transactionTypeId,
                 Status = status
-            },
-            TenantId = tenantId
+            }
         };
 
         var result = await _mediator.Send(query);
         return Ok(result);
     }
 
-    private Guid GetTenantId()
-    {
-        var tenantIdClaim = User.FindFirst("tenant_id") ?? User.FindFirst(ClaimTypes.GroupSid);
-        if (tenantIdClaim != null && Guid.TryParse(tenantIdClaim.Value, out var tenantId))
-        {
-            return tenantId;
-        }
-        throw new UnauthorizedAccessException("Tenant ID not found in claims");
-    }
+
 }

@@ -15,11 +15,10 @@ public class ProductRuleBinding : EntityBase
     
     private ProductRuleBinding() { } // For EF Core
     
-    public ProductRuleBinding(Guid commissionRuleSetId, Guid productId, Guid tenantId)
+    public ProductRuleBinding(Guid commissionRuleSetId, Guid productId)
     {
         CommissionRuleSetId = commissionRuleSetId;
         ProductId = productId;
-        TenantId = tenantId;
         CreatedOn = DateTime.UtcNow;
     }
     

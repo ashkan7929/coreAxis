@@ -21,15 +21,14 @@ public class User : EntityBase
 
     private User() { } // For EF Core
 
-    public User(string username, string email, string passwordHash, Guid tenantId, string? phoneNumber = null)
+    public User(string username, string email, string passwordHash, string? phoneNumber = null)
     {
         Username = username;
         Email = email;
         PasswordHash = passwordHash;
-        TenantId = tenantId;
         PhoneNumber = phoneNumber;
         
-        AddDomainEvent(new UserRegisteredEvent(Id, username, email, tenantId));
+        AddDomainEvent(new UserRegisteredEvent(Id, username, email));
     }
 
     public void UpdatePassword(string newPasswordHash)

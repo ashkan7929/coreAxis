@@ -19,15 +19,14 @@ public class Wallet : EntityBase
 
     private Wallet() { } // For EF Core
 
-    public Wallet(Guid userId, Guid walletTypeId, Guid tenantId, string currency = "USD")
+    public Wallet(Guid userId, Guid walletTypeId, string currency = "USD")
     {
         UserId = userId;
         WalletTypeId = walletTypeId;
-        TenantId = tenantId;
         Currency = currency;
         CreatedOn = DateTime.UtcNow;
         
-        AddDomainEvent(new WalletCreatedEvent(Id, userId, walletTypeId, tenantId));
+        AddDomainEvent(new WalletCreatedEvent(Id, userId, walletTypeId));
     }
 
     public void Credit(decimal amount, string reason = "")

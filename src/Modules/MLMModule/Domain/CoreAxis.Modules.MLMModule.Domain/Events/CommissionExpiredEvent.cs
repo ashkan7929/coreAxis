@@ -7,13 +7,11 @@ public class CommissionExpiredEvent : DomainEvent
     public Guid CommissionId { get; }
     public Guid UserId { get; }
     public decimal Amount { get; }
-    public Guid? TenantId { get; }
     
-    public CommissionExpiredEvent(Guid commissionId, Guid userId, decimal amount, Guid? tenantId)
+    public CommissionExpiredEvent(Guid commissionId, Guid userId, decimal amount)
     {
         CommissionId = commissionId;
         UserId = userId;
         Amount = amount;
-        TenantId = tenantId;
     }
 }

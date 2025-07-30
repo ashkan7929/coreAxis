@@ -11,7 +11,6 @@ public class CreateCommissionRuleSetCommand : IRequest<CommissionRuleSetDto>
     public decimal MinimumPurchaseAmount { get; set; } = 0;
     public bool RequireActiveUpline { get; set; } = true;
     public List<CreateCommissionLevelDto> CommissionLevels { get; set; } = new();
-    public Guid TenantId { get; set; }
 }
 
 public class UpdateCommissionRuleSetCommand : IRequest<CommissionRuleSetDto>
@@ -24,31 +23,26 @@ public class UpdateCommissionRuleSetCommand : IRequest<CommissionRuleSetDto>
     public bool RequireActiveUpline { get; set; }
     public bool IsActive { get; set; }
     public List<CreateCommissionLevelDto> CommissionLevels { get; set; } = new();
-    public Guid TenantId { get; set; }
 }
 
 public class ActivateCommissionRuleSetCommand : IRequest<bool>
 {
     public Guid RuleSetId { get; set; }
-    public Guid TenantId { get; set; }
 }
 
 public class DeactivateCommissionRuleSetCommand : IRequest<bool>
 {
     public Guid RuleSetId { get; set; }
-    public Guid TenantId { get; set; }
 }
 
 public class SetDefaultCommissionRuleSetCommand : IRequest<bool>
 {
     public Guid RuleSetId { get; set; }
-    public Guid TenantId { get; set; }
 }
 
 public class DeleteCommissionRuleSetCommand : IRequest<bool>
 {
     public Guid RuleSetId { get; set; }
-    public Guid TenantId { get; set; }
 }
 
 public class AddProductRuleBindingCommand : IRequest<ProductRuleBindingDto>
@@ -57,5 +51,4 @@ public class AddProductRuleBindingCommand : IRequest<ProductRuleBindingDto>
     public Guid ProductId { get; set; }
     public DateTime? ValidFrom { get; set; }
     public DateTime? ValidTo { get; set; }
-    public Guid TenantId { get; set; }
 }

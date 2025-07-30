@@ -29,7 +29,6 @@ public class WalletContract : EntityBase
         decimal maxAmount,
         decimal dailyLimit,
         decimal monthlyLimit,
-        Guid tenantId,
         string? terms = null)
     {
         UserId = userId;
@@ -39,7 +38,6 @@ public class WalletContract : EntityBase
         DailyLimit = dailyLimit;
         MonthlyLimit = monthlyLimit;
         Terms = terms;
-        TenantId = tenantId;
         LastResetDate = DateTime.UtcNow.Date;
         CreatedOn = DateTime.UtcNow;
     }

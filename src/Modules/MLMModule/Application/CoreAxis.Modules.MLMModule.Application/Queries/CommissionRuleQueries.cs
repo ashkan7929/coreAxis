@@ -6,42 +6,35 @@ namespace CoreAxis.Modules.MLMModule.Application.Queries;
 public class GetCommissionRuleSetByIdQuery : IRequest<CommissionRuleSetDto?>
 {
     public Guid RuleSetId { get; set; }
-    public Guid TenantId { get; set; }
 }
 
 public class GetDefaultCommissionRuleSetQuery : IRequest<CommissionRuleSetDto?>
 {
-    public Guid TenantId { get; set; }
 }
 
 public class GetCommissionRuleSetByProductQuery : IRequest<CommissionRuleSetDto?>
 {
     public Guid ProductId { get; set; }
-    public Guid TenantId { get; set; }
     public DateTime? EffectiveDate { get; set; }
 }
 
 public class GetActiveCommissionRuleSetsQuery : IRequest<IEnumerable<CommissionRuleSetDto>>
 {
-    public Guid TenantId { get; set; }
 }
 
 public class GetAllCommissionRuleSetsQuery : IRequest<IEnumerable<CommissionRuleSetDto>>
 {
-    public Guid TenantId { get; set; }
     public bool ActiveOnly { get; set; } = false;
 }
 
 public class GetProductRuleBindingsQuery : IRequest<IEnumerable<ProductRuleBindingDto>>
 {
     public Guid RuleSetId { get; set; }
-    public Guid TenantId { get; set; }
     public bool ActiveOnly { get; set; } = true;
 }
 
 public class GetProductRuleBindingsByProductQuery : IRequest<IEnumerable<ProductRuleBindingDto>>
 {
     public Guid ProductId { get; set; }
-    public Guid TenantId { get; set; }
     public DateTime? EffectiveDate { get; set; }
 }

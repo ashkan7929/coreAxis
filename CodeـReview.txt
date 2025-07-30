@@ -19,7 +19,7 @@
 ### 🌐 Multi-Language
 - [ ] IStringLocalizer integrated.
 - [ ] Resource files (.resx) exist and sample translations tested.
-- [ ] Middleware properly reads `Accept-Language` or tenant default.
+- [ ] Middleware properly reads `Accept-Language` .
 
 ### 📦 Event Bus
 - [ ] MediatR integrated for in-process events.
@@ -65,17 +65,17 @@
 
 ### 🧩 **Domain Models & Database**
 
-* [ ] Entities implemented: `User`, `Role`, `Page`, `Action`, `Permission`, `UserRole`, `RolePermission`, `UserPermission` with audit fields and `TenantId`.
+* [ ] Entities implemented: `User`, `Role`, `Page`, `Action`, `Permission`, `UserRole`, `RolePermission`, `UserPermission` with audit fields.
 * [ ] EF Core configurations (Fluent API) correctly map relationships and indexes.
 * [ ] Migrations created and applied (tables exist with correct naming conventions).
-* [ ] Tenant filtering implemented at repository/query level.
+* [ ] filtering implemented at repository/query level.
 
 ---
 
 ### 🔐 **Authentication**
 
 * [ ] `/api/auth/register` endpoint implemented, validates inputs, hashes password securely.
-* [ ] `/api/auth/login` endpoint implemented, issues JWT with proper claims (`UserId`, `TenantId`, `Roles`).
+* [ ] `/api/auth/login` endpoint implemented, issues JWT with proper claims (`UserId`,  `Roles`).
 * [ ] Refresh token mechanism considered or documented (optional for this phase).
 * [ ] JWT middleware configured in API Startup.
 
@@ -88,14 +88,6 @@
 * [ ] Endpoints exist to assign Permissions to Roles (`POST /api/roles/{id}/permissions`).
 * [ ] Endpoints exist to assign Roles or direct Permissions to Users (`POST /api/users/{id}/roles`, `POST /api/users/{id}/permissions`).
 * [ ] Permission check middleware/attribute (e.g., `[HasPermission("PAGE","ACTION")]`) implemented and tested.
-
----
-
-### 🌍 **Multi-Tenant**
-
-* [ ] All queries and commands scoped by `TenantId`.
-* [ ] TenantId extracted from JWT or request context.
-* [ ] No cross-tenant data leakage (test by creating two tenants and checking isolation).
 
 ---
 
@@ -119,7 +111,6 @@
 
 * [ ] Unit tests for `UserService`, `RoleService`, and Permission checks.
 * [ ] Integration tests for Auth API (`/api/auth/register`, `/api/auth/login`) using WebApplicationFactory.
-* [ ] Tests simulate multi-tenant scenarios (two users in different tenants, isolated roles).
 * [ ] All tests passing in CI pipeline.
 
 ---
@@ -131,7 +122,7 @@
   * Purpose and overview of Auth+ACL.
   * ERD diagram of tables and relationships.
   * API endpoint list with sample requests/responses.
-  * Notes on multi-tenant and localization implementation.
+  * Notes on localization implementation.
 * [ ] Comments and XML documentation on public methods/classes.
 
 ---

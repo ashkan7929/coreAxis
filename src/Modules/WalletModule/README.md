@@ -50,7 +50,6 @@ The Wallet Module provides comprehensive wallet and transaction management funct
 
 ### WalletType
 - Defines different types of wallets (e.g., Savings, Current, Crypto)
-- Configurable and tenant-specific
 
 ### WalletProvider
 - External wallet service providers
@@ -102,7 +101,6 @@ var createWalletDto = new CreateWalletDto
     UserId = userId,
     WalletTypeId = walletTypeId,
     Currency = "USD",
-    TenantId = tenantId
 };
 
 var wallet = await mediator.Send(new CreateWalletCommand
@@ -110,7 +108,6 @@ var wallet = await mediator.Send(new CreateWalletCommand
     UserId = createWalletDto.UserId,
     WalletTypeId = createWalletDto.WalletTypeId,
     Currency = createWalletDto.Currency,
-    TenantId = createWalletDto.TenantId
 });
 ```
 

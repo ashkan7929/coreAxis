@@ -11,9 +11,7 @@ public class ApproveCommissionCommandValidator : AbstractValidator<ApproveCommis
             .NotEmpty()
             .WithMessage("Commission ID is required.");
 
-        RuleFor(x => x.TenantId)
-            .NotEmpty()
-            .WithMessage("Tenant ID is required.");
+
 
         RuleFor(x => x.ApprovedBy)
             .NotEmpty()
@@ -33,9 +31,7 @@ public class RejectCommissionCommandValidator : AbstractValidator<RejectCommissi
             .NotEmpty()
             .WithMessage("Commission ID is required.");
 
-        RuleFor(x => x.TenantId)
-            .NotEmpty()
-            .WithMessage("Tenant ID is required.");
+
 
         RuleFor(x => x.RejectedBy)
             .NotEmpty()
@@ -61,9 +57,7 @@ public class MarkCommissionAsPaidCommandValidator : AbstractValidator<MarkCommis
             .NotEmpty()
             .WithMessage("Commission ID is required.");
 
-        RuleFor(x => x.TenantId)
-            .NotEmpty()
-            .WithMessage("Tenant ID is required.");
+
 
         RuleFor(x => x.PaidBy)
             .NotEmpty()
@@ -83,9 +77,7 @@ public class ProcessPendingCommissionsCommandValidator : AbstractValidator<Proce
 {
     public ProcessPendingCommissionsCommandValidator()
     {
-        RuleFor(x => x.TenantId)
-            .NotEmpty()
-            .WithMessage("Tenant ID is required.");
+
 
         RuleFor(x => x.ProcessedBy)
             .NotEmpty()
@@ -111,9 +103,7 @@ public class UpdateCommissionNotesCommandValidator : AbstractValidator<UpdateCom
             .NotEmpty()
             .WithMessage("Commission ID is required.");
 
-        RuleFor(x => x.TenantId)
-            .NotEmpty()
-            .WithMessage("Tenant ID is required.");
+
 
         RuleFor(x => x.Notes)
             .NotEmpty()
@@ -131,8 +121,6 @@ public class ExpireCommissionCommandValidator : AbstractValidator<ExpireCommissi
             .NotEmpty()
             .WithMessage("Commission ID is required.");
 
-        RuleFor(x => x.TenantId)
-            .NotEmpty()
-            .WithMessage("Tenant ID is required.");
+
     }
 }

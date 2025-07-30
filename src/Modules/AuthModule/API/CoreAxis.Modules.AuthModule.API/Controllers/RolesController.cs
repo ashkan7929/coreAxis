@@ -5,6 +5,7 @@ using CoreAxis.SharedKernel;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace CoreAxis.Modules.AuthModule.API.Controllers;
 
@@ -32,7 +33,6 @@ public class RolesController : ControllerBase
         var command = new CreateRoleCommand(
             dto.Name,
             dto.Description,
-            dto.TenantId,
             dto.PermissionIds);
 
         var result = await _mediator.Send(command, cancellationToken);
@@ -49,28 +49,25 @@ public class RolesController : ControllerBase
     /// Get role by ID
     /// </summary>
     /// <param name="id">Role ID</param>
-    /// <param name="tenantId">Tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Role information</returns>
     [HttpGet("{id}")]
-    public async Task<ActionResult<RoleDto>> GetById(Guid id, [FromQuery] Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<RoleDto>> GetById(Guid id, CancellationToken cancellationToken = default)
     {
         // TODO: Implement GetRoleByIdQuery
         return NotImplemented("Get role by ID functionality not yet implemented");
     }
 
     /// <summary>
-    /// Get roles by tenant
+    /// Get roles
     /// </summary>
-    /// <param name="tenantId">Tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of roles</returns>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<RoleDto>>> GetByTenant(
-        [FromQuery] Guid tenantId,
+    public async Task<ActionResult<IEnumerable<RoleDto>>> GetRoles(
         CancellationToken cancellationToken = default)
     {
-        var query = new GetRolesByTenantQuery(tenantId);
+        var query = new GetRolesQuery();
         var result = await _mediator.Send(query, cancellationToken);
 
         if (result.IsSuccess)
@@ -99,11 +96,10 @@ public class RolesController : ControllerBase
     /// Delete role
     /// </summary>
     /// <param name="id">Role ID</param>
-    /// <param name="tenantId">Tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Success result</returns>
     [HttpDelete("{id}")]
-    public async Task<ActionResult> Delete(Guid id, [FromQuery] Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
     {
         // TODO: Implement DeleteRoleCommand
         return NotImplemented("Delete role functionality not yet implemented");
@@ -114,11 +110,10 @@ public class RolesController : ControllerBase
     /// </summary>
     /// <param name="id">Role ID</param>
     /// <param name="permissionId">Permission ID</param>
-    /// <param name="tenantId">Tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Success result</returns>
     [HttpPost("{id}/permissions/{permissionId}")]
-    public async Task<ActionResult> AddPermission(Guid id, Guid permissionId, [FromQuery] Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<ActionResult> AddPermission(Guid id, Guid permissionId, CancellationToken cancellationToken = default)
     {
         // TODO: Implement AddPermissionToRoleCommand
         return NotImplemented("Add permission to role functionality not yet implemented");
@@ -129,11 +124,10 @@ public class RolesController : ControllerBase
     /// </summary>
     /// <param name="id">Role ID</param>
     /// <param name="permissionId">Permission ID</param>
-    /// <param name="tenantId">Tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Success result</returns>
     [HttpDelete("{id}/permissions/{permissionId}")]
-    public async Task<ActionResult> RemovePermission(Guid id, Guid permissionId, [FromQuery] Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<ActionResult> RemovePermission(Guid id, Guid permissionId, CancellationToken cancellationToken = default)
     {
         // TODO: Implement RemovePermissionFromRoleCommand
         return NotImplemented("Remove permission from role functionality not yet implemented");

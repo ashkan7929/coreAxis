@@ -1,12 +1,12 @@
 {
     "moduleName": "Wallet & Transaction",
-    "vision": "The Wallet & Transaction module manages multiple wallet types per user, records transactions (deposit, withdrawal, transfer, commission), integrates with providers, and offers reporting. It is fully multi-tenant and permission-protected.",
+    "vision": "The Wallet & Transaction module manages multiple wallet types per user, records transactions (deposit, withdrawal, transfer, commission), integrates with providers, and offers reporting. It is fully permission-protected.",
     "tasks": [
         {
             "taskName": "Design Database Models",
             "description": {
                 "nonTechnical": "Define how wallets, transactions, and providers are stored and related.",
-                "technical": "Create EF Core entities: Wallet (UserId, WalletTypeId, Balance, TenantId), WalletType (Name, Description), Transaction (WalletId, Amount, TransactionTypeId, Metadata, CreatedAt, TenantId), TransactionType, WalletProvider, WalletContract. Configure relationships and migrations."
+                "technical": "Create EF Core entities: Wallet (UserId, WalletTypeId, Balance, ), WalletType (Name, Description), Transaction (WalletId, Amount, TransactionTypeId, Metadata, CreatedAt, ), TransactionType, WalletProvider, WalletContract. Configure relationships and migrations."
             },
             "status": "pending"
         },
@@ -14,7 +14,7 @@
             "taskName": "Wallet CRUD APIs",
             "description": {
                 "nonTechnical": "APIs to create wallets, view balances, and list wallets per user.",
-                "technical": "Implement endpoints: POST /api/wallets/init, GET /api/wallets (list user wallets), GET /api/wallets/{id}. Use Auth JWT for UserId & TenantId. Validate ACL for create/read."
+                "technical": "Implement endpoints: POST /api/wallets/init, GET /api/wallets (list user wallets), GET /api/wallets/{id}. Use Auth JWT for UserId & . Validate ACL for create/read."
             },
             "status": "pending"
         },
@@ -30,7 +30,7 @@
             "taskName": "Transaction Reporting API",
             "description": {
                 "nonTechnical": "Allow users or admins to filter and view transaction history.",
-                "technical": "GET /api/wallets/transactions with filters (date range, type, status). Include pagination. Scope by TenantId and enforce ACL (user sees only their own, admin sees all)."
+                "technical": "GET /api/wallets/transactions with filters (date range, type, status). Include pagination. Scope by enforce ACL (user sees only their own, admin sees all)."
             },
             "status": "pending"
         },

@@ -6,7 +6,7 @@
 
 ## 🎯 هدف کلی
 
-ساخت یک ماژول ماژولار، تست‌پذیر، Multi-Tenant، و مستقل برای مدیریت شبکهٔ کاربران و محاسبه و پرداخت کمیسیون‌های مرحله‌ای و پله‌ای، متناسب با معماری Clean و معماری رویدادمحور CoreAxis.
+ساخت یک ماژول ماژولار، تست‌پذیر، و مستقل برای مدیریت شبکهٔ کاربران و محاسبه و پرداخت کمیسیون‌های مرحله‌ای و پله‌ای، متناسب با معماری Clean و معماری رویدادمحور CoreAxis.
 
 ---
 
@@ -42,7 +42,7 @@
 ### 1. طراحی ساختار درختی MLM
 
 * **Entity**: `UserReferral`
-* فیلدها: `UserId`, `ParentUserId`, `Path`, `Level`, `CreatedAt`, `TenantId`
+* فیلدها: `UserId`, `ParentUserId`, `Path`, `Level`, `CreatedAt`, 
 * راهکار پیشنهادشده: **Materialized Path** برای قابلیت جستجوی سریع مسیر بالادستی.
 
 ### 2. تعریف قوانین کمیسیون
@@ -63,7 +63,7 @@
 ### 4. ذخیره‌سازی تراکنش کمیسیون
 
 * **Entity**: `CommissionTransaction`
-* فیلدها: `UserId`, `Amount`, `Level`, `SourcePaymentId`, `Status`, `IsSettled`, `WalletTransactionId`, `TenantId`
+* فیلدها: `UserId`, `Amount`, `Level`, `SourcePaymentId`, `Status`, `IsSettled`, `WalletTransactionId`, 
 
 ### 5. اتصال به Wallet Module
 
@@ -98,7 +98,6 @@
   "amount": 250000,
   "paymentId": "guid",
   "productId": "guid",
-  "tenantId": "guid"
 }
 ```
 
@@ -111,7 +110,6 @@
   "amount": 15000,
   "level": 1,
   "sourcePaymentId": "guid",
-  "tenantId": "guid"
 }
 ```
 
@@ -124,14 +122,13 @@
 | کاربر خرید می‌کند و ۳ سطح کمیسیون تولید می‌شود | Integration | تست گردش کامل              |
 | کاربر upline غیرفعال است                       | Unit        | نباید کمیسیون بگیرد        |
 | قانون محصول خاص override شده                   | Unit        | بررسی اعمال override       |
-| تست ذخیره `CommissionTransaction`              | Unit        | بررسی audit و TenantId     |
+| تست ذخیره `CommissionTransaction`              | Unit        | بررسی audit     |
 | اتصال به WalletModule                          | Integration | بررسی ارسال و دریافت event |
 
 ---
 
 ## 📋 قوانین توسعه و کیفیت
 
-* تمام داده‌ها **TenantId** داشته باشند.
 * همه چیز تست‌پذیر باشد (سرویس‌ها باید interface محور باشند).
 * هیچ اشاره‌ی مستقیم به سایر ماژول‌ها (Wallet) به جز از طریق EventBus نباید باشد.
 * رعایت کامل SOLID:
@@ -168,7 +165,6 @@ Handle user network, commission rules, and payout process in multi-level format.
 - API integration test
 
 ## Notes
-- Multi-tenant support
 - Localization supported (.resx)
 ```
 

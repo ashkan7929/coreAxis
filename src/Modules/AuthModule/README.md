@@ -1,12 +1,12 @@
 # AuthModule
 
-The AuthModule provides comprehensive authentication and authorization functionality for the CoreAxis application. It implements a role-based access control (RBAC) system with multi-tenancy support.
+The AuthModule provides comprehensive authentication and authorization functionality for the CoreAxis application. It implements a role-based access control (RBAC) system.
 
 ## Features
 
 - **User Management**: User registration, authentication, and profile management
 - **Role-Based Access Control**: Hierarchical role and permission system
-- **Multi-Tenancy**: Tenant-isolated authentication and authorization
+
 - **JWT Authentication**: Secure token-based authentication
 - **Access Logging**: Comprehensive audit trail for security monitoring
 - **Password Security**: Secure password hashing using PBKDF2
@@ -40,12 +40,12 @@ The module follows Clean Architecture principles with the following layers:
 
 ### User
 - Represents system users with authentication credentials
-- Supports multi-tenancy and role assignments
+- Supports role assignments
 - Tracks login attempts and account status
 
 ### Role
 - Defines user roles with associated permissions
-- Supports both tenant-specific and system-wide roles
+- Supports system-wide roles
 - Hierarchical permission inheritance
 
 ### Permission
@@ -75,7 +75,7 @@ The module follows Clean Architecture principles with the following layers:
 
 ### User Management
 - `GET /api/users/{id}` - Get user by ID
-- `GET /api/users` - Get users by tenant (paginated)
+- `GET /api/users` - Get users (paginated)
 - `PUT /api/users/{id}` - Update user
 - `DELETE /api/users/{id}` - Delete user
 - `POST /api/users/{id}/roles` - Assign role to user
@@ -84,7 +84,7 @@ The module follows Clean Architecture principles with the following layers:
 ### Role Management
 - `POST /api/roles` - Create role
 - `GET /api/roles/{id}` - Get role by ID
-- `GET /api/roles` - Get roles by tenant
+- `GET /api/roles` - Get roles
 - `PUT /api/roles/{id}` - Update role
 - `DELETE /api/roles/{id}` - Delete role
 - `POST /api/roles/{id}/permissions/{permissionId}` - Add permission to role
@@ -148,7 +148,7 @@ dotnet ef database update --project CoreAxis.Modules.AuthModule.Infrastructure
 - **Password Hashing**: Uses PBKDF2 with SHA-256 and 10,000 iterations
 - **JWT Tokens**: Secure token-based authentication with configurable expiration
 - **Account Lockout**: Tracks failed login attempts for security monitoring
-- **Multi-Tenancy**: Complete tenant isolation for data security
+
 - **Audit Logging**: Comprehensive access logging for compliance
 
 ## Dependencies

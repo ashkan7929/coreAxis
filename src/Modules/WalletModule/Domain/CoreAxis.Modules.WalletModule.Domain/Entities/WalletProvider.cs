@@ -20,7 +20,6 @@ public class WalletProvider : EntityBase
     public WalletProvider(
         string name, 
         string type, 
-        Guid tenantId,
         string? apiUrl = null,
         bool supportsDeposit = true,
         bool supportsWithdraw = true,
@@ -32,7 +31,6 @@ public class WalletProvider : EntityBase
         SupportsDeposit = supportsDeposit;
         SupportsWithdraw = supportsWithdraw;
         Configuration = configuration;
-        TenantId = tenantId;
         CreatedOn = DateTime.UtcNow;
     }
 

@@ -1,7 +1,7 @@
 {
   "project": {
     "name": "CoreAxis",
-    "vision": "CoreAxis is a clean, scalable, modular SaaS platform built with .NET Core, following SOLID principles and clean architecture. It is designed to support multi-tenant businesses with extensible modules (CRM, Workflow, FormBuilder, Product, Wallet, etc.) and multi-language support. The foundation must be future-proof, allowing hundreds of modules to communicate seamlessly."
+    "vision": "CoreAxis is a clean, scalable, modular SaaS platform built with .NET Core, following SOLID principles and clean architecture. It is designed to support businesses with extensible modules (CRM, Workflow, FormBuilder, Product, Wallet, etc.) and multi-language support. The foundation must be future-proof, allowing hundreds of modules to communicate seamlessly."
   },
   "phase_zero_tasks": [
     {
@@ -32,7 +32,7 @@
       "taskName": "Multi-Language (Localization) Infrastructure",
       "description": {
         "nonTechnical": "The platform must support multiple languages for UI texts, validation messages, and module-specific content.",
-        "technical": "Add localization support in API and future frontends: use IStringLocalizer and resource files (.resx). Set up a pattern where each module can include its own resource files. Configure middleware to detect Accept-Language header or tenant default language."
+        "technical": "Add localization support in API and future frontends: use IStringLocalizer and resource files (.resx). Set up a pattern where each module can include its own resource files. Configure middleware to detect Accept-Language header or default language."
       },
       "status": "completed"
     },
@@ -40,7 +40,7 @@
       "taskName": "Shared Utilities and Base Building Blocks",
       "description": {
         "nonTechnical": "Centralize common patterns to enforce consistency across modules.",
-        "technical": "In CoreAxis.SharedKernel: implement EntityBase with audit fields (CreatedBy, TenantId, etc.), ValueObject base class, Result<T> wrapper, PaginatedList<T>, exception classes, and localization helper services. Document usage in template."
+        "technical": "In CoreAxis.SharedKernel: implement EntityBase with audit fields (CreatedBy,  etc.), ValueObject base class, Result<T> wrapper, PaginatedList<T>, exception classes, and localization helper services. Document usage in template."
       },
       "status": "completed"
     },
@@ -87,13 +87,13 @@
   ],
   "Auth_and_ACL_Module": {
     "moduleName": "Auth + ACL",
-    "vision": "The Auth + ACL module provides authentication (login, registration) and a powerful access control layer. It defines Users, Roles, Pages, Actions, and Permissions so that every API or UI action can be secured. It is multi-tenant aware, supports JWT-based authentication, and follows clean architecture principles.",
+    "vision": "The Auth + ACL module provides authentication (login, registration) and a powerful access control layer. It defines Users, Roles, Pages, Actions, and Permissions so that every API or UI action can be secured. It is supports JWT-based authentication, and follows clean architecture principles.",
     "tasks": [
       {
         "taskName": "Design Database Models for Auth and ACL",
         "description": {
           "nonTechnical": "Define the core entities for authentication and access control so the system knows who the users are and what they can do.",
-          "technical": "Create EF Core entities: User (Id, Username, Email, PasswordHash, TenantId), Role (Id, Name, TenantId), UserRole (UserId, RoleId), Page (Id, Code, Path), Action (Id, Code, Name), Permission (PageId, ActionId), RolePermission (RoleId, PermissionId), UserPermission (UserId, PermissionId). Add migration and database context configuration. Include CreatedAt, UpdatedAt, TenantId fields for multi-tenancy."
+          "technical": "Create EF Core entities: User (Id, Username, Email, PasswordHash, ), Role (Id, Name, ), UserRole (UserId, RoleId), Page (Id, Code, Path), Action (Id, Code, Name), Permission (PageId, ActionId), RolePermission (RoleId, PermissionId), UserPermission (UserId, PermissionId). Add migration and database context configuration. Include CreatedAt, UpdatedAt,  fields for multi-tenancy."
         },
         "status": "pending"
       },
@@ -109,7 +109,7 @@
         "taskName": "Implement Login and JWT Authentication",
         "description": {
           "nonTechnical": "Allow users to log in and receive a token they can use to access other modules.",
-          "technical": "Add /api/auth/login endpoint. Validate username/email and password, issue JWT with claims (UserId, TenantId, Roles, Permissions). Configure JWT authentication middleware in ApiGateway and Auth.Api."
+          "technical": "Add /api/auth/login endpoint. Validate username/email and password, issue JWT with claims (UserId, , Roles, Permissions). Configure JWT authentication middleware in ApiGateway and Auth.Api."
         },
         "status": "pending"
       },
@@ -134,14 +134,6 @@
         "description": {
           "nonTechnical": "Check if a user has access before allowing an API action.",
           "technical": "Create a middleware or attribute `[AuthorizePermission(PageCode, ActionCode)]` that reads JWT claims and verifies against effective permissions (UserPermission > RolePermission). Integrate into Auth.Api and share via SharedKernel."
-        },
-        "status": "pending"
-      },
-      {
-        "taskName": "Multi-Tenant Support in Auth",
-        "description": {
-          "nonTechnical": "Ensure each tenant (business) has isolated users and roles.",
-          "technical": "Add TenantId field to User, Role, Permission. When querying users/roles, filter by TenantId from JWT claims. Include tenant scoping in DbContext and repository layer."
         },
         "status": "pending"
       },

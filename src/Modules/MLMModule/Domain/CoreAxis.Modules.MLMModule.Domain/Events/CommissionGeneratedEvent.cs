@@ -9,15 +9,13 @@ public class CommissionGeneratedEvent : DomainEvent
     public decimal Amount { get; }
     public int Level { get; }
     public Guid SourcePaymentId { get; }
-    public Guid? TenantId { get; }
     
-    public CommissionGeneratedEvent(Guid commissionId, Guid userId, decimal amount, int level, Guid sourcePaymentId, Guid? tenantId)
+    public CommissionGeneratedEvent(Guid commissionId, Guid userId, decimal amount, int level, Guid sourcePaymentId)
     {
         CommissionId = commissionId;
         UserId = userId;
         Amount = amount;
         Level = level;
         SourcePaymentId = sourcePaymentId;
-        TenantId = tenantId;
     }
 }

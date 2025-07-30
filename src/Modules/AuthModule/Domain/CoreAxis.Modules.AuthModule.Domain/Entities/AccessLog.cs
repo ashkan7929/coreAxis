@@ -23,7 +23,6 @@ public class AccessLog : EntityBase
     public AccessLog(
         string action,
         string ipAddress,
-        Guid tenantId,
         bool isSuccess,
         Guid? userId = null,
         string? username = null,
@@ -40,17 +39,15 @@ public class AccessLog : EntityBase
         UserAgent = userAgent;
         IsSuccess = isSuccess;
         ErrorMessage = errorMessage;
-        TenantId = tenantId;
         AdditionalData = additionalData;
         Timestamp = DateTime.UtcNow;
     }
 
-    public static AccessLog CreateLoginAttempt(string username, string ipAddress, Guid tenantId, bool isSuccess, string? userAgent = null, string? errorMessage = null, Guid? userId = null)
+    public static AccessLog CreateLoginAttempt(string username, string ipAddress, bool isSuccess, string? userAgent = null, string? errorMessage = null, Guid? userId = null)
     {
         return new AccessLog(
             "LOGIN",
             ipAddress,
-            tenantId,
             isSuccess,
             userId,
             username,
@@ -58,24 +55,22 @@ public class AccessLog : EntityBase
             errorMessage: errorMessage);
     }
 
-    public static AccessLog CreateLogout(Guid userId, string username, string ipAddress, Guid tenantId, string? userAgent = null)
+    public static AccessLog CreateLogout(Guid userId, string username, string ipAddress, string? userAgent = null)
     {
         return new AccessLog(
             "LOGOUT",
             ipAddress,
-            tenantId,
             true,
             userId,
             username,
             userAgent: userAgent);
     }
 
-    public static AccessLog CreatePermissionChange(Guid adminUserId, string adminUsername, string action, string resource, string ipAddress, Guid tenantId, string? userAgent = null, string? additionalData = null)
+    public static AccessLog CreatePermissionChange(Guid adminUserId, string adminUsername, string action, string resource, string ipAddress, string? userAgent = null, string? additionalData = null)
     {
         return new AccessLog(
             action,
             ipAddress,
-            tenantId,
             true,
             adminUserId,
             adminUsername,

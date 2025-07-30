@@ -114,7 +114,6 @@ The main domain entity representing a demo item in the system.
   - Name (string): Name of the created demo item
   - Category (string): Category of the created demo item
   - Price (decimal): Price of the created demo item
-  - TenantId (Guid): ID of the tenant (if multi-tenant)
   - CreatedOn (DateTime): Creation timestamp
 
 - **Purpose**: Notifies other modules that a new demo item has been created. Other modules can subscribe to this event to perform their own business logic.

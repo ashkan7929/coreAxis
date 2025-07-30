@@ -5,7 +5,7 @@ using MediatR;
 
 namespace CoreAxis.Modules.AuthModule.Application.Queries.Users;
 
-public record GetUserByIdQuery(Guid UserId, Guid TenantId) : IRequest<Result<UserDto>>;
+public record GetUserByIdQuery(Guid UserId) : IRequest<Result<UserDto>>;
 
 public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, Result<UserDto>>
 {
@@ -20,7 +20,7 @@ public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, Result<
     {
         var user = await _userRepository.GetByIdAsync(request.UserId);
         
-        if (user == null || user.TenantId != request.TenantId)
+        if (user == null)
         {
             return Result<UserDto>.Failure("User not found");
         }
@@ -35,7 +35,7 @@ public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, Result<
             CreatedAt = user.CreatedOn,
             LastLoginAt = user.LastLoginAt,
             FailedLoginAttempts = user.FailedLoginAttempts,
-            TenantId = user.TenantId ?? Guid.Empty
+            
         };
 
         return Result<UserDto>.Success(userDto);

@@ -62,7 +62,6 @@ Example:
 - **Properties**:
   - DemoItemId (Guid): ID of the created demo item
   - Name (string): Name of the created demo item
-  - TenantId (Guid): ID of the tenant
 
 - **Purpose**: Notifies other modules that a new demo item has been created.
 

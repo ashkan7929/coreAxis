@@ -17,7 +17,7 @@ public class GetUserReferralByIdQueryHandler : IRequestHandler<GetUserReferralBy
     public async Task<UserReferralDto?> Handle(GetUserReferralByIdQuery request, CancellationToken cancellationToken)
     {
         var userReferral = await _userReferralRepository.GetByIdAsync(request.UserReferralId);
-        if (userReferral == null || userReferral.TenantId != request.TenantId)
+        if (userReferral == null)
         {
             return null;
         }
@@ -46,7 +46,7 @@ public class GetUserReferralByUserIdQueryHandler : IRequestHandler<GetUserReferr
 
     public async Task<UserReferralDto?> Handle(GetUserReferralByUserIdQuery request, CancellationToken cancellationToken)
     {
-        var userReferral = await _userReferralRepository.GetByUserIdAsync(request.UserId, request.TenantId);
+        var userReferral = await _userReferralRepository.GetByUserIdAsync(request.UserId);
         if (userReferral == null)
         {
             return null;
@@ -76,7 +76,7 @@ public class GetUserReferralChildrenQueryHandler : IRequestHandler<GetUserReferr
 
     public async Task<IEnumerable<UserReferralDto>> Handle(GetUserReferralChildrenQuery request, CancellationToken cancellationToken)
     {
-        var children = await _userReferralRepository.GetChildrenAsync(request.UserId, request.TenantId, cancellationToken);
+        var children = await _userReferralRepository.GetChildrenAsync(request.UserId, cancellationToken);
         
         return children.Select(child => new UserReferralDto
         {
@@ -102,7 +102,7 @@ public class GetUserUplineQueryHandler : IRequestHandler<GetUserUplineQuery, IEn
 
     public async Task<IEnumerable<UserReferralDto>> Handle(GetUserUplineQuery request, CancellationToken cancellationToken)
     {
-        var upline = await _userReferralRepository.GetUplineAsync(request.UserId, request.TenantId, request.MaxLevels ?? 10, cancellationToken);
+        var upline = await _userReferralRepository.GetUplineAsync(request.UserId, request.MaxLevels ?? 10, cancellationToken);
         
         return upline.Select(user => new UserReferralDto
         {
@@ -128,7 +128,7 @@ public class GetUserDownlineQueryHandler : IRequestHandler<GetUserDownlineQuery,
 
     public async Task<IEnumerable<UserReferralDto>> Handle(GetUserDownlineQuery request, CancellationToken cancellationToken)
     {
-        var downline = await _userReferralRepository.GetDownlineAsync(request.UserId, request.TenantId, request.MaxLevels ?? 10, cancellationToken);
+        var downline = await _userReferralRepository.GetDownlineAsync(request.UserId, request.MaxLevels ?? 10, cancellationToken);
         
         return downline.Select(user => new UserReferralDto
         {
@@ -158,10 +158,10 @@ public class GetMLMNetworkStatsQueryHandler : IRequestHandler<GetMLMNetworkStats
 
     public async Task<MLMNetworkStatsDto> Handle(GetMLMNetworkStatsQuery request, CancellationToken cancellationToken)
     {
-        var networkSize = await _userReferralRepository.GetNetworkSizeAsync(request.UserId, request.TenantId);
-        var directReferrals = await _userReferralRepository.GetChildrenAsync(request.UserId, request.TenantId, cancellationToken);
-        var totalEarnings = await _commissionRepository.GetTotalEarningsAsync(request.UserId, request.TenantId);
-        var pendingCommissions = await _commissionRepository.GetTotalPendingAsync(request.UserId, request.TenantId);
+        var networkSize = await _userReferralRepository.GetNetworkSizeAsync(request.UserId);
+        var directReferrals = await _userReferralRepository.GetChildrenAsync(request.UserId, cancellationToken);
+        var totalEarnings = await _commissionRepository.GetTotalEarningsAsync(request.UserId);
+        var pendingCommissions = await _commissionRepository.GetTotalPendingAsync(request.UserId);
 
         return new MLMNetworkStatsDto
         {
@@ -187,20 +187,19 @@ public class GetNetworkTreeQueryHandler : IRequestHandler<GetNetworkTreeQuery, N
 
     public async Task<NetworkTreeNodeDto?> Handle(GetNetworkTreeQuery request, CancellationToken cancellationToken)
     {
-        var rootUser = await _userReferralRepository.GetByUserIdAsync(request.UserId, request.TenantId);
+        var rootUser = await _userReferralRepository.GetByUserIdAsync(request.UserId);
         if (rootUser == null)
         {
             return null;
         }
 
-        return await BuildNetworkTree(rootUser, request.MaxDepth, request.ActiveOnly, request.TenantId, 0);
+        return await BuildNetworkTree(rootUser, request.MaxDepth, request.ActiveOnly, 0);
     }
 
     private async Task<NetworkTreeNodeDto> BuildNetworkTree(
         Domain.Entities.UserReferral user, 
         int maxDepth, 
         bool activeOnly, 
-        Guid tenantId, 
         int currentDepth)
     {
         var node = new NetworkTreeNodeDto
@@ -214,10 +213,10 @@ public class GetNetworkTreeQueryHandler : IRequestHandler<GetNetworkTreeQuery, N
 
         if (currentDepth < maxDepth)
         {
-            var children = await _userReferralRepository.GetChildrenAsync(user.UserId, tenantId);
+            var children = await _userReferralRepository.GetChildrenAsync(user.UserId);
             foreach (var child in children)
             {
-                var childNode = await BuildNetworkTree(child, maxDepth, activeOnly, tenantId, currentDepth + 1);
+                var childNode = await BuildNetworkTree(child, maxDepth, activeOnly, currentDepth + 1);
                 node.Children.Add(childNode);
             }
         }

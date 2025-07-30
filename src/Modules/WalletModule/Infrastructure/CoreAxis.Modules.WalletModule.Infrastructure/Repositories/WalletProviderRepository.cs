@@ -20,30 +20,29 @@ public class WalletProviderRepository : IWalletProviderRepository
             .FirstOrDefaultAsync(wp => wp.Id == id, cancellationToken);
     }
 
-    public async Task<WalletProvider?> GetByNameAsync(string name, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<WalletProvider?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
     {
         return await _context.WalletProviders
-            .FirstOrDefaultAsync(wp => wp.Name == name && wp.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(wp => wp.Name == name, cancellationToken);
     }
 
-    public async Task<IEnumerable<WalletProvider>> GetByTypeAsync(string type, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<WalletProvider>> GetByTypeAsync(string type, CancellationToken cancellationToken = default)
     {
         return await _context.WalletProviders
-            .Where(wp => wp.Type == type && wp.TenantId == tenantId)
+            .Where(wp => wp.Type == type)
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<WalletProvider>> GetActiveAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<WalletProvider>> GetActiveAsync(CancellationToken cancellationToken = default)
     {
         return await _context.WalletProviders
-            .Where(wp => wp.IsActive && wp.TenantId == tenantId)
+            .Where(wp => wp.IsActive)
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<WalletProvider>> GetAllAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<WalletProvider>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _context.WalletProviders
-            .Where(wp => wp.TenantId == tenantId)
             .ToListAsync(cancellationToken);
     }
 
@@ -64,8 +63,8 @@ public class WalletProviderRepository : IWalletProviderRepository
         return Task.CompletedTask;
     }
 
-    public async Task<bool> ExistsAsync(string name, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<bool> ExistsAsync(string name, CancellationToken cancellationToken = default)
     {
-        return await _context.WalletProviders.AnyAsync(wp => wp.Name == name && wp.TenantId == tenantId, cancellationToken);
+        return await _context.WalletProviders.AnyAsync(wp => wp.Name == name, cancellationToken);
     }
 }

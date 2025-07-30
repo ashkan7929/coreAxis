@@ -17,7 +17,7 @@ public class GetCommissionRuleSetByIdQueryHandler : IRequestHandler<GetCommissio
     public async Task<CommissionRuleSetDto?> Handle(GetCommissionRuleSetByIdQuery request, CancellationToken cancellationToken)
     {
         var ruleSet = await _ruleSetRepository.GetByIdAsync(request.RuleSetId);
-        if (ruleSet == null || ruleSet.TenantId != request.TenantId)
+        if (ruleSet == null)
         {
             return null;
         }
@@ -64,7 +64,7 @@ public class GetDefaultCommissionRuleSetQueryHandler : IRequestHandler<GetDefaul
 
     public async Task<CommissionRuleSetDto?> Handle(GetDefaultCommissionRuleSetQuery request, CancellationToken cancellationToken)
     {
-        var ruleSet = await _ruleSetRepository.GetDefaultAsync(request.TenantId);
+        var ruleSet = await _ruleSetRepository.GetDefaultAsync();
         if (ruleSet == null)
         {
             return null;
@@ -112,7 +112,7 @@ public class GetCommissionRuleSetByProductQueryHandler : IRequestHandler<GetComm
 
     public async Task<CommissionRuleSetDto?> Handle(GetCommissionRuleSetByProductQuery request, CancellationToken cancellationToken)
     {
-        var ruleSet = await _ruleSetRepository.GetByProductIdAsync(request.ProductId, request.TenantId);
+        var ruleSet = await _ruleSetRepository.GetByProductIdAsync(request.ProductId);
         if (ruleSet == null)
         {
             return null;
@@ -160,7 +160,7 @@ public class GetActiveCommissionRuleSetsQueryHandler : IRequestHandler<GetActive
 
     public async Task<IEnumerable<CommissionRuleSetDto>> Handle(GetActiveCommissionRuleSetsQuery request, CancellationToken cancellationToken)
     {
-        var ruleSets = await _ruleSetRepository.GetActiveAsync(request.TenantId);
+        var ruleSets = await _ruleSetRepository.GetActiveAsync();
         return ruleSets.Select(MapToDto);
     }
 
@@ -203,7 +203,7 @@ public class GetAllCommissionRuleSetsQueryHandler : IRequestHandler<GetAllCommis
 
     public async Task<IEnumerable<CommissionRuleSetDto>> Handle(GetAllCommissionRuleSetsQuery request, CancellationToken cancellationToken)
     {
-        var ruleSets = await _ruleSetRepository.GetByTenantIdAsync(request.TenantId);
+        var ruleSets = await _ruleSetRepository.GetAllAsync();
         return ruleSets.Select(MapToDto);
     }
 
@@ -247,7 +247,7 @@ public class GetProductRuleBindingsQueryHandler : IRequestHandler<GetProductRule
     public async Task<IEnumerable<ProductRuleBindingDto>> Handle(GetProductRuleBindingsQuery request, CancellationToken cancellationToken)
     {
         var ruleSet = await _ruleSetRepository.GetByIdAsync(request.RuleSetId);
-        if (ruleSet == null || ruleSet.TenantId != request.TenantId)
+        if (ruleSet == null)
         {
             return Enumerable.Empty<ProductRuleBindingDto>();
         }
@@ -272,8 +272,8 @@ public class GetProductRuleBindingsByProductQueryHandler : IRequestHandler<GetPr
 
     public async Task<IEnumerable<ProductRuleBindingDto>> Handle(GetProductRuleBindingsByProductQuery request, CancellationToken cancellationToken)
     {
-        // Get all rule sets for the tenant and filter by product bindings
-        var ruleSets = await _ruleSetRepository.GetByTenantIdAsync(request.TenantId);
+        // Get all rule sets and filter by product bindings
+        var ruleSets = await _ruleSetRepository.GetAllAsync();
         
         var productBindings = new List<ProductRuleBindingDto>();
         

@@ -18,7 +18,7 @@ public class GetCommissionByIdQueryHandler : IRequestHandler<GetCommissionByIdQu
     public async Task<CommissionTransactionDto?> Handle(GetCommissionByIdQuery request, CancellationToken cancellationToken)
     {
         var commission = await _commissionRepository.GetByIdAsync(request.CommissionId);
-        if (commission == null || commission.TenantId != request.TenantId)
+        if (commission == null)
         {
             return null;
         }
@@ -66,7 +66,6 @@ public class GetUserCommissionsQueryHandler : IRequestHandler<GetUserCommissions
         var skip = (request.Filter.PageNumber - 1) * request.Filter.PageSize;
         var commissions = await _commissionRepository.GetByUserIdAsync(
             request.UserId, 
-            request.TenantId,
             skip,
             request.Filter.PageSize,
             cancellationToken);
@@ -114,7 +113,6 @@ public class GetCommissionsByStatusQueryHandler : IRequestHandler<GetCommissions
         var skip = (request.PageNumber - 1) * request.PageSize;
         var commissions = await _commissionRepository.GetByStatusAsync(
             request.Status,
-            request.TenantId,
             skip,
             request.PageSize,
             cancellationToken);
@@ -202,19 +200,16 @@ public class GetCommissionSummaryQueryHandler : IRequestHandler<GetCommissionSum
     {
         var totalEarnings = await _commissionRepository.GetTotalEarningsAsync(
             request.UserId, 
-            request.TenantId, 
             request.FromDate, 
             request.ToDate);
 
         var totalPending = await _commissionRepository.GetTotalPendingAsync(
             request.UserId, 
-            request.TenantId, 
             cancellationToken);
 
         // Get transaction counts by status
         var allCommissions = await _commissionRepository.GetByUserIdAsync(
             request.UserId,
-            request.TenantId,
             0, // skip
             int.MaxValue, // take all
             cancellationToken);
@@ -246,7 +241,6 @@ public class GetPendingCommissionsForApprovalQueryHandler : IRequestHandler<GetP
     {
         var skip = (request.PageNumber - 1) * request.PageSize;
         var pendingCommissions = await _commissionRepository.GetPendingForApprovalAsync(
-            request.TenantId,
             skip,
             request.PageSize,
             cancellationToken);
@@ -293,7 +287,6 @@ public class GetCommissionsByDateRangeQueryHandler : IRequestHandler<GetCommissi
     {
         var commissions = await _commissionRepository.GetByDateRangeAsync(
             request.UserId ?? Guid.Empty,
-            request.TenantId,
             request.FromDate,
             request.ToDate,
             cancellationToken);

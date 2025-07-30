@@ -8,8 +8,7 @@ namespace CoreAxis.Modules.AuthModule.Application.Commands.Roles;
 
 public record CreateRoleCommand(
     string Name,
-    string Description,
-    Guid TenantId,
+    string? Description,
     List<Guid> PermissionIds
 ) : IRequest<Result<RoleDto>>;
 
@@ -32,14 +31,14 @@ public class CreateRoleCommandHandler : IRequestHandler<CreateRoleCommand, Resul
     public async Task<Result<RoleDto>> Handle(CreateRoleCommand request, CancellationToken cancellationToken)
     {
         // Check if role name already exists
-        var existingRole = await _roleRepository.GetByNameAsync(request.Name, request.TenantId, cancellationToken);
+        var existingRole = await _roleRepository.GetByNameAsync(request.Name, cancellationToken);
         if (existingRole != null)
         {
             return Result<RoleDto>.Failure("Role name already exists");
         }
 
         // Create role
-        var role = new Role(request.Name, request.TenantId, request.Description);
+        var role = new Role(request.Name, request.Description);
         await _roleRepository.AddAsync(role);
 
         // Add permissions if provided
@@ -69,7 +68,7 @@ public class CreateRoleCommandHandler : IRequestHandler<CreateRoleCommand, Resul
             IsActive = role.IsActive,
             IsSystemRole = role.IsSystemRole,
             CreatedAt = role.CreatedOn,
-            TenantId = role.TenantId ?? Guid.Empty,
+
             Permissions = roleWithPermissions?.RolePermissions
                 .Where(rp => rp.IsActive)
                 .Select(rp => new PermissionDto

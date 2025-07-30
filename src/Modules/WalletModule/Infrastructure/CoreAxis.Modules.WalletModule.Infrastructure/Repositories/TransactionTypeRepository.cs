@@ -20,23 +20,22 @@ public class TransactionTypeRepository : ITransactionTypeRepository
             .FirstOrDefaultAsync(tt => tt.Id == id, cancellationToken);
     }
 
-    public async Task<TransactionType?> GetByCodeAsync(string code, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<TransactionType?> GetByCodeAsync(string code, CancellationToken cancellationToken = default)
     {
         return await _context.TransactionTypes
-            .FirstOrDefaultAsync(tt => tt.Code == code && tt.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(tt => tt.Code == code, cancellationToken);
     }
 
-    public async Task<IEnumerable<TransactionType>> GetActiveAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<TransactionType>> GetActiveAsync(CancellationToken cancellationToken = default)
     {
         return await _context.TransactionTypes
-            .Where(tt => tt.IsActive && tt.TenantId == tenantId)
+            .Where(tt => tt.IsActive)
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<TransactionType>> GetAllAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<TransactionType>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _context.TransactionTypes
-            .Where(tt => tt.TenantId == tenantId)
             .ToListAsync(cancellationToken);
     }
 

@@ -26,7 +26,6 @@ public class CommissionRuleController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<CommissionRuleSetDto>> CreateCommissionRuleSet([FromBody] CreateCommissionRuleSetDto request)
     {
-        var tenantId = GetTenantId();
         var command = new CreateCommissionRuleSetCommand
         {
             Name = request.Name,
@@ -34,8 +33,7 @@ public class CommissionRuleController : ControllerBase
             MaxLevels = request.MaxLevels,
             MinimumPurchaseAmount = request.MinimumPurchaseAmount,
             RequireActiveUpline = request.RequireActiveUpline,
-            CommissionLevels = request.CommissionLevels,
-            TenantId = tenantId
+            CommissionLevels = request.CommissionLevels
         };
 
         var result = await _mediator.Send(command);
@@ -63,8 +61,7 @@ public class CommissionRuleController : ControllerBase
     [HttpGet("default")]
     public async Task<ActionResult<CommissionRuleSetDto>> GetDefaultCommissionRuleSet()
     {
-        var tenantId = GetTenantId();
-        var query = new GetDefaultCommissionRuleSetQuery { TenantId = tenantId };
+        var query = new GetDefaultCommissionRuleSetQuery();
         var result = await _mediator.Send(query);
         
         if (result == null)
@@ -94,8 +91,7 @@ public class CommissionRuleController : ControllerBase
     [HttpGet("active")]
     public async Task<ActionResult<IEnumerable<CommissionRuleSetDto>>> GetActiveCommissionRuleSets()
     {
-        var tenantId = GetTenantId();
-        var query = new GetActiveCommissionRuleSetsQuery { TenantId = tenantId };
+        var query = new GetActiveCommissionRuleSetsQuery();
         var result = await _mediator.Send(query);
         return Ok(result);
     }
@@ -106,8 +102,7 @@ public class CommissionRuleController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CommissionRuleSetDto>>> GetAllCommissionRuleSets()
     {
-        var tenantId = GetTenantId();
-        var query = new GetAllCommissionRuleSetsQuery { TenantId = tenantId };
+        var query = new GetAllCommissionRuleSetsQuery();
         var result = await _mediator.Send(query);
         return Ok(result);
     }
@@ -118,8 +113,7 @@ public class CommissionRuleController : ControllerBase
     [HttpGet("product-bindings")]
     public async Task<ActionResult<IEnumerable<ProductRuleBindingDto>>> GetProductRuleBindings()
     {
-        var tenantId = GetTenantId();
-        var query = new GetProductRuleBindingsQuery { TenantId = tenantId };
+        var query = new GetProductRuleBindingsQuery();
         var result = await _mediator.Send(query);
         return Ok(result);
     }
@@ -141,7 +135,6 @@ public class CommissionRuleController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult<CommissionRuleSetDto>> UpdateCommissionRuleSet(Guid id, [FromBody] UpdateCommissionRuleSetDto request)
     {
-        var tenantId = GetTenantId();
         var command = new UpdateCommissionRuleSetCommand
         {
             Id = id,
@@ -151,8 +144,7 @@ public class CommissionRuleController : ControllerBase
             MinimumPurchaseAmount = request.MinimumPurchaseAmount,
             RequireActiveUpline = request.RequireActiveUpline,
             IsActive = request.IsActive,
-            CommissionLevels = request.CommissionLevels,
-            TenantId = tenantId
+            CommissionLevels = request.CommissionLevels
         };
 
         var result = await _mediator.Send(command);
@@ -187,11 +179,9 @@ public class CommissionRuleController : ControllerBase
     [HttpPost("{id}/set-default")]
     public async Task<ActionResult<CommissionRuleSetDto>> SetDefaultCommissionRuleSet(Guid id)
     {
-        var tenantId = GetTenantId();
         var command = new SetDefaultCommissionRuleSetCommand 
         { 
-            RuleSetId = id, 
-            TenantId = tenantId 
+            RuleSetId = id
         };
         var result = await _mediator.Send(command);
         return Ok(result);
@@ -214,23 +204,17 @@ public class CommissionRuleController : ControllerBase
     [HttpPost("product-bindings")]
     public async Task<ActionResult<ProductRuleBindingDto>> AddProductRuleBinding([FromBody] CreateProductRuleBindingDto request)
     {
-        var tenantId = GetTenantId();
         var command = new AddProductRuleBindingCommand
         {
             ProductId = request.ProductId,
             CommissionRuleSetId = request.RuleSetId,
             ValidFrom = request.ValidFrom,
-            ValidTo = request.ValidTo,
-            TenantId = tenantId
+            ValidTo = request.ValidTo
         };
 
         var result = await _mediator.Send(command);
         return CreatedAtAction(nameof(GetProductRuleBindingsByProduct), new { productId = result.ProductId }, result);
     }
 
-    private Guid GetTenantId()
-    {
-        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
-        return Guid.TryParse(tenantIdClaim, out var tenantId) ? tenantId : Guid.Empty;
-    }
+
 }

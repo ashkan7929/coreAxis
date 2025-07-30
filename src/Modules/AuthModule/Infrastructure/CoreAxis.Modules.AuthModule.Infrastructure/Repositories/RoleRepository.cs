@@ -21,25 +21,19 @@ public class RoleRepository : IRoleRepository
         return await _context.Roles.FindAsync(id);
     }
 
-    public async Task<Role?> GetByNameAsync(string name, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<Role?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
     {
         return await _context.Roles
-            .FirstOrDefaultAsync(r => r.Name == name && r.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Name == name, cancellationToken);
     }
 
-    public async Task<bool> IsNameExistsAsync(string name, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<bool> IsNameExistsAsync(string name, CancellationToken cancellationToken = default)
     {
         return await _context.Roles
-            .AnyAsync(r => r.Name == name && r.TenantId == tenantId, cancellationToken);
+            .AnyAsync(r => r.Name == name, cancellationToken);
     }
 
-    public async Task<IEnumerable<Role>> GetByTenantAsync(Guid tenantId, CancellationToken cancellationToken = default)
-    {
-        return await _context.Roles
-            .Where(r => r.TenantId == tenantId)
-            .OrderBy(r => r.Name)
-            .ToListAsync(cancellationToken);
-    }
+
 
     public async Task<Role?> GetWithPermissionsAsync(Guid id, CancellationToken cancellationToken = default)
      {
@@ -52,7 +46,7 @@ public class RoleRepository : IRoleRepository
     public async Task<IEnumerable<Role>> GetSystemRolesAsync(CancellationToken cancellationToken = default)
     {
         return await _context.Roles
-            .Where(r => r.TenantId == null)
+            .Where(r => r.IsSystemRole)
             .OrderBy(r => r.Name)
             .ToListAsync(cancellationToken);
     }

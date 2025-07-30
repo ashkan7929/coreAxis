@@ -8,8 +8,7 @@ namespace CoreAxis.Modules.AuthModule.Application.Commands.Users;
 public record ChangePasswordCommand(
     Guid UserId,
     string CurrentPassword,
-    string NewPassword,
-    Guid TenantId
+    string NewPassword
 ) : IRequest<Result<bool>>;
 
 public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordCommand, Result<bool>>
@@ -31,7 +30,7 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
     public async Task<Result<bool>> Handle(ChangePasswordCommand request, CancellationToken cancellationToken)
     {
         var user = await _userRepository.GetByIdAsync(request.UserId);
-        if (user == null || user.TenantId != request.TenantId)
+        if (user == null)
         {
             return Result.Failure("User not found");
         }

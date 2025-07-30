@@ -20,23 +20,22 @@ public class WalletTypeRepository : IWalletTypeRepository
             .FirstOrDefaultAsync(wt => wt.Id == id, cancellationToken);
     }
 
-    public async Task<WalletType?> GetByNameAsync(string name, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<WalletType?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
     {
         return await _context.WalletTypes
-            .FirstOrDefaultAsync(wt => wt.Name == name && wt.TenantId == tenantId, cancellationToken);
+            .FirstOrDefaultAsync(wt => wt.Name == name, cancellationToken);
     }
 
-    public async Task<IEnumerable<WalletType>> GetActiveAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<WalletType>> GetActiveAsync(CancellationToken cancellationToken = default)
     {
         return await _context.WalletTypes
-            .Where(wt => wt.IsActive && wt.TenantId == tenantId)
+            .Where(wt => wt.IsActive)
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<WalletType>> GetAllAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<WalletType>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _context.WalletTypes
-            .Where(wt => wt.TenantId == tenantId)
             .ToListAsync(cancellationToken);
     }
 
@@ -57,10 +56,10 @@ public class WalletTypeRepository : IWalletTypeRepository
         return Task.CompletedTask;
     }
 
-    public async Task<bool> ExistsAsync(string name, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<bool> ExistsAsync(string name, CancellationToken cancellationToken = default)
     {
         return await _context.WalletTypes
-            .AnyAsync(wt => wt.Name == name && wt.TenantId == tenantId, cancellationToken);
+            .AnyAsync(wt => wt.Name == name, cancellationToken);
     }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)

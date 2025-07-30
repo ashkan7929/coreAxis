@@ -21,35 +21,22 @@ public class AccessLogRepository : IAccessLogRepository
         return await _context.AccessLogs.FindAsync(id);
     }
 
-    public async Task<IEnumerable<AccessLog>> GetByUserAsync(Guid userId, Guid tenantId, int pageSize = 50, int pageNumber = 1, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<AccessLog>> GetByUserAsync(Guid userId, int pageSize = 50, int pageNumber = 1, CancellationToken cancellationToken = default)
     {
         return await _context.AccessLogs
-            .Where(al => al.UserId == userId && al.TenantId == tenantId)
+            .Where(al => al.UserId == userId)
             .OrderByDescending(al => al.Timestamp)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<AccessLog>> GetByTenantAsync(Guid tenantId, int pageSize = 50, int pageNumber = 1, CancellationToken cancellationToken = default)
-    {
-        return await _context.AccessLogs
-            .Where(al => al.TenantId == tenantId)
-            .OrderByDescending(al => al.Timestamp)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
-    }
 
-    public async Task<IEnumerable<AccessLog>> GetByDateRangeAsync(DateTime startDate, DateTime endDate, Guid? tenantId = null, int pageSize = 50, int pageNumber = 1, CancellationToken cancellationToken = default)
+
+    public async Task<IEnumerable<AccessLog>> GetByDateRangeAsync(DateTime startDate, DateTime endDate, int pageSize = 50, int pageNumber = 1, CancellationToken cancellationToken = default)
     {
         var query = _context.AccessLogs
             .Where(al => al.Timestamp >= startDate && al.Timestamp <= endDate);
-
-        if (tenantId.HasValue)
-        {
-            query = query.Where(al => al.TenantId == tenantId.Value);
-        }
 
         return await query
             .OrderByDescending(al => al.Timestamp)
@@ -58,10 +45,10 @@ public class AccessLogRepository : IAccessLogRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<AccessLog>> GetFailedLoginsAsync(Guid tenantId, DateTime? fromDate = null, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<AccessLog>> GetFailedLoginsAsync(DateTime? fromDate = null, CancellationToken cancellationToken = default)
     {
         var query = _context.AccessLogs
-            .Where(al => !al.IsSuccess && al.TenantId == tenantId);
+            .Where(al => !al.IsSuccess);
 
         if (fromDate.HasValue)
         {
@@ -73,10 +60,10 @@ public class AccessLogRepository : IAccessLogRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<int> GetFailedLoginCountAsync(string username, Guid tenantId, DateTime fromDate, CancellationToken cancellationToken = default)
+    public async Task<int> GetFailedLoginCountAsync(string username, DateTime fromDate, CancellationToken cancellationToken = default)
     {
         return await _context.AccessLogs
-            .CountAsync(al => al.Username == username && al.TenantId == tenantId && !al.IsSuccess && al.Timestamp >= fromDate, cancellationToken);
+            .CountAsync(al => al.Username == username && !al.IsSuccess && al.Timestamp >= fromDate, cancellationToken);
     }
 
     public async Task AddAsync(AccessLog accessLog)
@@ -139,10 +126,10 @@ public class AccessLogRepository : IAccessLogRepository
         return await _context.AccessLogs.CountAsync();
     }
 
-    public async Task<IEnumerable<AccessLog>> GetByActionAsync(string action, Guid tenantId, DateTime? fromDate = null, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<AccessLog>> GetByActionAsync(string action, DateTime? fromDate = null, CancellationToken cancellationToken = default)
     {
         var query = _context.AccessLogs
-            .Where(al => al.Action == action && al.TenantId == tenantId);
+            .Where(al => al.Action == action);
 
         if (fromDate.HasValue)
         {

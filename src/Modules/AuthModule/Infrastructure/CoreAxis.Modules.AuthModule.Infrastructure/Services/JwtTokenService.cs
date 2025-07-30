@@ -28,7 +28,7 @@ public class JwtTokenService : IJwtTokenService
         _expirationMinutes = int.Parse(_configuration["Jwt:ExpirationMinutes"] ?? "60");
     }
 
-    public TokenResult GenerateToken(Guid userId, string username, string email, Guid tenantId, IEnumerable<string> roles)
+    public TokenResult GenerateToken(Guid userId, string username, string email, IEnumerable<string> roles)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(_secretKey);
@@ -39,7 +39,6 @@ public class JwtTokenService : IJwtTokenService
             new(ClaimTypes.NameIdentifier, userId.ToString()),
             new(ClaimTypes.Name, username),
             new(ClaimTypes.Email, email),
-            new("tenant_id", tenantId.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(JwtRegisteredClaimNames.Iat, new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
         };
@@ -73,7 +72,7 @@ public class JwtTokenService : IJwtTokenService
     {
         // Get user roles - for now we'll use empty collection, this should be implemented based on your role system
         var roles = new List<string>(); // TODO: Implement role retrieval
-        return await Task.FromResult(GenerateToken(user.Id, user.Username, user.Email, user.TenantId ?? Guid.Empty, roles));
+        return await Task.FromResult(GenerateToken(user.Id, user.Username, user.Email, roles));
     }
 
     public bool ValidateToken(string token)

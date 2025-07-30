@@ -4,6 +4,7 @@ using CoreAxis.SharedKernel;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace CoreAxis.Modules.AuthModule.API.Controllers;
 
@@ -23,13 +24,12 @@ public class UsersController : ControllerBase
     /// Get user by ID
     /// </summary>
     /// <param name="id">User ID</param>
-    /// <param name="tenantId">Tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>User information</returns>
     [HttpGet("{id}")]
-    public async Task<ActionResult<UserDto>> GetById(Guid id, [FromQuery] Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<UserDto>> GetById(Guid id, CancellationToken cancellationToken = default)
     {
-        var query = new GetUserByIdQuery(id, tenantId);
+        var query = new GetUserByIdQuery(id);
         var result = await _mediator.Send(query, cancellationToken);
 
         if (result.IsSuccess)
@@ -41,21 +41,19 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Get users by tenant with pagination
+    /// Get users with pagination
     /// </summary>
-    /// <param name="tenantId">Tenant ID</param>
     /// <param name="pageSize">Page size (default: 50)</param>
     /// <param name="pageNumber">Page number (default: 1)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of users</returns>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<UserDto>>> GetByTenant(
-        [FromQuery] Guid tenantId,
+    public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers(
         [FromQuery] int pageSize = 50,
         [FromQuery] int pageNumber = 1,
         CancellationToken cancellationToken = default)
     {
-        var query = new GetUsersByTenantQuery(tenantId, pageSize, pageNumber);
+        var query = new GetUsersQuery(pageSize, pageNumber);
         var result = await _mediator.Send(query, cancellationToken);
 
         if (result.IsSuccess)
@@ -84,11 +82,10 @@ public class UsersController : ControllerBase
     /// Delete user
     /// </summary>
     /// <param name="id">User ID</param>
-    /// <param name="tenantId">Tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Success result</returns>
     [HttpDelete("{id}")]
-    public async Task<ActionResult> Delete(Guid id, [FromQuery] Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
     {
         // TODO: Implement DeleteUserCommand
         return NotImplemented("Delete user functionality not yet implemented");
@@ -113,11 +110,10 @@ public class UsersController : ControllerBase
     /// </summary>
     /// <param name="id">User ID</param>
     /// <param name="roleId">Role ID</param>
-    /// <param name="tenantId">Tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Success result</returns>
     [HttpDelete("{id}/roles/{roleId}")]
-    public async Task<ActionResult> RemoveRole(Guid id, Guid roleId, [FromQuery] Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<ActionResult> RemoveRole(Guid id, Guid roleId, CancellationToken cancellationToken = default)
     {
         // TODO: Implement RemoveRoleFromUserCommand
         return NotImplemented("Remove role functionality not yet implemented");

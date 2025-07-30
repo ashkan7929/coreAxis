@@ -32,8 +32,7 @@ public class AuthController : ControllerBase
         var command = new CreateUserCommand(
             dto.Username,
             dto.Email,
-            dto.Password,
-            dto.TenantId);
+            dto.Password);
 
         var result = await _mediator.Send(command, cancellationToken);
 
@@ -60,7 +59,6 @@ public class AuthController : ControllerBase
         var command = new LoginCommand(
             dto.Username,
             dto.Password,
-            dto.TenantId,
             ipAddress);
 
         var result = await _mediator.Send(command, cancellationToken);
@@ -83,20 +81,18 @@ public class AuthController : ControllerBase
     [Authorize]
     public async Task<ActionResult> ChangePassword([FromBody] ChangePasswordDto dto, CancellationToken cancellationToken = default)
     {
-        // Get UserId and TenantId from claims
+        // Get UserId from claims
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
 
-        if (!Guid.TryParse(userIdClaim, out var userId) || !Guid.TryParse(tenantIdClaim, out var tenantId))
+        if (!Guid.TryParse(userIdClaim, out var userId))
         {
-            return BadRequest("Invalid user or tenant information");
+            return BadRequest("Invalid user information");
         }
 
         var command = new ChangePasswordCommand(
             userId,
             dto.CurrentPassword,
-            dto.NewPassword,
-            tenantId);
+            dto.NewPassword);
 
         var result = await _mediator.Send(command, cancellationToken);
 

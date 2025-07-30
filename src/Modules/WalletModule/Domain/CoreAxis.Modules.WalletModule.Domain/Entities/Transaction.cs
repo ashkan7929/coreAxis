@@ -30,7 +30,6 @@ public class Transaction : EntityBase
         decimal amount, 
         decimal balanceAfter,
         string description, 
-        Guid tenantId,
         string? reference = null,
         object? metadata = null,
         Guid? relatedTransactionId = null)
@@ -41,7 +40,6 @@ public class Transaction : EntityBase
         BalanceAfter = balanceAfter;
         Description = description;
         Reference = reference;
-        TenantId = tenantId;
         RelatedTransactionId = relatedTransactionId;
         ProcessedAt = DateTime.UtcNow;
         CreatedOn = DateTime.UtcNow;
@@ -51,7 +49,7 @@ public class Transaction : EntityBase
             Metadata = JsonSerializer.Serialize(metadata);
         }
         
-        AddDomainEvent(new TransactionCreatedEvent(Id, walletId, amount, transactionTypeId, tenantId));
+        AddDomainEvent(new TransactionCreatedEvent(Id, walletId, amount, transactionTypeId));
     }
 
     public void Complete()

@@ -41,24 +41,14 @@ public class TransactionRepository : ITransactionRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<Transaction>> GetByTenantIdAsync(Guid tenantId, int page = 1, int pageSize = 50, CancellationToken cancellationToken = default)
-    {
-        return await _context.Transactions
-            .Include(t => t.TransactionType)
-            .Include(t => t.Wallet)
-            .Where(t => t.TenantId == tenantId)
-            .OrderByDescending(t => t.CreatedOn)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
-    }
 
-    public async Task<IEnumerable<Transaction>> GetByDateRangeAsync(Guid tenantId, DateTime fromDate, DateTime toDate, Guid? userId = null, CancellationToken cancellationToken = default)
+
+    public async Task<IEnumerable<Transaction>> GetByDateRangeAsync(DateTime fromDate, DateTime toDate, Guid? userId = null, CancellationToken cancellationToken = default)
     {
         var query = _context.Transactions
             .Include(t => t.TransactionType)
             .Include(t => t.Wallet)
-            .Where(t => t.CreatedOn >= fromDate && t.CreatedOn <= toDate && t.TenantId == tenantId);
+            .Where(t => t.CreatedOn >= fromDate && t.CreatedOn <= toDate);
 
         if (userId.HasValue)
         {
@@ -70,12 +60,12 @@ public class TransactionRepository : ITransactionRepository
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<Transaction>> GetByTypeAsync(Guid transactionTypeId, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Transaction>> GetByTypeAsync(Guid transactionTypeId, CancellationToken cancellationToken = default)
     {
         return await _context.Transactions
             .Include(t => t.TransactionType)
             .Include(t => t.Wallet)
-            .Where(t => t.TransactionTypeId == transactionTypeId && t.TenantId == tenantId)
+            .Where(t => t.TransactionTypeId == transactionTypeId)
             .OrderByDescending(t => t.CreatedOn)
             .ToListAsync(cancellationToken);
     }
@@ -87,10 +77,9 @@ public class TransactionRepository : ITransactionRepository
             .SumAsync(t => t.Amount, cancellationToken);
     }
 
-    public async Task<int> GetTransactionCountAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task<int> GetTransactionCountAsync(CancellationToken cancellationToken = default)
     {
         return await _context.Transactions
-            .Where(t => t.TenantId == tenantId)
             .CountAsync(cancellationToken);
     }
 

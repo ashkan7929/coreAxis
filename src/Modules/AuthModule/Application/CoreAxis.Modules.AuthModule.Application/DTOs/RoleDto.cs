@@ -8,7 +8,7 @@ public class RoleDto
     public bool IsActive { get; set; }
     public bool IsSystemRole { get; set; }
     public DateTime CreatedAt { get; set; }
-    public Guid TenantId { get; set; }
+
     public List<PermissionDto> Permissions { get; set; } = new();
 }
 
@@ -16,7 +16,6 @@ public class CreateRoleDto
 {
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public Guid TenantId { get; set; }
     public List<Guid> PermissionIds { get; set; } = new();
 }
 

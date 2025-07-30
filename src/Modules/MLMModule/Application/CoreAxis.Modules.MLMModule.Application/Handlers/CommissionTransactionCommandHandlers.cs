@@ -28,7 +28,7 @@ public class ApproveCommissionCommandHandler : IRequestHandler<ApproveCommission
     public async Task<CommissionTransactionDto> Handle(ApproveCommissionCommand request, CancellationToken cancellationToken)
     {
         var commission = await _commissionRepository.GetByIdAsync(request.CommissionId);
-        if (commission == null || commission.TenantId != request.TenantId)
+        if (commission == null)
         {
             throw new InvalidOperationException("Commission not found");
         }
@@ -41,8 +41,7 @@ public class ApproveCommissionCommandHandler : IRequestHandler<ApproveCommission
         var approvedEvent = new CommissionApprovedEvent(
             commission.Id,
             commission.UserId,
-            commission.Amount,
-            commission.TenantId);
+            commission.Amount);
         await _publisher.Publish(approvedEvent, cancellationToken);
 
         return MapToDto(commission);
@@ -93,7 +92,7 @@ public class RejectCommissionCommandHandler : IRequestHandler<RejectCommissionCo
     public async Task<CommissionTransactionDto> Handle(RejectCommissionCommand request, CancellationToken cancellationToken)
     {
         var commission = await _commissionRepository.GetByIdAsync(request.CommissionId);
-        if (commission == null || commission.TenantId != request.TenantId)
+        if (commission == null)
         {
             throw new InvalidOperationException("Commission not found");
         }
@@ -107,8 +106,7 @@ public class RejectCommissionCommandHandler : IRequestHandler<RejectCommissionCo
             commission.Id,
             commission.UserId,
             commission.Amount,
-            request.RejectionReason,
-            commission.TenantId);
+            request.RejectionReason);
         await _publisher.Publish(rejectedEvent, cancellationToken);
 
         return MapToDto(commission);
@@ -159,7 +157,7 @@ public class MarkCommissionAsPaidCommandHandler : IRequestHandler<MarkCommission
     public async Task<CommissionTransactionDto> Handle(MarkCommissionAsPaidCommand request, CancellationToken cancellationToken)
     {
         var commission = await _commissionRepository.GetByIdAsync(request.CommissionId);
-        if (commission == null || commission.TenantId != request.TenantId)
+        if (commission == null)
         {
             throw new InvalidOperationException("Commission not found");
         }
@@ -173,8 +171,7 @@ public class MarkCommissionAsPaidCommandHandler : IRequestHandler<MarkCommission
             commission.Id,
             commission.UserId,
             commission.Amount,
-            request.WalletTransactionId,
-            commission.TenantId);
+            request.WalletTransactionId);
         await _publisher.Publish(paidEvent, cancellationToken);
 
         return MapToDto(commission);
@@ -221,7 +218,7 @@ public class ProcessPendingCommissionsCommandHandler : IRequestHandler<ProcessPe
 
     public async Task<List<CommissionTransactionDto>> Handle(ProcessPendingCommissionsCommand request, CancellationToken cancellationToken)
     {
-        var pendingCommissions = await _commissionRepository.GetPendingForApprovalAsync(request.TenantId, request.BatchSize);
+        var pendingCommissions = await _commissionRepository.GetPendingForApprovalAsync(request.BatchSize);
         var processedCommissions = new List<CommissionTransactionDto>();
 
         foreach (var commission in pendingCommissions)
@@ -279,7 +276,7 @@ public class UpdateCommissionNotesCommandHandler : IRequestHandler<UpdateCommiss
     public async Task<CommissionTransactionDto> Handle(UpdateCommissionNotesCommand request, CancellationToken cancellationToken)
     {
         var commission = await _commissionRepository.GetByIdAsync(request.CommissionId);
-        if (commission == null || commission.TenantId != request.TenantId)
+        if (commission == null)
         {
             throw new InvalidOperationException("Commission not found");
         }
@@ -336,7 +333,7 @@ public class ExpireCommissionCommandHandler : IRequestHandler<ExpireCommissionCo
     public async Task<CommissionTransactionDto> Handle(ExpireCommissionCommand request, CancellationToken cancellationToken)
     {
         var commission = await _commissionRepository.GetByIdAsync(request.CommissionId);
-        if (commission == null || commission.TenantId != request.TenantId)
+        if (commission == null)
         {
             throw new InvalidOperationException("Commission not found");
         }
@@ -349,8 +346,7 @@ public class ExpireCommissionCommandHandler : IRequestHandler<ExpireCommissionCo
         var expiredEvent = new CommissionExpiredEvent(
             commission.Id,
             commission.UserId,
-            commission.Amount,
-            commission.TenantId);
+            commission.Amount);
         await _publisher.Publish(expiredEvent, cancellationToken);
 
         return MapToDto(commission);

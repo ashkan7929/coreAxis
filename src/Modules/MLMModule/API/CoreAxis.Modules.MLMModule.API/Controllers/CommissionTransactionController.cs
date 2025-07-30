@@ -48,7 +48,6 @@ public class CommissionTransactionController : ControllerBase
         var query = new GetUserCommissionsQuery 
         { 
             UserId = userId, 
-            TenantId = GetTenantId(),
             Filter = new CommissionFilterDto { PageNumber = page, PageSize = pageSize }
         };
         var result = await _mediator.Send(query);
@@ -67,7 +66,6 @@ public class CommissionTransactionController : ControllerBase
         var query = new GetCommissionsByStatusQuery 
         { 
             Status = status, 
-            TenantId = GetTenantId(),
             PageNumber = page, 
             PageSize = pageSize 
         };
@@ -98,7 +96,6 @@ public class CommissionTransactionController : ControllerBase
         var query = new GetCommissionSummaryQuery 
         { 
             UserId = userId, 
-            TenantId = GetTenantId(),
             FromDate = startDate, 
             ToDate = endDate 
         };
@@ -116,7 +113,6 @@ public class CommissionTransactionController : ControllerBase
     {
         var query = new GetPendingCommissionsForApprovalQuery 
         { 
-            TenantId = GetTenantId(),
             PageNumber = page, 
             PageSize = pageSize 
         };
@@ -137,8 +133,7 @@ public class CommissionTransactionController : ControllerBase
         var query = new GetCommissionsByDateRangeQuery 
         { 
             FromDate = startDate, 
-            ToDate = endDate, 
-            TenantId = GetTenantId()
+            ToDate = endDate
         };
         var result = await _mediator.Send(query);
         return Ok(result);
@@ -154,8 +149,7 @@ public class CommissionTransactionController : ControllerBase
         {
             CommissionId = id,
             ApprovedBy = GetCurrentUserId(),
-            Notes = request.ApprovalNotes,
-            TenantId = GetTenantId()
+            Notes = request.ApprovalNotes
         };
 
         var result = await _mediator.Send(command);
@@ -190,8 +184,7 @@ public class CommissionTransactionController : ControllerBase
             CommissionId = id,
             PaidBy = GetCurrentUserId(),
             WalletTransactionId = Guid.NewGuid(), // This should be provided from the request
-            Notes = $"Payment Reference: {request.PaymentReference}, Method: {request.PaymentMethod}",
-            TenantId = GetTenantId()
+            Notes = $"Payment Reference: {request.PaymentReference}, Method: {request.PaymentMethod}"
         };
 
         var result = await _mediator.Send(command);
@@ -204,10 +197,8 @@ public class CommissionTransactionController : ControllerBase
     [HttpPost("process-pending")]
     public async Task<ActionResult<ProcessPendingCommissionsResultDto>> ProcessPendingCommissions([FromBody] ProcessPendingCommissionsDto request)
     {
-        var tenantId = GetTenantId();
         var command = new ProcessPendingCommissionsCommand
         {
-            TenantId = tenantId,
             ProcessedBy = GetCurrentUserId(),
             BatchSize = request.BatchSize,
             Notes = request.Notes
@@ -227,12 +218,10 @@ public class CommissionTransactionController : ControllerBase
     [HttpPut("{id}/notes")]
     public async Task<ActionResult<CommissionTransactionDto>> UpdateCommissionNotes(Guid id, [FromBody] UpdateCommissionNotesDto request)
     {
-        var tenantId = GetTenantId();
         var command = new UpdateCommissionNotesCommand
         {
             CommissionId = id,
-            Notes = request.Notes,
-            TenantId = tenantId
+            Notes = request.Notes
         };
 
         var result = await _mediator.Send(command);
@@ -245,11 +234,9 @@ public class CommissionTransactionController : ControllerBase
     [HttpPost("{id}/expire")]
     public async Task<ActionResult<CommissionTransactionDto>> ExpireCommission(Guid id, [FromBody] ExpireCommissionDto request)
     {
-        var tenantId = GetTenantId();
         var command = new ExpireCommissionCommand
         {
-            CommissionId = id,
-            TenantId = tenantId
+            CommissionId = id
         };
 
         var result = await _mediator.Send(command);
@@ -260,11 +247,5 @@ public class CommissionTransactionController : ControllerBase
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         return Guid.TryParse(userIdClaim, out var userId) ? userId : Guid.Empty;
-    }
-
-    private Guid GetTenantId()
-    {
-        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
-        return Guid.TryParse(tenantIdClaim, out var tenantId) ? tenantId : Guid.Empty;
     }
 }

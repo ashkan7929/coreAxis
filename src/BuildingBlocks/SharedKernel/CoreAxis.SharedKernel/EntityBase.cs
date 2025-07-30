@@ -17,10 +17,7 @@ namespace CoreAxis.SharedKernel
         /// </summary>
         public Guid Id { get; protected set; }
 
-        /// <summary>
-        /// Gets or sets the tenant identifier for multi-tenancy support.
-        /// </summary>
-        public Guid? TenantId { get; set; }
+
 
         /// <summary>
         /// Gets or sets the identifier of the user who created this entity.
