@@ -89,7 +89,7 @@ public class UserRepository : IUserRepository
         return await _context.Users.ToListAsync(cancellationToken);
     }
 
-    public async Task<IEnumerable<string>> GetUserPermissionsAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<Permission>> GetUserPermissionsAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var user = await _context.Users
             .Include(u => u.UserPermissions)
@@ -101,14 +101,14 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
         if (user == null)
-            return new List<string>();
+            return new List<Permission>();
 
-        var permissions = new HashSet<string>();
+        var permissions = new HashSet<Permission>();
 
         // Add direct user permissions
         foreach (var userPermission in user.UserPermissions)
         {
-            permissions.Add(userPermission.Permission.GetPermissionCode());
+            permissions.Add(userPermission.Permission);
         }
 
         // Add role-based permissions
@@ -116,7 +116,7 @@ public class UserRepository : IUserRepository
         {
             foreach (var rolePermission in userRole.Role.RolePermissions)
             {
-                permissions.Add(rolePermission.Permission.GetPermissionCode());
+                permissions.Add(rolePermission.Permission);
             }
         }
 
@@ -170,5 +170,76 @@ public class UserRepository : IUserRepository
             return await _context.Users.CountAsync();
         }
         return await _context.Users.CountAsync(predicate);
+    }
+
+    public async Task<IEnumerable<Role>> GetUserRolesAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.UserRoles
+            .Where(ur => ur.UserId == userId)
+            .Include(ur => ur.Role)
+            .Select(ur => ur.Role)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IEnumerable<User>> GetUsersByRoleNameAsync(string roleName, CancellationToken cancellationToken = default)
+    {
+        return await _context.UserRoles
+            .Where(ur => ur.Role.Name == roleName)
+            .Include(ur => ur.User)
+            .Select(ur => ur.User)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IEnumerable<User>> GetUsersByRoleIdAsync(Guid roleId, CancellationToken cancellationToken = default)
+    {
+        return await _context.UserRoles
+            .Where(ur => ur.RoleId == roleId)
+            .Include(ur => ur.User)
+            .Select(ur => ur.User)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task RemoveAllUserRolesAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var userRoles = await _context.UserRoles
+            .Where(ur => ur.UserId == userId)
+            .ToListAsync(cancellationToken);
+        
+        _context.UserRoles.RemoveRange(userRoles);
+    }
+
+    public async Task RemoveRoleFromUserAsync(Guid userId, Guid roleId, CancellationToken cancellationToken = default)
+    {
+        var userRole = await _context.UserRoles
+            .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId, cancellationToken);
+        
+        if (userRole != null)
+        {
+            _context.UserRoles.Remove(userRole);
+        }
+    }
+
+    public async Task AssignRoleToUserAsync(Guid userId, Guid roleId, CancellationToken cancellationToken = default)
+    {
+        var existingUserRole = await _context.UserRoles
+            .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId, cancellationToken);
+        
+        if (existingUserRole == null)
+        {
+            var userRole = new UserRole(userId, roleId, Guid.Empty); // Using Guid.Empty for assignedBy as placeholder
+            await _context.UserRoles.AddAsync(userRole, cancellationToken);
+        }
+    }
+
+    public async Task UpdateUserRolesAsync(Guid userId, List<Guid> roleIds, CancellationToken cancellationToken = default)
+    {
+        // Remove all existing user roles
+        await RemoveAllUserRolesAsync(userId, cancellationToken);
+        
+        // Add new roles
+        foreach (var roleId in roleIds)
+        {
+            await AssignRoleToUserAsync(userId, roleId, cancellationToken);
+        }
     }
 }

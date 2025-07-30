@@ -116,7 +116,7 @@ public class AuthDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
                 
             entity.HasOne(e => e.Permission)
-                .WithMany()
+                .WithMany(p => p.RolePermissions)
                 .HasForeignKey(e => e.PermissionId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
@@ -132,7 +132,7 @@ public class AuthDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
                 
             entity.HasOne(e => e.Permission)
-                .WithMany()
+                .WithMany(p => p.UserPermissions)
                 .HasForeignKey(e => e.PermissionId)
                 .OnDelete(DeleteBehavior.Cascade);
         });

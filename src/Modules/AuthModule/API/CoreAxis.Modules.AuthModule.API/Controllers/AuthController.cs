@@ -1,5 +1,6 @@
 using CoreAxis.Modules.AuthModule.Application.Commands.Users;
 using CoreAxis.Modules.AuthModule.Application.DTOs;
+using CoreAxis.Modules.AuthModule.Application.Queries.Users;
 using CoreAxis.SharedKernel;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -105,17 +106,23 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Get user by ID (placeholder for CreatedAtAction)
+    /// Get user by ID
     /// </summary>
     /// <param name="id">User ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>User information</returns>
-    [HttpGet("{id}")]
+    [HttpGet("user/{id:guid}")]
     [Authorize]
     public async Task<ActionResult<UserDto>> GetUser(Guid id, CancellationToken cancellationToken = default)
     {
-        // This would typically use a GetUserByIdQuery
-        // For now, return NotFound as placeholder
-        return NotFound();
+        var query = new GetUserByIdQuery(id);
+        var result = await _mediator.Send(query, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return NotFound(result.Errors);
     }
 }

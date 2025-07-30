@@ -9,4 +9,5 @@ public interface IPageRepository : IRepository<Page>
     Task<bool> IsCodeExistsAsync(string code, CancellationToken cancellationToken = default);
     Task<IEnumerable<Page>> GetByModuleAsync(string moduleName, CancellationToken cancellationToken = default);
     Task<IEnumerable<Page>> GetAllActiveAsync(CancellationToken cancellationToken = default);
+    Task UpdateAsync(Page page, CancellationToken cancellationToken = default);
 }

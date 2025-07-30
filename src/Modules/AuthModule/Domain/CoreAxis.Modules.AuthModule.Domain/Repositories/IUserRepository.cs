@@ -12,5 +12,13 @@ public interface IUserRepository : IRepository<User>
 
     Task<User?> GetWithRolesAsync(Guid id, CancellationToken cancellationToken = default);
     Task<User?> GetWithPermissionsAsync(Guid id, CancellationToken cancellationToken = default);
-    Task<IEnumerable<string>> GetUserPermissionsAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Permission>> GetUserPermissionsAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<Role>> GetUserRolesAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<User>> GetUsersByRoleNameAsync(string roleName, CancellationToken cancellationToken = default);
+    Task<IEnumerable<User>> GetUsersByRoleIdAsync(Guid roleId, CancellationToken cancellationToken = default);
+    Task RemoveAllUserRolesAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task RemoveRoleFromUserAsync(Guid userId, Guid roleId, CancellationToken cancellationToken = default);
+    Task AssignRoleToUserAsync(Guid userId, Guid roleId, CancellationToken cancellationToken = default);
+    Task UpdateUserRolesAsync(Guid userId, List<Guid> roleIds, CancellationToken cancellationToken = default);
+    Task UpdateAsync(User user, CancellationToken cancellationToken = default);
 }

@@ -22,8 +22,15 @@ public class CreateUserDto
 
 public class UpdateUserDto
 {
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
     public string? Email { get; set; }
+    public string? PhoneNumber { get; set; }
     public bool? IsActive { get; set; }
+    public bool? EmailConfirmed { get; set; }
+    public bool? PhoneNumberConfirmed { get; set; }
+    public string? Password { get; set; }
+    public List<Guid>? RoleIds { get; set; }
 }
 
 public class ChangePasswordDto

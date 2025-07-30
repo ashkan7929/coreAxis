@@ -1,3 +1,4 @@
+using CoreAxis.Modules.AuthModule.Application.Commands.Permissions;
 using CoreAxis.Modules.AuthModule.Application.DTOs;
 using CoreAxis.Modules.AuthModule.Application.Queries.Permissions;
 using CoreAxis.SharedKernel;
@@ -47,8 +48,15 @@ public class PermissionsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<PermissionDto>> GetById(Guid id, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement GetPermissionByIdQuery
-        return NotImplemented("Get permission by ID functionality not yet implemented");
+        var query = new GetPermissionByIdQuery(id);
+        var result = await _mediator.Send(query, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return NotFound(result.Errors);
     }
 
     /// <summary>
@@ -60,8 +68,15 @@ public class PermissionsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<PermissionDto>> Create([FromBody] CreatePermissionDto dto, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement CreatePermissionCommand
-        return NotImplemented("Create permission functionality not yet implemented");
+        var command = new CreatePermissionCommand(dto);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, result.Value);
+        }
+
+        return BadRequest(result.Errors);
     }
 
     /// <summary>
@@ -74,8 +89,15 @@ public class PermissionsController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult<PermissionDto>> Update(Guid id, [FromBody] UpdatePermissionDto dto, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement UpdatePermissionCommand
-        return NotImplemented("Update permission functionality not yet implemented");
+        var command = new UpdatePermissionCommand(id, dto);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return NotFound(result.Errors);
     }
 
     /// <summary>
@@ -87,8 +109,15 @@ public class PermissionsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement DeletePermissionCommand
-        return NotImplemented("Delete permission functionality not yet implemented");
+        var command = new DeletePermissionCommand(id);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return NoContent();
+        }
+
+        return NotFound(result.Errors);
     }
 
     /// <summary>
@@ -100,8 +129,15 @@ public class PermissionsController : ControllerBase
     [HttpGet("by-page/{pageId}")]
     public async Task<ActionResult<IEnumerable<PermissionDto>>> GetByPage(Guid pageId, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement GetPermissionsByPageQuery
-        return NotImplemented("Get permissions by page functionality not yet implemented");
+        var query = new GetPermissionsByPageQuery(pageId);
+        var result = await _mediator.Send(query, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return NotFound(result.Errors);
     }
 
     /// <summary>
@@ -113,12 +149,14 @@ public class PermissionsController : ControllerBase
     [HttpGet("by-action/{actionId}")]
     public async Task<ActionResult<IEnumerable<PermissionDto>>> GetByAction(Guid actionId, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement GetPermissionsByActionQuery
-        return NotImplemented("Get permissions by action functionality not yet implemented");
-    }
+        var query = new GetPermissionsByActionQuery(actionId);
+        var result = await _mediator.Send(query, cancellationToken);
 
-    private ActionResult NotImplemented(string message)
-    {
-        return StatusCode(501, new { message });
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return NotFound(result.Errors);
     }
 }

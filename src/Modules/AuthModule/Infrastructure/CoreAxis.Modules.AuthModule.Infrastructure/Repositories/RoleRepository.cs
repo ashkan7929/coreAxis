@@ -82,6 +82,53 @@ public class RoleRepository : IRoleRepository
         }
     }
 
+    public async Task AddPermissionToRoleAsync(Guid roleId, Guid permissionId, CancellationToken cancellationToken = default)
+    {
+        var rolePermission = new RolePermission(roleId, permissionId, Guid.Empty);
+        await _context.RolePermissions.AddAsync(rolePermission, cancellationToken);
+    }
+
+    public async Task RemovePermissionFromRoleAsync(Guid roleId, Guid permissionId, CancellationToken cancellationToken = default)
+    {
+        var rolePermission = await _context.RolePermissions
+            .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.PermissionId == permissionId, cancellationToken);
+        
+        if (rolePermission != null)
+        {
+            _context.RolePermissions.Remove(rolePermission);
+        }
+    }
+
+    public async Task<IEnumerable<User>> GetUsersByRoleIdAsync(Guid roleId, CancellationToken cancellationToken = default)
+    {
+        return await _context.UserRoles
+            .Where(ur => ur.RoleId == roleId)
+            .Include(ur => ur.User)
+            .Select(ur => ur.User)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task RemoveAllRolePermissionsAsync(Guid roleId, CancellationToken cancellationToken = default)
+    {
+        var rolePermissions = await _context.RolePermissions
+            .Where(rp => rp.RoleId == roleId)
+            .ToListAsync(cancellationToken);
+        
+        _context.RolePermissions.RemoveRange(rolePermissions);
+    }
+
+    public async Task UpdateRolePermissionsAsync(Guid roleId, List<Guid> permissionIds, CancellationToken cancellationToken = default)
+    {
+        // Remove existing permissions
+        await RemoveAllRolePermissionsAsync(roleId, cancellationToken);
+        
+        // Add new permissions
+        foreach (var permissionId in permissionIds)
+        {
+            await AddPermissionToRoleAsync(roleId, permissionId, cancellationToken);
+        }
+    }
+
     public async Task AddAsync(Role role, CancellationToken cancellationToken = default)
     {
         await _context.Roles.AddAsync(role, cancellationToken);

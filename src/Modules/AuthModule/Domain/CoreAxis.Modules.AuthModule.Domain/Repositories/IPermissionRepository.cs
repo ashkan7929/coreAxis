@@ -10,4 +10,6 @@ public interface IPermissionRepository : IRepository<Permission>
     Task<IEnumerable<Permission>> GetByActionAsync(Guid actionId, CancellationToken cancellationToken = default);
     Task<IEnumerable<Permission>> GetAllActiveAsync(CancellationToken cancellationToken = default);
     Task<bool> ExistsAsync(Guid pageId, Guid actionId, CancellationToken cancellationToken = default);
+    Task<bool> IsPermissionInUseAsync(Guid permissionId, CancellationToken cancellationToken = default);
+    Task UpdateAsync(Permission permission, CancellationToken cancellationToken = default);
 }

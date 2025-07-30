@@ -1,3 +1,4 @@
+using CoreAxis.Modules.AuthModule.Application.Commands.Users;
 using CoreAxis.Modules.AuthModule.Application.DTOs;
 using CoreAxis.Modules.AuthModule.Application.Queries.Users;
 using CoreAxis.SharedKernel;
@@ -74,8 +75,15 @@ public class UsersController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult<UserDto>> Update(Guid id, [FromBody] UpdateUserDto dto, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement UpdateUserCommand
-        return NotImplemented("Update user functionality not yet implemented");
+        var command = new UpdateUserCommand(id, dto);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return BadRequest(result.Errors);
     }
 
     /// <summary>
@@ -87,8 +95,15 @@ public class UsersController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement DeleteUserCommand
-        return NotImplemented("Delete user functionality not yet implemented");
+        var command = new DeleteUserCommand(id);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return NoContent();
+        }
+
+        return BadRequest(result.Errors);
     }
 
     /// <summary>
@@ -101,8 +116,17 @@ public class UsersController : ControllerBase
     [HttpPost("{id}/roles")]
     public async Task<ActionResult> AssignRole(Guid id, [FromBody] AssignRoleDto dto, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement AssignRoleToUserCommand
-        return NotImplemented("Assign role functionality not yet implemented");
+        // Set the UserId from the route parameter
+        dto.UserId = id;
+        var command = new AssignRoleCommand(dto);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return Ok();
+        }
+
+        return BadRequest(result.Errors);
     }
 
     /// <summary>
@@ -115,12 +139,14 @@ public class UsersController : ControllerBase
     [HttpDelete("{id}/roles/{roleId}")]
     public async Task<ActionResult> RemoveRole(Guid id, Guid roleId, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement RemoveRoleFromUserCommand
-        return NotImplemented("Remove role functionality not yet implemented");
-    }
+        var command = new RemoveRoleFromUserCommand(id, roleId);
+        var result = await _mediator.Send(command, cancellationToken);
 
-    private ActionResult NotImplemented(string message)
-    {
-        return StatusCode(501, new { message });
+        if (result.IsSuccess)
+        {
+            return Ok();
+        }
+
+        return BadRequest(result.Errors);
     }
 }

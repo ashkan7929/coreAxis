@@ -13,4 +13,10 @@ public interface IRoleRepository : IRepository<Role>
     Task<IEnumerable<RolePermission>> GetRolePermissionsAsync(Guid roleId, CancellationToken cancellationToken = default);
     Task AddRolePermissionAsync(RolePermission rolePermission, CancellationToken cancellationToken = default);
     Task RemoveRolePermissionAsync(Guid roleId, Guid permissionId, CancellationToken cancellationToken = default);
+    Task AddPermissionToRoleAsync(Guid roleId, Guid permissionId, CancellationToken cancellationToken = default);
+    Task RemovePermissionFromRoleAsync(Guid roleId, Guid permissionId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<User>> GetUsersByRoleIdAsync(Guid roleId, CancellationToken cancellationToken = default);
+    Task RemoveAllRolePermissionsAsync(Guid roleId, CancellationToken cancellationToken = default);
+    Task UpdateRolePermissionsAsync(Guid roleId, List<Guid> permissionIds, CancellationToken cancellationToken = default);
+    Task UpdateAsync(Role role, CancellationToken cancellationToken = default);
 }

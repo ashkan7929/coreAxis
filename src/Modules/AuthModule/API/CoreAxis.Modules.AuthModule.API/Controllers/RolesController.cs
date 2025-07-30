@@ -54,8 +54,15 @@ public class RolesController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<RoleDto>> GetById(Guid id, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement GetRoleByIdQuery
-        return NotImplemented("Get role by ID functionality not yet implemented");
+        var query = new GetRoleByIdQuery(id);
+        var result = await _mediator.Send(query, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return NotFound(result.Errors);
     }
 
     /// <summary>
@@ -88,8 +95,15 @@ public class RolesController : ControllerBase
     [HttpPut("{id}")]
     public async Task<ActionResult<RoleDto>> Update(Guid id, [FromBody] UpdateRoleDto dto, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement UpdateRoleCommand
-        return NotImplemented("Update role functionality not yet implemented");
+        var command = new UpdateRoleCommand(id, dto);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return NotFound(result.Errors);
     }
 
     /// <summary>
@@ -101,8 +115,15 @@ public class RolesController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement DeleteRoleCommand
-        return NotImplemented("Delete role functionality not yet implemented");
+        var command = new DeleteRoleCommand(id);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return NoContent();
+        }
+
+        return NotFound(result.Errors);
     }
 
     /// <summary>
@@ -115,8 +136,15 @@ public class RolesController : ControllerBase
     [HttpPost("{id}/permissions/{permissionId}")]
     public async Task<ActionResult> AddPermission(Guid id, Guid permissionId, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement AddPermissionToRoleCommand
-        return NotImplemented("Add permission to role functionality not yet implemented");
+        var command = new AddPermissionToRoleCommand(id, permissionId);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return Ok();
+        }
+
+        return BadRequest(result.Errors);
     }
 
     /// <summary>
@@ -129,12 +157,14 @@ public class RolesController : ControllerBase
     [HttpDelete("{id}/permissions/{permissionId}")]
     public async Task<ActionResult> RemovePermission(Guid id, Guid permissionId, CancellationToken cancellationToken = default)
     {
-        // TODO: Implement RemovePermissionFromRoleCommand
-        return NotImplemented("Remove permission from role functionality not yet implemented");
-    }
+        var command = new RemovePermissionFromRoleCommand(id, permissionId);
+        var result = await _mediator.Send(command, cancellationToken);
 
-    private ActionResult NotImplemented(string message)
-    {
-        return StatusCode(501, new { message });
+        if (result.IsSuccess)
+        {
+            return Ok();
+        }
+
+        return BadRequest(result.Errors);
     }
 }

@@ -90,6 +90,12 @@ public class PermissionRepository : IPermissionRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<bool> IsPermissionInUseAsync(Guid permissionId, CancellationToken cancellationToken = default)
+    {
+        return await _context.RolePermissions
+            .AnyAsync(rp => rp.PermissionId == permissionId, cancellationToken);
+    }
+
     // IRepository<Permission> interface implementations
     public IQueryable<Permission> GetAll()
     {
