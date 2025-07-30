@@ -14,13 +14,13 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddAuthModuleInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        // Add DbContext - Use InMemory database for development
+        // Add DbContext - Use SQL Server database
         services.AddDbContext<AuthDbContext>(options =>
         {
             var connectionString = configuration.GetConnectionString("DefaultConnection");
-            if (string.IsNullOrEmpty(connectionString) || connectionString.Contains("localhost"))
+            if (string.IsNullOrEmpty(connectionString))
             {
-                // Use in-memory database for development
+                // Use in-memory database only if no connection string is provided
                 options.UseInMemoryDatabase("CoreAxisAuthDb");
             }
             else
