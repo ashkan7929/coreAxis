@@ -95,3 +95,14 @@ public class OtpVerificationResultDto
     /// </summary>
     public string Message { get; set; } = string.Empty;
 }
+
+/// <summary>
+/// DTO for simple OTP verification result (only success status)
+/// </summary>
+public class SimpleOtpVerificationResultDto
+{
+    /// <summary>
+    /// Whether OTP verification was successful
+    /// </summary>
+    public bool IsSuccess { get; set; }
+}

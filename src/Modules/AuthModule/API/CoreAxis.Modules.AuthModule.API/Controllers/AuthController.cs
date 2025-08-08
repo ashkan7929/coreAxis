@@ -1,6 +1,7 @@
 using CoreAxis.Modules.AuthModule.Application.Commands.Users;
 using CoreAxis.Modules.AuthModule.Application.DTOs;
 using CoreAxis.Modules.AuthModule.Application.Queries.Users;
+using CoreAxis.Modules.AuthModule.Application.Services;
 using CoreAxis.SharedKernel;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -97,16 +98,38 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Verify OTP and login user
+    /// Verify OTP (simple verification without login)
     /// </summary>
     /// <param name="dto">OTP verification data</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Verification result with JWT token</returns>
+    /// <returns>Simple verification result</returns>
     [HttpPost("verify-otp")]
     [AllowAnonymous]
-    public async Task<ActionResult<OtpVerificationResultDto>> VerifyOtp([FromBody] VerifyOtpDto dto, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<SimpleOtpVerificationResultDto>> VerifyOtp([FromBody] VerifyOtpDto dto, CancellationToken cancellationToken = default)
     {
         var command = new VerifyOtpCommand(dto.MobileNumber, dto.OtpCode, dto.Purpose);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return Ok(new SimpleOtpVerificationResultDto { IsSuccess = result.Value.IsSuccess });
+        }
+
+        return BadRequest(result.Errors);
+    }
+
+    /// <summary>
+    /// Login with OTP and get full user information with token
+    /// </summary>
+    /// <param name="dto">OTP verification data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Complete login result with user info and JWT token</returns>
+    [HttpPost("login-with-otp")]
+    [AllowAnonymous]
+    public async Task<ActionResult<OtpVerificationResultDto>> LoginWithOtp([FromBody] VerifyOtpDto dto, CancellationToken cancellationToken = default)
+    {
+        // Force purpose to Login for this endpoint
+        var command = new VerifyOtpCommand(dto.MobileNumber, dto.OtpCode, OtpPurpose.Login);
         var result = await _mediator.Send(command, cancellationToken);
 
         if (result.IsSuccess)

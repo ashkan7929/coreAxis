@@ -101,12 +101,28 @@ public class OtpService : IOtpService
         try
         {
             var cacheKey = GetCacheKey(mobileNumber, purpose);
+            OtpCode? storedOtp = null;
             
-            if (!_cache.TryGetValue(cacheKey, out OtpCode? storedOtp) || storedOtp == null)
+            // First try to find OTP with the exact purpose
+            if (!_cache.TryGetValue(cacheKey, out storedOtp) || storedOtp == null)
             {
-                _logger.LogWarning("OTP verification failed: No OTP found for {MobileNumber} with purpose {Purpose}", 
-                    mobileNumber, purpose);
-                return Result<bool>.Success(false);
+                // If not found and purpose is Login, try to find Registration OTP
+                if (purpose == OtpPurpose.Login)
+                {
+                    var registrationCacheKey = GetCacheKey(mobileNumber, OtpPurpose.Registration);
+                    if (!_cache.TryGetValue(registrationCacheKey, out storedOtp) || storedOtp == null)
+                    {
+                        _logger.LogWarning("OTP verification failed: No OTP found for {MobileNumber} with purpose {Purpose}", 
+                            mobileNumber, purpose);
+                        return Result<bool>.Success(false);
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("OTP verification failed: No OTP found for {MobileNumber} with purpose {Purpose}", 
+                        mobileNumber, purpose);
+                    return Result<bool>.Success(false);
+                }
             }
 
             // Check if OTP is expired
@@ -126,8 +142,23 @@ public class OtpService : IOtpService
                 return Result<bool>.Success(false);
             }
 
-            // Remove the OTP after successful verification
-            _cache.Remove(cacheKey);
+            // Remove the OTP after successful verification only for certain purposes
+            // For Registration and Login, keep the OTP for a short time to allow multiple verifications
+            if (purpose == OtpPurpose.PasswordReset || purpose == OtpPurpose.PhoneVerification)
+            {
+                _cache.Remove(cacheKey);
+            }
+            else
+            {
+                // For Registration and Login, mark as used but keep for 2 more minutes
+                storedOtp.IsUsed = true;
+                var shortExpiryOptions = new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpiration = DateTime.UtcNow.AddMinutes(2),
+                    Priority = CacheItemPriority.Normal
+                };
+                _cache.Set(cacheKey, storedOtp, shortExpiryOptions);
+            }
             
             _logger.LogInformation("OTP verification successful for {MobileNumber} with purpose {Purpose}", 
                 mobileNumber, purpose);

@@ -98,12 +98,65 @@ public class VerifyOtpCommandHandler : IRequestHandler<VerifyOtpCommand, Result<
                     });
                 }
 
+                // Get user with roles and permissions
+                var userWithPermissions = await _userRepository.GetWithPermissionsAsync(user.Id, cancellationToken);
+                if (userWithPermissions == null)
+                {
+                    _logger.LogError("Failed to load user permissions for user: {UserId}", user.Id);
+                    return Result<OtpVerificationResultDto>.Success(new OtpVerificationResultDto
+                    {
+                        IsSuccess = false,
+                        Message = "خطا در بارگذاری اطلاعات کاربر"
+                    });
+                }
+
                 // Generate JWT token
                 var tokenResult = await _jwtTokenService.GenerateTokenAsync(user, cancellationToken);
 
                 // Update user login info
                 user.RecordSuccessfulLogin("OTP_LOGIN");
                 _userRepository.Update(user);
+
+                // Map roles with permissions
+                var roleDtos = userWithPermissions.UserRoles.Select(ur => new RoleDto
+                {
+                    Id = ur.Role.Id,
+                    Name = ur.Role.Name,
+                    Description = ur.Role.Description,
+                    IsActive = ur.Role.IsActive,
+                    IsSystemRole = ur.Role.IsSystemRole,
+                    CreatedAt = ur.Role.CreatedOn,
+                    Permissions = ur.Role.RolePermissions.Select(rp => new PermissionDto
+                    {
+                        Id = rp.Permission.Id,
+                        Name = rp.Permission.Name,
+                        Description = rp.Permission.Description,
+                        IsActive = rp.Permission.IsActive,
+                        CreatedAt = rp.Permission.CreatedOn,
+                        Page = rp.Permission.Page != null ? new PageDto
+                        {
+                            Id = rp.Permission.Page.Id,
+                            Code = rp.Permission.Page.Code,
+                            Name = rp.Permission.Page.Name,
+                            Description = rp.Permission.Page.Description,
+                            Path = rp.Permission.Page.Path,
+                            ModuleName = rp.Permission.Page.ModuleName,
+                            IsActive = rp.Permission.Page.IsActive,
+                            SortOrder = rp.Permission.Page.SortOrder,
+                            CreatedAt = rp.Permission.Page.CreatedOn
+                        } : null,
+                        Action = rp.Permission.Action != null ? new ActionDto
+                        {
+                            Id = rp.Permission.Action.Id,
+                            Code = rp.Permission.Action.Code,
+                            Name = rp.Permission.Action.Name,
+                            Description = rp.Permission.Action.Description,
+                            IsActive = rp.Permission.Action.IsActive,
+                            SortOrder = rp.Permission.Action.SortOrder,
+                            CreatedAt = rp.Permission.Action.CreatedOn
+                        } : null
+                    }).ToList()
+                }).ToList();
 
                 var userDto = new UserDto
                 {
@@ -114,7 +167,8 @@ public class VerifyOtpCommandHandler : IRequestHandler<VerifyOtpCommand, Result<
                     IsLocked = user.IsLocked,
                     CreatedAt = user.CreatedOn,
                     LastLoginAt = user.LastLoginAt,
-                    FailedLoginAttempts = user.FailedLoginAttempts
+                    FailedLoginAttempts = user.FailedLoginAttempts,
+                    Roles = roleDtos
                 };
 
                 _logger.LogInformation("OTP login successful for mobile: {MobileNumber}", request.MobileNumber);
