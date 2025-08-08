@@ -40,6 +40,17 @@ public static class DependencyInjection
         // Add Services
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<IOtpService, OtpService>();
+        services.AddScoped<IShahkarService, ShahkarService>();
+        services.AddScoped<ICivilRegistryService, CivilRegistryService>();
+        services.AddScoped<IMegfaSmsService, MegfaSmsService>();
+
+        // Add HttpClient for external services
+        services.AddHttpClient<IShahkarService, ShahkarService>();
+        services.AddHttpClient<ICivilRegistryService, CivilRegistryService>();
+
+        // Add Memory Cache for OTP service
+        services.AddMemoryCache();
 
         // Add Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();

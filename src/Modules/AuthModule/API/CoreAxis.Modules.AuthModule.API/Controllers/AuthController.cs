@@ -21,14 +21,44 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Register a new user
+    /// Register a new user with national verification
     /// </summary>
     /// <param name="dto">User registration data</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Created user information</returns>
+    /// <returns>Registration result</returns>
     [HttpPost("register")]
     [AllowAnonymous]
-    public async Task<ActionResult<UserDto>> Register([FromBody] CreateUserDto dto, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<RegisterUserResultDto>> Register([FromBody] RegisterDto dto, CancellationToken cancellationToken = default)
+    {
+        // Birth date is received from registration API in yyyymmdd format (e.g., 13791129)
+        var command = new RegisterUserCommand(
+            dto.NationalCode, // Using national code as username for now
+            $"{dto.NationalCode}@temp.com", // Temporary email
+            "TempPassword123!", // Temporary password
+            dto.NationalCode,
+            dto.MobileNumber,
+            dto.BirthDate, // Birth date in yyyymmdd format for Civil Registry
+            dto.ReferralCode);
+
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return BadRequest(result.Errors);
+    }
+
+    /// <summary>
+    /// Create a new user (legacy endpoint)
+    /// </summary>
+    /// <param name="dto">User creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created user information</returns>
+    [HttpPost("create-user")]
+    [AllowAnonymous]
+    public async Task<ActionResult<UserDto>> CreateUser([FromBody] CreateUserDto dto, CancellationToken cancellationToken = default)
     {
         var command = new CreateUserCommand(
             dto.Username,
@@ -46,7 +76,49 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Authenticate user and get access token
+    /// Send OTP for login or registration
+    /// </summary>
+    /// <param name="dto">OTP request data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>OTP send result</returns>
+    [HttpPost("send-otp")]
+    [AllowAnonymous]
+    public async Task<ActionResult> SendOtp([FromBody] SendOtpDto dto, CancellationToken cancellationToken = default)
+    {
+        var command = new SendOtpCommand(dto.MobileNumber, dto.Purpose);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return Ok(new { message = "OTP sent successfully" });
+        }
+
+        return BadRequest(result.Errors);
+    }
+
+    /// <summary>
+    /// Verify OTP and login user
+    /// </summary>
+    /// <param name="dto">OTP verification data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Verification result with JWT token</returns>
+    [HttpPost("verify-otp")]
+    [AllowAnonymous]
+    public async Task<ActionResult<OtpVerificationResultDto>> VerifyOtp([FromBody] VerifyOtpDto dto, CancellationToken cancellationToken = default)
+    {
+        var command = new VerifyOtpCommand(dto.MobileNumber, dto.OtpCode, dto.Purpose);
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return BadRequest(result.Errors);
+    }
+
+    /// <summary>
+    /// Authenticate user and get access token (legacy endpoint)
     /// </summary>
     /// <param name="dto">Login credentials</param>
     /// <param name="cancellationToken">Cancellation token</param>

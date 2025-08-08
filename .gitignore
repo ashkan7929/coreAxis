@@ -130,4 +130,10 @@ $RECYCLE.BIN/
 # Mac desktop service store files
 .DS_Store
 
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+
 _NCrunch*

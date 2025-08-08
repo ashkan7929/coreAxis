@@ -12,8 +12,8 @@ public class AuthDbContextFactory : IDesignTimeDbContextFactory<AuthDbContext>
         var optionsBuilder = new DbContextOptionsBuilder<AuthDbContext>();
 
         // Use SQL Server Express with the same database name as appsettings.json
-        var connectionString = "Server=.\\SQLEXPRESS;Database=CoreAxisDb;Trusted_Connection=true;MultipleActiveResultSets=true;TrustServerCertificate=true";
-        
+        var connectionString = "Server=62.3.41.64;Database=CoreAxisDb;User id=BMSUser;Encrypt=True;TrustServerCertificate=True;Password=pxi[KaBKH]l2T@tsWF?!:l92l%|?$5";
+
         optionsBuilder.UseSqlServer(connectionString);
 
         return new AuthDbContext(optionsBuilder.Options);

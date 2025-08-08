@@ -45,6 +45,18 @@ public class UserRepository : IUserRepository
             .AnyAsync(u => u.Email == email, cancellationToken);
     }
 
+    public async Task<User?> GetByNationalCodeAsync(string nationalCode, CancellationToken cancellationToken = default)
+    {
+        return await _context.Users
+            .FirstOrDefaultAsync(u => u.NationalCode == nationalCode, cancellationToken);
+    }
+
+    public async Task<User?> GetByPhoneNumberAsync(string phoneNumber, CancellationToken cancellationToken = default)
+    {
+        return await _context.Users
+            .FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber, cancellationToken);
+    }
+
     
 
     public async Task<User?> GetWithRolesAsync(Guid userId, CancellationToken cancellationToken = default)
