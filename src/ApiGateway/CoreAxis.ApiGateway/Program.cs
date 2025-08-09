@@ -29,6 +29,16 @@ try
 
     // Add services to the container.
     builder.Services.AddControllers();
+    builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowLocalhost8030", policy =>
+    {
+        policy.WithOrigins("http://localhost:8030")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(c =>
     {
@@ -73,6 +83,7 @@ try
     builder.Host.UseSerilog();
 
     var app = builder.Build();
+app.UseCors("AllowLocalhost8030");
 
     // Configure the HTTP request pipeline.
     if (app.Environment.IsDevelopment())
