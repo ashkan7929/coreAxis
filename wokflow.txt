@@ -1,0 +1,425 @@
+تحلیل کسب‌وکاری کاملِ ماژول Workflow (حداکثری — بدون UI)
+الف) مسئولیت‌های کسب‌وکاری Workflow
+مدیریتِ stateful process — حفظ وضعیت فرایندها (state machine) تا تکمیل یا لغو.
+
+ترتیب‌دهی منطق کسب‌وکار — اجرای ترتیبی یا موازیِ گام‌ها (steps) مطابق ruleها.
+
+مکانیزم trigger — شروع فرایند بر اساس events (مثلاً OrderPlaced, FormSubmitted, ManualTrigger).
+
+پشتیبانی از انواع اکشن‌های کسب‌وکاری:
+
+Automated Action (call service)
+
+Human Task (assign approval to role)
+
+Decision Task (evaluate rule/formula)
+
+WaitForEvent (منتظر webhook/confirmation)
+
+Timer (timeout/retry)
+
+Compensation Task (reverse)
+
+نقش تنظیم قوانین (Policy/Rules) — اتصال به فرمول‌ساز و evaluation برای تصمیم‌گیری.
+
+گزارش‌، آدیت و traceability — log کامل هر transition و ریزدلایل تصمیم‌گیری (چه فرمولی چه مقدار برگشت داد).
+
+ب) انواع Business Primitives (واحدهای قابل استفاده در فرایند)
+Step: unit of work (id, name, type, input-mapping, output-mapping)
+
+Trigger: event/cron/manual
+
+Condition: expression (point to formula ID)
+
+Action types: CallAPI(webServiceId, method, params), Calculate(formulaId, inputs), CreateOrder, ReserveInventory, InitiatePayment, Notify, CreateCommissionJob
+
+Compensation: CompensatePayment, RevertWalletTransfer, CancelCommission
+
+SLA: timeouts, escalation rules, max retries
+
+پ) متادیتا ضروری برای هر Process Instance
+processId, version, initiatedBy, tenant/businessId, contextPayload (orderId, userId, productId, formData), status, history (events & steps)
+
+ارتباط دقیق با ماژول‌های کلیدی (کسب‌وکاری + پیام‌ها)
+من هر رابطه را با: (1) چه چیزی trigger می‌کند، (2) چه کاری انجام می‌دهد، (3) چه داده‌ای رد و بدل می‌شود، (4) sync/async و (5) خطا/جبران توضیح می‌دهم.
+
+1. ارتباط Workflow ⇄ Product & Order Management
+Trigger: OrderPlaced یا CheckoutStarted.
+
+Workflow actions:
+
+ValidateOrder (call internal Order Service to validate snapshot price).
+
+ReserveInventory (در صورت وجود، اگر نداریم این مرحله حذف می‌شود).
+
+CollectAdditionalData (منتظر FormSubmitted از Form Builder).
+
+InitiatePayment (به Wallet/Payment provider ریدایرکت).
+
+داده‌ها: OrderId, UserId, PriceSnapshot, LineItems, FormResponses.
+
+Sync/Async: معمولاً sync برای validation و price lock؛ async برای post-payment tasks.
+
+خطا/جبران: اگر پرداخت fail شد OrderFailed و ممکن است inventory release صورت بگیرد.
+
+2. ارتباط Workflow ⇄ API Manager (WebService Definition)
+نقش APImanager: منبعِ تعاریفِ endpointها (credentials, rate-limit, transform rules).
+
+Workflow action CallExternalService باید با یک شناسهٔ webServiceMethod فراخوانی کند:
+
+ورودی: webServiceMethodId, mappedParams, authProfileId
+
+خروجی: responsePayload, statusCode, callLogId
+
+مثال کاربرد: گرفتن Quote از سرویس بیمه، اعتبارسنجی شماره ملی، گرفتن نرخ روز.
+
+Sync/Async: معمولاً sync (نیاز به پاسخ جهت ادامه) اما با timeout و retry policy تعریف‌شده در API Manager.
+
+خطا/جبران: در صورت ۵xx یا timeout → retry طبق policy؛ در صورت عدم موفقیت پس از retries → مسیر دومِ approval یا fallback.
+
+3. ارتباط Workflow ⇄ فرمول‌ساز (Formula Builder / Rule Engine)
+Workflow از فرمول‌ساز برای:
+
+محاسبه نرخ‌ها (premium formula)
+
+محاسبه کارمزد/هزینه‌ها (fee formula)
+
+محاسبه کمیسیون‌ها (pre-commission allocation) — توجه: اجرای نهایی در Commission Engine.
+
+الگو: Workflow EvaluateFormula(formulaId, inputs) → Formula Service returns {value, formulaVersion, metadata}.
+
+سفارشات حساس: فرمول باید نسخه‌بندی شده باشد؛ Workflow باید شماره نسخه را لاگ کند (برای audit).
+
+Sync/Async: عموماً synchronous (محاسبه باید قبل از InitiatePayment انجام شود).
+
+خطا/جبران: اگر formula fails (e.g. missing data) → مسیر fallback (manual review) یا default value.
+
+4. ارتباط Workflow ⇄ MLM Commission Engine
+نقش: محاسبه دقیق کمیسیون طبق پلان و ساختار درختی، و تولید تراکنش کمیسیون (CommissionTransaction).
+
+رفتار:
+
+Workflow پس از PaymentConfirmed می‌تواند دو مدل اجرا کند:
+
+Orchestrated: Workflow فراخوانی CalculateCommission(paymentId) در Commission Engine و منتظر CommissionReady می‌ماند و سپس RequestWalletCredit(commissionTransactions[]) را انجام می‌دهد.
+
+Choreographed: Workflow فقط پخش‌کنندهٔ event PaymentConfirmedEvent است؛ Commission Engine خودش شنیده و محاسبه و انتشار CommissionCalculatedEvent می‌کند که Wallet آن را مصرف می‌کند.
+
+داده‌ها: paymentId, amount, payerId, productId, commissionRulesVersion, uplineSnapshot.
+
+Sync/Async: توصیه می‌شود async برای محاسبات عمیق و پرداخت‌ها (برای مقیاس)، مگر اینکه SLA نیاز به synchronous داشته باشد.
+
+خطا/جبران: اگر محاسبه موفق ولی واریز به کیف پول fail شد → CommissionEngine باید وضعیت قفل‌شده/pending قرار دهد و retry انجام دهد یا دستور manual reversal صادر شود.
+
+5. ارتباط Workflow ⇄ Wallet & Transaction
+Workflow دستورات مالی را به Wallet می‌دهد:
+
+InitiatePayment (withdraw from buyer wallet or call gateway)
+
+CreditSeller (after settlement)
+
+CreditCommission (پس از CommissionEngine یا توسط Wallet به صورت batch)
+
+داده‌ها: idempotencyKey, amount, currency, fromWalletId, toWalletId, metadata (orderId, commissionId).
+
+Sync/Async: اقدام برداشت معمولاً sync تا نتیجه پرداخت مشخص شود؛ اما تسویه نهایی می‌تواند async.
+
+خطا/جبران: همیشه با idempotencyKey و امکان reversal در نظر گرفته شود. استفاده از outbox pattern برای ارسال reliable events به message bus.
+
+6. ارتباط Workflow ⇄ Dynamic Form Builder
+Workflow ممکن است مسیر را تا زمانی که FormSubmitted دریافت شود منتظر بماند.
+
+فرم‌ها ممکن است بخشی از context باشند و inputs آن‌ها feed شوند به فرمول‌ساز و API calls.
+
+داده‌ها: formId, submissionId, formData (structured).
+
+Sync/Async: wait-for-event pattern.
+
+7. ارتباط Workflow ⇄ Auth & ACL
+Workflow باید در هر گام که human task نیاز است، role/permission را چک کند (مثلاً approver role).
+
+اطلاعات actor در context باید از JWT یا internal token شناخته شود.
+
+8. ارتباط Workflow ⇄ CRM & Communication
+پس از گام‌های کلیدی (OrderPlaced, PaymentConfirmed, CommissionPaid) Workflow منتشر می‌کند: NotifyCustomerEvent یا مستقیم enqueue در SmsQueue/EmailQueue.
+
+نمونه عملی: جریان کسب‌وکاری «بیمه‌نامه عمر آرمان» (گام‌به‌گام، داده‌ها و تعامل‌ها)
+شروع — User کلیک می‌کند "Buy" → OrderPlacedEvent { orderId, userId, productId }
+
+فرم‌گیری — Workflow: WaitForEvent(FormSubmitted) → دریافت FormSubmitted { formId, submissionId, values }
+
+ولیدیشن — Workflow calls API Manager: CallExternalService(webServiceMethodId: "id_check", params:{nationalId}) → بازگشت validation
+
+محاسبه پرایس — Workflow: EvaluateFormula(formulaId: "premium_calc_v2", inputs:{age, sumInsured, term, smoker}) → result {premiumAmount, breakdown}
+
+قفل قیمت — OrderItem snapshot ذخیره می‌شود (price snapshot)
+
+پرداخت — Workflow: InitiatePayment(amount: premiumAmount, method: wallet/gateway) → Wallet responds PaymentInitiated then later PaymentConfirmed
+
+اعلام به MLM — Workflow نشر PaymentConfirmedEvent {paymentId, orderId, amount, userId, productId} (یا فراخوانی CommissionEngine در حالت orchestrated)
+
+محاسبه کمیسیون — CommissionEngine شنیده، محاسبه، منتشر می‌کند CommissionCalculatedEvent { entries: [{userId, level, amount, commissionId}] }
+
+واریز کمیسیون — Wallet consumes CommissionCalculatedEvent و انجام Credit به هر wallet. Wallet emits WalletTransactionCreated events.
+
+تکمیل سفارش — Workflow دریافت AllSettlementsDone → update order status to Completed, publish OrderCompletedEvent, notify customer.
+
+(همه گام‌ها باید لاگ و version/formulaId ذخیره شود)
+
+خطاها و الگوهای جبرانی (Compensation / Sagas / Reliability)
+Idempotency: هر فراخوانی مالی با idempotencyKey — برای جلوگیری از double-charge.
+
+Outbox Pattern: تغییر وضعیت در DB + نوشتن رویداد در outbox در یک تراکنش؛ consumer آن را publish می‌کند.
+
+Saga Pattern (choreography or orchestrated): برای تراکنش‌های چند مرحله‌ای (پرداخت → تسویه → کمیسیون) طراحی شود با گام‌های جبرانی مشخص: RevertCreditSeller, RefundCustomer, MarkCommissionFailed.
+
+Retry & Circuit Breaker: برای تماس‌های APImanager.
+
+Manual Escalation: اگر بعد از N retries still failing → ایجاد ticket در CRM و بلوکه کردن پول در escrow wallet تا manual resolution.
+
+قواعد عملیاتی و governance (چیزهای که باید حتماً اعمال کنی)
+همه فرمول‌ها نسخه‌بندی و immutable باشن (تا audit ممکن باشه).
+
+فرآیندها versioned باشن؛ instanceهای قدیمی باید با نسخه‌ای که شروع شدند اجرا بشن.
+
+هر decision که با formula گرفته می‌شه، باید input + formulaVersion + output لاگ شود.
+
+SLA برای هر گام: max duration, retries, escalation.
+
+همه پیام‌ها (events) schema-دار و backward-compatible باشن.
+
+جمع‌بندیِ پیشنهادی (مختصر و کاربردی)
+Workflow = stateful orchestrator برای سناریوهای پیچیدهٔ خرید/تایید.
+
+برای تماس به سرویس‌های خارجی از API Manager استفاده کن (policy: timeout, retries, transformers).
+
+فرمول‌ساز = سرویس مستقل، synchronous برای محاسبات قبل از پرداخت، versioned و testable.
+
+برای محاسبه/واریز کمیسیون: choreography (CommissionEngine گوش کنه به PaymentConfirmed) یا orchestrated در مواردی که محاسبه باید تایم‌لاینِ سفارش را تعیین کند — انتخاب بر اساس SLA و حجم.
+
+استفاده جدی از patterns: Outbox, Saga, Idempotency, Compensation handlers.
+{
+  "workflowModule": {
+    "domainModeling": {
+      "tasks": [
+        {
+          "id": "DM-01",
+          "title": "Design Process and Step Entities",
+          "description": "طراحی مدل داده‌ای برای ProcessDefinition، ProcessInstance، Step، Trigger، Condition، Action، CompensationTask، HistoryLog با تمام فیلدهای ضروری مثل version، contextPayload و status",
+          "dependencies": []
+        },
+        {
+          "id": "DM-02",
+          "title": "Implement Versioning for Process and Formula",
+          "description": "طراحی و پیاده‌سازی مدل versioning برای ProcessDefinition و formulaId به صورت immutable و قابل audit",
+          "dependencies": ["DM-01"]
+        },
+        {
+          "id": "DM-03",
+          "title": "Design Audit and Logging Metadata",
+          "description": "تعریف ساختار ذخیره‌سازی لاگ کامل transitionها و تصمیمات فرمولی با ذخیره input، formulaVersion و output",
+          "dependencies": ["DM-01"]
+        }
+      ]
+    },
+    "coreEngine": {
+      "tasks": [
+        {
+          "id": "CE-01",
+          "title": "Implement Stateful Process Engine",
+          "description": "پیاده‌سازی state machine برای نگهداری وضعیت process instance شامل حالات شروع، در حال اجرا، انتظار، خطا، تکمیل و لغو",
+          "dependencies": ["DM-01"]
+        },
+        {
+          "id": "CE-02",
+          "title": "Implement Step Execution Orchestration",
+          "description": "اجرای گام‌ها به صورت ترتیبی و موازی با پشتیبانی از انواع stepها (CallAPI, HumanTask, DecisionTask, WaitForEvent, Timer, CompensationTask)",
+          "dependencies": ["CE-01"]
+        },
+        {
+          "id": "CE-03",
+          "title": "Implement Trigger Mechanism",
+          "description": "پیاده‌سازی triggerهای event-driven، cron و manual trigger برای شروع فرآیندها",
+          "dependencies": ["CE-01"]
+        },
+        {
+          "id": "CE-04",
+          "title": "Implement WaitForEvent Support",
+          "description": "پشتیبانی از الگوی wait-for-event برای انتظار eventهایی مثل FormSubmitted یا webhook",
+          "dependencies": ["CE-02", "CE-03"]
+        },
+        {
+          "id": "CE-05",
+          "title": "Implement Human Task with Role Checking",
+          "description": "پیاده‌سازی human task و assign آن به roleها با اتصال به ماژول Auth & ACL برای چک کردن دسترسی‌ها",
+          "dependencies": ["CE-02"]
+        },
+        {
+          "id": "CE-06",
+          "title": "Implement Decision Task with Formula Evaluation",
+          "description": "پیاده‌سازی گام تصمیم‌گیری با فراخوانی Formula Builder برای evaluation و لاگ دقیق ورودی و خروجی فرمول",
+          "dependencies": ["CE-02"]
+        },
+        {
+          "id": "CE-07",
+          "title": "Implement SLA and Retry Policies",
+          "description": "مدیریت تایمرها، max retries، escalation rules و circuit breaker برای هر گام",
+          "dependencies": ["CE-02"]
+        },
+        {
+          "id": "CE-08",
+          "title": "Implement Compensation and Saga Pattern",
+          "description": "پیاده‌سازی الگوهای جبران خطا (Compensation Task) شامل RevertWalletTransfer، RefundCustomer و مدیریت Saga برای تراکنش‌های چند مرحله‌ای",
+          "dependencies": ["CE-02"]
+        },
+        {
+          "id": "CE-09",
+          "title": "Implement Idempotency Key Handling",
+          "description": "پشتیبانی از idempotency key برای جلوگیری از اجرای دوباره تراکنش‌ها و پرداخت‌ها",
+          "dependencies": ["CE-02"]
+        },
+        {
+          "id": "CE-10",
+          "title": "Implement Retry and Circuit Breaker for API Calls",
+          "description": "مدیریت retry و circuit breaker برای تماس‌های CallAPI با سیاست‌های تعریف‌شده در API Manager",
+          "dependencies": ["CE-02"]
+        }
+      ]
+    },
+    "integration": {
+      "tasks": [
+        {
+          "id": "IN-01",
+          "title": "Integrate with Product & Order Management",
+          "description": "پیاده‌سازی adapter برای دریافت triggerهای OrderPlaced، CheckoutStarted و ارسال داده‌های orderId، userId، LineItems، FormResponses به Workflow",
+          "dependencies": []
+        },
+        {
+          "id": "IN-02",
+          "title": "Integrate with API Manager",
+          "description": "پیاده‌سازی CallExternalService با مدیریت webServiceMethodId، mappedParams، authProfileId، timeout و retry",
+          "dependencies": []
+        },
+        {
+          "id": "IN-03",
+          "title": "Integrate with Formula Builder",
+          "description": "پیاده‌سازی EvaluateFormula با ورودی formulaId و inputs، مدیریت نسخه‌بندی و fallback در صورت خطا",
+          "dependencies": []
+        },
+        {
+          "id": "IN-04",
+          "title": "Integrate with MLM Commission Engine",
+          "description": "پیاده‌سازی مدل‌های Orchestrated و Choreographed برای محاسبه و واریز کمیسیون‌ها بر اساس PaymentConfirmedEvent و CommissionCalculatedEvent",
+          "dependencies": []
+        },
+        {
+          "id": "IN-05",
+          "title": "Integrate with Wallet & Transaction Module",
+          "description": "پیاده‌سازی عملیات InitiatePayment، CreditSeller و CreditCommission با پشتیبانی از idempotency و امکان reversal",
+          "dependencies": []
+        },
+        {
+          "id": "IN-06",
+          "title": "Integrate with Dynamic Form Builder",
+          "description": "پیاده‌سازی انتظار برای event فرم (FormSubmitted) و بارگذاری formData به workflow context",
+          "dependencies": []
+        },
+        {
+          "id": "IN-07",
+          "title": "Integrate with Auth & ACL Module",
+          "description": "اعتبارسنجی نقش و دسترسی برای human taskها با استفاده از JWT یا internal token",
+          "dependencies": []
+        },
+        {
+          "id": "IN-08",
+          "title": "Integrate with CRM & Communication",
+          "description": "ارسال NotifyCustomerEvent و قرار دادن پیام‌ها در صف‌های SmsQueue و EmailQueue پس از گام‌های کلیدی",
+          "dependencies": []
+        }
+      ]
+    },
+    "loggingAndAudit": {
+      "tasks": [
+        {
+          "id": "LA-01",
+          "title": "Implement Full Audit Logging",
+          "description": "ذخیره کامل لاگ‌ها شامل transitionها، تصمیمات فرمولی، خطاها، retries و escalations به همراه تاریخچه کامل",
+          "dependencies": ["DM-03", "CE-01"]
+        },
+        {
+          "id": "LA-02",
+          "title": "Provide Audit Query and Reporting APIs",
+          "description": "طراحی و پیاده‌سازی APIهایی برای جستجو و استخراج گزارشات audit و history",
+          "dependencies": ["LA-01"]
+        }
+      ]
+    },
+    "governanceAndVersioning": {
+      "tasks": [
+        {
+          "id": "GV-01",
+          "title": "Implement Process and Formula Versioning",
+          "description": "مدیریت نسخه‌های فرآیند و فرمول‌ها با تضمین اجرای immutable برای instanceهای قدیمی",
+          "dependencies": ["DM-02"]
+        },
+        {
+          "id": "GV-02",
+          "title": "Schema Validation and Backward Compatibility",
+          "description": "اطمینان از schema-دار بودن eventها و پیام‌ها و پشتیبانی از backward compatibility",
+          "dependencies": []
+        }
+      ]
+    },
+    "testing": {
+      "tasks": [
+        {
+          "id": "TS-01",
+          "title": "Unit Tests for Core Engine and Domain",
+          "description": "پیاده‌سازی تست‌های واحد برای state machine، execution logic و domain model",
+          "dependencies": ["CE-01", "DM-01"]
+        },
+        {
+          "id": "TS-02",
+          "title": "Integration Tests for Workflow Scenarios",
+          "description": "تست سناریوهای کامل workflow با mocking ماژول‌های API Manager، Wallet، Formula Builder و غیره",
+          "dependencies": ["IN-01", "IN-02", "IN-03", "IN-05"]
+        },
+        {
+          "id": "TS-03",
+          "title": "Error Handling and Compensation Tests",
+          "description": "تست الگوهای خطا، retry، compensation و escalation در workflow",
+          "dependencies": ["CE-08", "CE-07"]
+        },
+        {
+          "id": "TS-04",
+          "title": "Concurrency and Idempotency Tests",
+          "description": "تست رفتار سیستم در شرایط همزمانی و تکرار اجرای تراکنش‌ها",
+          "dependencies": ["CE-09"]
+        }
+      ]
+    },
+    "documentation": {
+      "tasks": [
+        {
+          "id": "DOC-01",
+          "title": "Document APIs and Event Schemas",
+          "description": "مستندسازی کامل APIها، eventها و مدل داده‌ای workflow",
+          "dependencies": []
+        },
+        {
+          "id": "DOC-02",
+          "title": "Provide Architecture and Usage Guides",
+          "description": "شرح معماری سیستم، نمونه استفاده‌ها و الگوهای رایج",
+          "dependencies": []
+        },
+        {
+          "id": "DOC-03",
+          "title": "Document SLA, Retry, Fallback and Compensation Rules",
+          "description": "مستندسازی قواعد SLA، retry، fallback و جبران خطا",
+          "dependencies": []
+        }
+      ]
+    }
+  }
+}
+

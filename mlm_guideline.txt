@@ -169,3 +169,104 @@ Handle user network, commission rules, and payout process in multi-level format.
 ```
 
 ---
+
+{
+  "MLMModuleTasks": {
+    "Domain": {
+      "UserReferral": {
+        "task": "بررسی و بهینه‌سازی ساختار Materialized Path",
+        "description": "ارزیابی عملکرد در سناریوهای تغییرات گسترده در سلسله‌مراتب، بررسی جایگزین‌های Closure Table و ارزیابی trade-off",
+        "dependencies": [],
+        "priority": "high"
+      },
+      "CommissionRules": {
+        "task": "توسعه Rule Engine برای قوانین کمیسیون قابل پیکربندی",
+        "description": "تعریف و پیاده‌سازی امکان مدیریت قوانین پویا بدون نیاز به تغییر کد، با پشتیبانی از ورژن‌بندی و شرایط پیچیده",
+        "dependencies": [],
+        "priority": "high"
+      },
+      "CommissionTransaction": {
+        "task": "اصلاح مدل داده‌ای برای ذخیره‌سازی کامل تراکنش و حالت‌های جبران (compensation)",
+        "description": "افزودن فیلدهای لازم برای ردیابی جبران‌ها، خطاها و وضعیت نهایی تراکنش‌ها",
+        "dependencies": ["UserReferral", "CommissionRules"],
+        "priority": "medium"
+      }
+    },
+    "Application": {
+      "CommissionCalculationService": {
+        "task": "پیاده‌سازی محاسبات async با صف پیام و الگوی Saga",
+        "description": "ارتقا سرویس محاسبه کمیسیون به async، مدیریت خطا، retry، جبران و انتشار رویدادها",
+        "dependencies": ["Domain.CommissionRules", "Domain.CommissionTransaction"],
+        "priority": "high"
+      },
+      "EventHandlers": {
+        "task": "بهبود مدیریت رویدادها و تضمین atomicity با Outbox Pattern",
+        "description": "استفاده از Outbox برای تضمین عدم از دست رفتن رویدادها و هماهنگی با Wallet Module",
+        "dependencies": ["CommissionCalculationService"],
+        "priority": "high"
+      }
+    },
+    "Infrastructure": {
+      "Repositories": {
+        "task": "بهینه‌سازی کوئری‌ها برای Materialized Path و پیاده‌سازی نگاشت به Closure Table (در صورت نیاز)",
+        "description": "بهبود عملکرد ذخیره و بازیابی سلسله‌مراتب و جستجوی مسیرها",
+        "dependencies": ["Domain.UserReferral"],
+        "priority": "medium"
+      },
+      "EFConfigurations": {
+        "task": "توسعه Migrationها برای تغییرات مدل داده‌ای جدید",
+        "description": "ایجاد اسکریپت‌های EF Core برای اعمال تغییرات جداول و ایندکس‌ها",
+        "dependencies": ["Domain.CommissionTransaction"],
+        "priority": "medium"
+      }
+    },
+    "API": {
+      "Endpoints": {
+        "task": "طراحی و پیاده‌سازی APIهای فیلترشده کمیسیون (شخصی و ادمین)",
+        "description": "افزودن کنترل دسترسی مبتنی بر Role، فیلترهای تاریخ، وضعیت و سطح کمیسیون",
+        "dependencies": ["Application.CommissionCalculationService", "Auth & ACL"],
+        "priority": "high"
+      },
+      "DTOs": {
+        "task": "تعریف DTOهای جدید و نسخه‌بندی API",
+        "description": "طراحی دقیق داده‌های ورودی و خروجی برای API، با پشتیبانی از backward compatibility",
+        "dependencies": ["Endpoints"],
+        "priority": "medium"
+      }
+    },
+    "Testing": {
+      "UnitTests": {
+        "task": "نوشتن تست‌های واحد برای قوانین کمیسیون و ساختار درختی",
+        "description": "پوشش کامل سناریوهای edge case و استثنایی",
+        "dependencies": ["Domain.CommissionRules", "Domain.UserReferral"],
+        "priority": "high"
+      },
+      "IntegrationTests": {
+        "task": "تست یکپارچه‌سازی بین محاسبه کمیسیون، رویدادها و Wallet",
+        "description": "تضمین صحت کل جریان، تست retry و جبران خطا",
+        "dependencies": ["Application.CommissionCalculationService", "EventHandlers", "Wallet Module"],
+        "priority": "high"
+      },
+      "LoadTests": {
+        "task": "شبیه‌سازی بار ترافیکی بالا و تحلیل عملکرد",
+        "description": "بررسی پایداری سیستم در شرایط پرترافیک و بهینه‌سازی‌های لازم",
+        "dependencies": ["Application.CommissionCalculationService"],
+        "priority": "medium"
+      }
+    },
+    "Monitoring & Operations": {
+      "Monitoring": {
+        "task": "طراحی و پیاده‌سازی مانیتورینگ برای تراکنش‌ها و رویدادها",
+        "description": "مانیتورینگ زمان پاسخ، خطاهای محاسبه و پرداخت کمیسیون با alerting",
+        "dependencies": ["Application.CommissionCalculationService", "EventHandlers"],
+        "priority": "medium"
+      },
+      "ErrorHandling": {
+        "task": "مکانیزم‌های fallback، retry و escalation برای خطاهای پردازش کمیسیون",
+        "description": "تعریف فرایندهای دقیق و اطلاع‌رسانی به تیم پشتیبانی در شرایط خطا",
+        "dependencies": ["Application.CommissionCalculationService"],
+        "priority": "high"
+      }
+    }
+  }
+}

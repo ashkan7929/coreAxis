@@ -168,6 +168,22 @@ public class VerifyOtpCommandHandler : IRequestHandler<VerifyOtpCommand, Result<
                     CreatedAt = user.CreatedOn,
                     LastLoginAt = user.LastLoginAt,
                     FailedLoginAttempts = user.FailedLoginAttempts,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    FatherName = user.FatherName,
+                    BirthDate = user.BirthDate,
+                    Gender = user.Gender,
+                    CertNumber = user.CertNumber,
+                    IdentificationSerial = user.IdentificationSerial,
+                    IdentificationSeri = user.IdentificationSeri,
+                    OfficeName = user.OfficeName,
+                    ReferralCode = user.ReferralCode,
+                    PhoneNumber = user.PhoneNumber,
+                    NationalCode = user.NationalCode,
+                    IsMobileVerified = user.IsMobileVerified,
+                    IsNationalCodeVerified = user.IsNationalCodeVerified,
+                    IsPersonalInfoVerified = user.IsPersonalInfoVerified,
+                    CivilRegistryTrackId = user.CivilRegistryTrackId,
                     Roles = roleDtos
                 };
 

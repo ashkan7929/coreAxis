@@ -40,3 +40,109 @@ TransactionService فقط مسئول منطق تراکنش باشه.
 
 یک Module_README بنویس شامل ERD، endpointها، مثال request/response.
 
+{
+  "WalletModuleTasks": {
+    "Domain": {
+      "Entities": {
+        "Wallet": {
+          "task": "تعریف Entity کیف پول با قابلیت چند نوعی (اعتباری، کمیسیونی، سفارشی)",
+          "description": "اضافه کردن فیلدهای داینامیک مانند ویژگی‌های قیمت، واحد اندازه‌گیری و محدودیت‌ها به صورت extensible",
+          "dependencies": [],
+          "priority": "high"
+        },
+        "Transaction": {
+          "task": "تعریف Entity تراکنش با انواع مختلف (واریز، برداشت، انتقال، کمیسیون)",
+          "description": "پشتیبانی از فیلدهای لازم برای رهگیری کامل تراکنش‌ها و حالات جبران (compensation)",
+          "dependencies": ["Wallet"],
+          "priority": "high"
+        }
+      }
+    },
+    "Application": {
+      "Services": {
+        "WalletService": {
+          "task": "پیاده‌سازی منطق مدیریت کیف پول، شامل ایجاد، بستن، تغییرات داینامیک، و اعتبارسنجی‌ها",
+          "description": "رعایت SRP، جدا کردن مسئولیت‌ها، و آماده‌سازی برای توسعه آتی انواع کیف پول سفارشی",
+          "dependencies": ["Domain.Wallet"],
+          "priority": "high"
+        },
+        "TransactionService": {
+          "task": "پیاده‌سازی منطق تراکنش‌ها با تضمین atomicity از طریق EF Core TransactionScope",
+          "description": "شامل عملیات واریز، برداشت، انتقال و تولید DomainEvent (TransactionCreatedEvent) برای Integration Event Bus",
+          "dependencies": ["Domain.Transaction", "Domain.Wallet"],
+          "priority": "high"
+        }
+      }
+    },
+    "Infrastructure": {
+      "Repositories": {
+        "WalletRepository": {
+          "task": "بهینه‌سازی کوئری‌ها برای بازیابی سریع کیف پول‌ها و پشتیبانی از فیلترهای داینامیک",
+          "description": "اضافه کردن ایندکس‌های مناسب و بهبود نگاشت ORM",
+          "dependencies": ["Domain.Wallet"],
+          "priority": "medium"
+        },
+        "TransactionRepository": {
+          "task": "بهبود عملکرد ذخیره و بازیابی تراکنش‌ها، پشتیبانی از جستجوی پیشرفته بر اساس userId، status، نوع تراکنش و تاریخ",
+          "dependencies": ["Domain.Transaction"],
+          "priority": "medium"
+        }
+      },
+      "EFConfigurations": {
+        "task": "تهیه Migrationهای لازم برای افزودن فیلدهای داینامیک و بهبود ساختار دیتابیس",
+        "dependencies": ["Domain.Wallet", "Domain.Transaction"],
+        "priority": "medium"
+      }
+    },
+    "API": {
+      "Controllers": {
+        "WalletController": {
+          "task": "تعریف APIهای CRUD و عملیات اصلی روی کیف پول‌ها",
+          "description": "شامل endpointهای ایجاد کیف پول جدید با قابلیت داینامیک، بازیابی لیست کیف پول‌ها و جزئیات",
+          "dependencies": ["Application.WalletService", "Auth & ACL"],
+          "priority": "high"
+        },
+        "TransactionController": {
+          "task": "تعریف API برای ثبت تراکنش‌ها، مشاهده تراکنش‌های کاربر و گزارش‌گیری",
+          "description": "فیلتر بر اساس userId، نوع تراکنش، وضعیت و بازه زمانی، به همراه کنترل دسترسی",
+          "dependencies": ["Application.TransactionService", "Auth & ACL"],
+          "priority": "high"
+        }
+      },
+      "DTOs": {
+        "task": "تعریف دقیق و نسخه‌بندی شده DTOها برای درخواست و پاسخ API",
+        "description": "شامل مدل‌های ورودی برای عملیات پیچیده مثل انتقال بین کیف پول‌ها با فیلدهای اختیاری و پیشرفته",
+        "dependencies": ["API.Controllers"],
+        "priority": "medium"
+      }
+    },
+    "Security": {
+      "Auth & ACL": {
+        "task": "اعمال کنترل دسترسی مبتنی بر نقش و کاربر در سطح API و سرویس‌ها",
+        "description": "اطمینان از فیلتر داده‌ها بر اساس JWT و سیاست‌های ACL تعریف شده",
+        "dependencies": ["API.Controllers"],
+        "priority": "high"
+      }
+    },
+    "Testing": {
+      "UnitTests": {
+        "task": "نوشتن تست واحد برای WalletService و TransactionService با پوشش موارد edge case",
+        "description": "شامل تست تراکنش‌های اتمیک و مدیریت خطا",
+        "dependencies": ["Application.Services"],
+        "priority": "high"
+      },
+      "IntegrationTests": {
+        "task": "تست یکپارچه‌سازی برای تضمین عملکرد صحیح کل جریان تراکنش‌ها و پیام‌رسانی رویدادها",
+        "dependencies": ["Application.Services", "EventBus", "Infrastructure.Repositories"],
+        "priority": "high"
+      }
+    },
+    "Documentation": {
+      "Module_README": {
+        "task": "تهیه مستندات کامل شامل ERD، نمونه درخواست/پاسخ API، قوانین تجاری و نکات توسعه",
+        "dependencies": [],
+        "priority": "medium"
+      }
+    }
+  }
+}

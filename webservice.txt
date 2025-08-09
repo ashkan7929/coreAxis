@@ -1,0 +1,206 @@
+5) تحلیل جامع کسب‌وکاری و ارتباط با سایر ماژول‌ها
+اهداف اصلی ماژول
+ایجاد و مدیریت منظم و امن APIهای خارجی که در کسب‌وکار استفاده می‌شوند.
+
+فراهم کردن امکان تست و مشاهده زنده رفتار APIها.
+
+امکان استفاده آسان از APIها در سایر فرآیندهای سیستم (خصوصاً Workflow).
+
+ذخیره دقیق لاگ‌های تماس با API جهت گزارش، آنالیز خطا و امنیت.
+
+اجزای اصلی کسب‌وکاری ماژول
+WebService: موجودیتی که مشخصات یک API خارجی (Base URL، authentication، توضیحات) را نگه می‌دارد.
+
+WebServiceMethod: تعریف endpointها و متدهای HTTP (GET, POST, PUT, DELETE) به همراه پارامترها.
+
+WebServiceParam: مشخصات پارامترها (نوع، محل ارسال، اجباری بودن، مقدار پیش‌فرض).
+
+WebServiceCallLog: سوابق تمام فراخوانی‌ها با جزئیات زمان، ورودی‌ها، پاسخ و وضعیت.
+
+WebServiceTest: قابلیت اجرای تست‌های آنلاین و بازخورد فوری.
+
+SecurityConfig: پارامترهای امنیتی (API key، OAuth tokens، IP restrictions).
+
+جریان کسب‌وکاری نمونه
+ادمین وارد پنل تعریف API می‌شود و یک WebService جدید تعریف می‌کند.
+
+متدهای مختلف API (مثلاً نرخ بیمه، تایید هویت) تعریف شده و پارامترها و پاسخ‌ها مشخص می‌شود.
+
+ادمین API را تست می‌کند و مطمئن می‌شود پاسخ صحیح دریافت می‌شود.
+
+در گردش‌کار محصول، مرحله‌ای تعریف می‌شود که این API را فراخوانی کرده و داده برگشتی را پردازش می‌کند.
+
+هنگام اجرای workflow، API فراخوانی شده و نتیجه آن روی فرآیند اثر می‌گذارد (مثلاً اعتبارسنجی، محاسبه نرخ).
+
+تمام تماس‌ها به این API ثبت و برای تحلیل و گزارش‌گیری ذخیره می‌شوند.
+
+در صورت خطا، workflow می‌تواند تصمیمات fallback یا retry اتخاذ کند.
+
+ارتباطات بیزینسی با سایر ماژول‌ها
+ماژول مرتبط	نوع ارتباط	نقش WebService Definition	داده رد و بدل شده	نکات مهم
+Workflow Engine	فراخوانی API در Stepها	فراخوانی APIها به عنوان بخشی از گام‌های workflow	پارامترهای ورودی و خروجی	امکان شرطی کردن مراحل بر اساس پاسخ API
+Product & Order Management	ولیدیشن و محاسبه قیمت	استفاده از API برای گرفتن نرخ، تایید اعتبار یا داده خارجی	ورودی فرم، خروجی نرخ/نتیجه	API می‌تواند به عنوان extension پروداکت باشد
+Dynamic Form Builder	Validation & Dynamic Data	فراخوانی API برای اعتبارسنجی داده فرم یا بارگذاری داده داینامیک	داده فرم، پاسخ API	APIها در expressions فرم به کار می‌روند
+MLM Commission Engine	دریافت داده خارجی	ممکن است APIهای خارجی برای قوانین کمیسیون یا تایید کاربران استفاده شود	اطلاعات تراکنش یا کاربر	تعامل محدود ولی ممکن
+Wallet & Transaction	تراکنش‌ها	APIهای پرداخت یا استعلام وضعیت تراکنش	داده تراکنش	APIهای سرویس پرداخت معمولاً در اینجا کار می‌کنند
+Auth & ACL	مدیریت امنیت API	مدیریت دسترسی و احراز هویت برای APIهای تعریف شده	توکن‌ها، سطح دسترسی	اطمینان از امنیت فراخوانی‌ها
+CRM & Communication	ارسال اطلاع‌رسانی	استفاده از APIهای پیامک یا ایمیل خارجی	پیام‌ها، پاسخ	ممکن است webhook یا APIهای خروجی تعریف شود
+
+{
+  "apiManagerModule": {
+    "domainModeling": {
+      "tasks": [
+        {
+          "id": "API-DM-01",
+          "title": "Define WebService and WebServiceMethod Entities",
+          "description": "تعریف موجودیت WebService با ویژگی‌های baseURL، securityConfig و WebServiceMethod با متدها، پارامترها و داکیومنت‌ها",
+          "dependencies": []
+        },
+        {
+          "id": "API-DM-02",
+          "title": "Define WebServiceParam Entity",
+          "description": "تعریف مشخصات پارامترهای ورودی شامل نوع، محل ارسال، الزامی بودن و مقادیر پیش‌فرض",
+          "dependencies": ["API-DM-01"]
+        },
+        {
+          "id": "API-DM-03",
+          "title": "Define WebServiceCallLog Entity",
+          "description": "تعریف ساختار لاگ تماس‌های API با زمان، ورودی‌ها، پاسخ و وضعیت با قابلیت query و گزارش‌گیری",
+          "dependencies": []
+        },
+        {
+          "id": "API-DM-04",
+          "title": "Define SecurityConfig Entity",
+          "description": "مدل‌سازی تنظیمات امنیتی مانند API key، OAuth، IP restrictions و سطح دسترسی",
+          "dependencies": []
+        }
+      ]
+    },
+    "coreEngine": {
+      "tasks": [
+        {
+          "id": "API-CE-01",
+          "title": "Implement API Proxy and Caller Logic",
+          "description": "پیاده‌سازی مکانیزم فراخوانی APIهای خارجی بر اساس WebServiceMethod با مدیریت پارامترها، headerها و securityConfig",
+          "dependencies": ["API-DM-01", "API-DM-02", "API-DM-04"]
+        },
+        {
+          "id": "API-CE-02",
+          "title": "Implement Retry and Timeout Policies",
+          "description": "پیاده‌سازی مکانیزم‌های retry, circuit breaker و timeout قابل تنظیم بر اساس policy هر API",
+          "dependencies": ["API-CE-01"]
+        },
+        {
+          "id": "API-CE-03",
+          "title": "Implement WebServiceCall Logging",
+          "description": "ذخیره‌سازی لاگ کامل هر تماس API با جزئیات زمان، ورودی، پاسخ، کد وضعیت و پیام خطا",
+          "dependencies": ["API-CE-01", "API-DM-03"]
+        },
+        {
+          "id": "API-CE-04",
+          "title": "Implement API Test Runner",
+          "description": "ایجاد قابلیت تست زنده API توسط ادمین با نمایش پاسخ و وضعیت در UI و لاگ",
+          "dependencies": ["API-DM-01", "API-DM-02"]
+        }
+      ]
+    },
+    "integration": {
+      "tasks": [
+        {
+          "id": "API-IN-01",
+          "title": "Integrate with Workflow Module",
+          "description": "فراخوانی APIها در گام‌های Workflow با ارسال پارامترها و دریافت پاسخ برای تصمیم‌گیری",
+          "dependencies": ["API-CE-01"]
+        },
+        {
+          "id": "API-IN-02",
+          "title": "Integrate with Dynamic Form Builder",
+          "description": "اجازه به فرم‌ها برای استفاده از APIهای تعریف شده جهت ولیدیشن و dynamic options",
+          "dependencies": ["API-CE-01"]
+        },
+        {
+          "id": "API-IN-03",
+          "title": "Integrate with Auth & ACL",
+          "description": "اجرای کنترل دسترسی بر روی APIها و مدیریت امنیت فراخوانی‌ها",
+          "dependencies": ["API-DM-04"]
+        },
+        {
+          "id": "API-IN-04",
+          "title": "Integrate with Product & Order Management",
+          "description": "فراخوانی APIها برای اعتبارسنجی داده محصول یا محاسبات قیمت",
+          "dependencies": ["API-CE-01"]
+        },
+        {
+          "id": "API-IN-05",
+          "title": "Integrate with Wallet & Transaction",
+          "description": "استفاده از APIهای پرداخت یا استعلام وضعیت تراکنش",
+          "dependencies": ["API-CE-01"]
+        },
+        {
+          "id": "API-IN-06",
+          "title": "Integrate with CRM & Communication",
+          "description": "ارسال یا دریافت webhook و پیام‌های اطلاع‌رسانی بر اساس API",
+          "dependencies": ["API-CE-01"]
+        }
+      ]
+    },
+    "loggingAndMonitoring": {
+      "tasks": [
+        {
+          "id": "API-LM-01",
+          "title": "Implement API Call Analytics and Reporting",
+          "description": "ایجاد داشبورد و گزارش‌های تحلیلی از تماس‌ها، نرخ خطاها و عملکرد APIها",
+          "dependencies": ["API-DM-03", "API-CE-03"]
+        }
+      ]
+    },
+    "security": {
+      "tasks": [
+        {
+          "id": "API-SC-01",
+          "title": "Implement Security Enforcement",
+          "description": "اجبار به استفاده از tokenهای معتبر، محدودیت IP و بررسی سطح دسترسی در همه فراخوانی‌ها",
+          "dependencies": ["API-DM-04"]
+        }
+      ]
+    },
+    "testing": {
+      "tasks": [
+        {
+          "id": "API-TS-01",
+          "title": "Unit Tests for API Caller and Retry Logic",
+          "description": "تست واحد برای منطق فراخوانی API و مکانیزم‌های retry و timeout",
+          "dependencies": ["API-CE-01", "API-CE-02"]
+        },
+        {
+          "id": "API-TS-02",
+          "title": "Integration Tests for Workflow and Form Builder Integration",
+          "description": "تست انتگرال فراخوانی APIها در گام‌های Workflow و فرم‌ها",
+          "dependencies": ["API-IN-01", "API-IN-02"]
+        },
+        {
+          "id": "API-TS-03",
+          "title": "Security and Access Control Tests",
+          "description": "تست کنترل دسترسی و اجرای سیاست‌های امنیتی APIها",
+          "dependencies": ["API-SC-01"]
+        }
+      ]
+    },
+    "documentation": {
+      "tasks": [
+        {
+          "id": "API-DOC-01",
+          "title": "Document API Schema and Configuration",
+          "description": "مستندسازی مدل داده‌ای APIها، پارامترها و تنظیمات امنیتی",
+          "dependencies": []
+        },
+        {
+          "id": "API-DOC-02",
+          "title": "Document Integration Points and Usage Scenarios",
+          "description": "مستندسازی سناریوهای استفاده از APIها در Workflow، فرم‌ها و ماژول‌های دیگر",
+          "dependencies": []
+        }
+      ]
+    }
+  }
+}

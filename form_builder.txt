@@ -1,0 +1,208 @@
+5) تحلیل جامع کسب‌وکاری Dynamic Form Builder
+الف) اهداف اصلی ماژول
+ساخت فرم‌های داینامیک و قابل تغییر توسط ادمین یا کاربر نهایی بدون نیاز به کدنویسی
+
+تعریف فیلدهای متنوع (متن، عدد، تاریخ، dropdown، فایل، checkbox، radio و ...)
+
+امکان تعریف قواعد پیچیده (validation, visibility, readonly, defaultValue) با expressions شرطی
+
+پشتیبانی از وابستگی بین فیلدها و تغییر پویا در گزینه‌ها (dynamicOptions)
+
+قابلیت تعریف فرم‌های چندمرحله‌ای (stepper) با کنترل ترتیب و پیشرفت
+
+ذخیره‌سازی ساختار فرم و داده‌های ارسالی با نسخه‌بندی برای audit و rollback
+
+ارائه API برای دسترسی و استفاده توسط سایر ماژول‌ها (Workflow، Product Management، CRM و ...)
+
+ب) اجزای اصلی کسب‌وکاری ماژول
+FormDefinition: شناسه فرم، نام، نسخه، owner (businessId یا tenantId)، توضیح، metadata
+
+FormField: فیلدهای تعریف‌شده همراه با نوع، label، placeholder، required، validation rules، expressions، وابستگی‌ها
+
+FormSubmission: داده‌های ارسال شده برای یک فرم (به همراه وضعیت، زمان، userId)
+
+ExpressionEngine: تحلیل و اجرای expressions شرطی در قالب AST با پشتیبانی از متغیرهای ورودی، توابع داخلی، و security sandbox
+
+DynamicOptionsManager: مدیریت تغییرات options بر اساس شرایط تعریف شده در expressions
+
+VersioningManager: مدیریت نسخه‌های فرم و فیلدها؛ اطمینان از هماهنگی داده‌های تاریخی
+
+AccessControl: مجوزهای دسترسی به فرم‌ها، مشاهده داده‌ها و ویرایش‌ها
+
+API Layer: ارائه APIهای CRUD برای فرم، فیلد، ارسال‌ها و validation
+
+ج) جریان کسب‌وکاری نمونه (Simplified)
+ادمین در پنل تعریف می‌کند فرم بیمه عمر آرمان را با فیلدهای لازم و قواعد شرطی.
+
+فرم ذخیره و نسخه‌بندی می‌شود.
+
+یوزر وارد فرایند خرید می‌شود، فرم برایش لود می‌شود.
+
+فرم طبق شروط داینامیک آپدیت شده و گزینه‌ها و فیلدها تغییر می‌کنند (مثلاً انتخاب استان، سپس فیلتر شهرها).
+
+یوزر فرم را پر می‌کند و ارسال می‌کند.
+
+داده فرم ذخیره شده و به Workflow ارسال می‌شود (مثلاً trigger برای گام بعدی).
+
+Workflow فرم را validate می‌کند و در صورت نیاز APIهای خارجی را فراخوانی می‌کند (مثلاً بررسی شماره ملی).
+
+نتیجه نهایی پردازش و تکمیل سفارش.
+
+د) ارتباطات ماژول به ماژول (Business Layer)
+ماژول	نوع ارتباط	نقش Dynamic Form Builder	داده رد و بدل	نکات مهم
+Workflow	Trigger & Validation	فرم داده اولیه برای Triggerهای workflow و validation مرحله‌ای	formData, formStatus, validationResult	فرم می‌تواند مراحل را trigger کند یا منتظر ورود داده‌ها باشد
+Product & Order Management	تعریف محصول	فرم متعلق به هر محصول، data gathering برای ایجاد OrderItem و Order	formSchema, formData	فرم داده‌ها را برای تکمیل سفارش جمع می‌کند
+MLM Commission Engine	غیر مستقیم	داده فرم برای محاسبه کمیسیون (مثلاً انتخاب محصولات یا سطح)	formData (input parameters)	فرم داده ورودی برای rule evaluation است
+API Manager (WebService Definition)	Call external validation	فرم برای ولیدیشن‌های آنلاین با APIهای خارجی	formData → webServiceCall	فرم شرطی یا validation ها ممکن است API call trigger کنند
+Wallet & Transaction	خواندن داده محدود	ممکن است داده‌ای به کیف پول ارسال شود (مثلاً اطلاعات پرداخت در فرم)	formData	معمولاً غیر مستقیم
+Auth & ACL	مجوز دسترسی	کنترل دسترسی به فرم‌ها و داده‌های ارسالی	userRoles, permissions	فرم در سطوح مختلف کنترل دسترسی دارد
+CRM & Communication	پیام‌های مبتنی بر فرم	ارسال اطلاع‌رسانی بر اساس داده‌های فرم (مثلاً پیامک تایید)	formSubmissionData	event-driven اطلاع‌رسانی
+
+{
+  "dynamicFormBuilderModule": {
+    "domainModeling": {
+      "tasks": [
+        {
+          "id": "DFB-DM-01",
+          "title": "Design FormDefinition, FormField, FormSubmission Entities",
+          "description": "تعریف مدل داده‌ای فرم‌ها، فیلدها و ارسال‌ها با فیلدهای ضروری مانند version, owner, metadata, validation rules و وابستگی‌ها",
+          "dependencies": []
+        },
+        {
+          "id": "DFB-DM-02",
+          "title": "Design VersioningManager for Form and Submission",
+          "description": "پیاده‌سازی مدیریت نسخه فرم‌ها و داده‌های ارسال شده برای پشتیبانی از audit و rollback",
+          "dependencies": ["DFB-DM-01"]
+        },
+        {
+          "id": "DFB-DM-03",
+          "title": "Design AccessControl Model",
+          "description": "تعریف مدل کنترل دسترسی برای فرم‌ها، فیلدها و داده‌های ارسال شده بر اساس نقش‌ها و مجوزها",
+          "dependencies": ["DFB-DM-01"]
+        }
+      ]
+    },
+    "coreEngine": {
+      "tasks": [
+        {
+          "id": "DFB-CE-01",
+          "title": "Implement ExpressionEngine",
+          "description": "پیاده‌سازی موتور تحلیل و اجرای expressions شرطی با پشتیبانی از AST، توابع داخلی، متغیرهای ورودی و sandbox امنیتی",
+          "dependencies": ["DFB-DM-01"]
+        },
+        {
+          "id": "DFB-CE-02",
+          "title": "Implement DynamicOptionsManager",
+          "description": "مدیریت پویا تغییر گزینه‌های فرم بر اساس قوانین شرطی و مقادیر فیلدهای دیگر",
+          "dependencies": ["DFB-CE-01"]
+        },
+        {
+          "id": "DFB-CE-03",
+          "title": "Implement Multi-step Form (Stepper) Logic",
+          "description": "پیاده‌سازی فرم‌های چندمرحله‌ای با مدیریت ترتیب، پیشرفت و کنترل تغییرات در هر مرحله",
+          "dependencies": ["DFB-DM-01"]
+        },
+        {
+          "id": "DFB-CE-04",
+          "title": "Implement Validation Engine",
+          "description": "اجرا و اعمال قواعد validation و شرایط readonly, visibility و defaultValue بر اساس expressions در فیلدها",
+          "dependencies": ["DFB-CE-01"]
+        },
+        {
+          "id": "DFB-CE-05",
+          "title": "Implement API Layer for CRUD and Validation",
+          "description": "ارائه APIهای کامل برای مدیریت فرم‌ها، فیلدها، ارسال‌ها و اجرای اعتبارسنجی",
+          "dependencies": ["DFB-DM-01", "DFB-CE-04", "DFB-DM-03"]
+        }
+      ]
+    },
+    "integration": {
+      "tasks": [
+        {
+          "id": "DFB-IN-01",
+          "title": "Integrate with Workflow Module",
+          "description": "ارسال triggerها و داده‌های فرم به Workflow برای کنترل مراحل فرایند و validation",
+          "dependencies": ["DFB-CE-05"]
+        },
+        {
+          "id": "DFB-IN-02",
+          "title": "Integrate with Product & Order Management",
+          "description": "اتصال فرم‌ها به محصولات برای جمع‌آوری داده‌ها جهت ایجاد OrderItem و Order",
+          "dependencies": ["DFB-CE-05"]
+        },
+        {
+          "id": "DFB-IN-03",
+          "title": "Integrate with API Manager for External Validations",
+          "description": "اجرای ولیدیشن‌های آنلاین با فراخوانی APIهای خارجی براساس شرط‌های فرم",
+          "dependencies": ["DFB-CE-05"]
+        },
+        {
+          "id": "DFB-IN-04",
+          "title": "Integrate with Auth & ACL Module",
+          "description": "اجرای کنترل دسترسی فرم‌ها و داده‌ها بر اساس نقش‌های کاربری",
+          "dependencies": ["DFB-DM-03", "DFB-CE-05"]
+        },
+        {
+          "id": "DFB-IN-05",
+          "title": "Integrate with CRM & Communication",
+          "description": "ارسال رویدادهای اطلاع‌رسانی بر اساس داده‌های ارسال شده فرم به CRM و صف‌های پیام",
+          "dependencies": ["DFB-CE-05"]
+        }
+      ]
+    },
+    "loggingAndAudit": {
+      "tasks": [
+        {
+          "id": "DFB-LA-01",
+          "title": "Implement Audit Logging for Form Definitions and Submissions",
+          "description": "ذخیره تاریخچه کامل تغییرات فرم، فیلدها و داده‌های ارسال شده برای قابلیت audit و rollback",
+          "dependencies": ["DFB-DM-02", "DFB-CE-05"]
+        },
+        {
+          "id": "DFB-LA-02",
+          "title": "Provide Audit Query and Reporting APIs",
+          "description": "ارائه APIهای جستجو و گزارش‌گیری تاریخچه تغییرات و ارسال‌ها",
+          "dependencies": ["DFB-LA-01"]
+        }
+      ]
+    },
+    "testing": {
+      "tasks": [
+        {
+          "id": "DFB-TS-01",
+          "title": "Unit Tests for ExpressionEngine and DynamicOptionsManager",
+          "description": "تست واحد برای تحلیل expressions و مدیریت گزینه‌های داینامیک",
+          "dependencies": ["DFB-CE-01", "DFB-CE-02"]
+        },
+        {
+          "id": "DFB-TS-02",
+          "title": "Integration Tests for Form CRUD and Workflow Interaction",
+          "description": "تست انتگرال فرم‌ها، ارسال‌ها و تعامل با ماژول Workflow",
+          "dependencies": ["DFB-IN-01", "DFB-CE-05"]
+        },
+        {
+          "id": "DFB-TS-03",
+          "title": "Access Control and Security Tests",
+          "description": "تست کنترل دسترسی و sandbox امنیتی ExpressionEngine",
+          "dependencies": ["DFB-DM-03", "DFB-CE-01"]
+        }
+      ]
+    },
+    "documentation": {
+      "tasks": [
+        {
+          "id": "DFB-DOC-01",
+          "title": "Document Form Schema and Expression Syntax",
+          "description": "مستندسازی مدل داده فرم‌ها و زبان expressions شرطی",
+          "dependencies": []
+        },
+        {
+          "id": "DFB-DOC-02",
+          "title": "Document API Endpoints and Integration Scenarios",
+          "description": "مستندسازی APIها و سناریوهای اتصال به ماژول‌های دیگر مثل Workflow و Product Management",
+          "dependencies": []
+        }
+      ]
+    }
+  }
+}

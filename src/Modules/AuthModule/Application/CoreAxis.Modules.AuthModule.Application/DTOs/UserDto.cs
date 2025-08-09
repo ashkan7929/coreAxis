@@ -10,6 +10,23 @@ public class UserDto
     public DateTime CreatedAt { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public int FailedLoginAttempts { get; set; }
+    // New personal and identification fields
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? FatherName { get; set; }
+    public DateOnly? BirthDate { get; set; }
+    public int? Gender { get; set; }
+    public int? CertNumber { get; set; }
+    public string? IdentificationSerial { get; set; }
+    public string? IdentificationSeri { get; set; }
+    public string? OfficeName { get; set; }
+    public string? ReferralCode { get; set; }
+    public string? PhoneNumber { get; set; }
+    public string NationalCode { get; set; } = string.Empty;
+    public bool IsMobileVerified { get; set; }
+    public bool IsNationalCodeVerified { get; set; }
+    public bool IsPersonalInfoVerified { get; set; }
+    public string? CivilRegistryTrackId { get; set; }
     public List<RoleDto> Roles { get; set; } = new();
 }
 
