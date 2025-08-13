@@ -20,6 +20,8 @@ public class TransactionType : EntityBase
         Description = description;
         Code = code;
         CreatedOn = DateTime.UtcNow;
+        CreatedBy = "System";
+        LastModifiedBy = "System";
     }
 
     public void UpdateDetails(string name, string description, string code)
@@ -28,17 +30,20 @@ public class TransactionType : EntityBase
         Description = description;
         Code = code;
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
     }
 
     public void Deactivate()
     {
         IsActive = false;
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
     }
 
     public void Activate()
     {
         IsActive = true;
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
     }
 }

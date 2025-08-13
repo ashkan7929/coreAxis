@@ -26,6 +26,8 @@ public class Wallet : EntityBase
         WalletTypeId = walletTypeId;
         Currency = currency;
         CreatedOn = DateTime.UtcNow;
+        CreatedBy = "System";
+        LastModifiedBy = "System";
         
         AddDomainEvent(new WalletCreatedEvent(Id, userId, walletTypeId));
     }
@@ -40,6 +42,7 @@ public class Wallet : EntityBase
 
         Balance += amount;
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
         
         AddDomainEvent(new WalletBalanceChangedEvent(Id, Balance, amount, "CREDIT", reason));
     }
@@ -57,6 +60,7 @@ public class Wallet : EntityBase
 
         Balance -= amount;
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
         
         AddDomainEvent(new WalletBalanceChangedEvent(Id, Balance, -amount, "DEBIT", reason));
     }
@@ -66,6 +70,7 @@ public class Wallet : EntityBase
         IsLocked = true;
         LockReason = reason;
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
     }
 
     public void Unlock()
@@ -73,6 +78,7 @@ public class Wallet : EntityBase
         IsLocked = false;
         LockReason = null;
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
     }
 
     public bool CanDebit(decimal amount)

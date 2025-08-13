@@ -84,6 +84,10 @@ try
     // Force load AuthModule assembly
     var authModuleAssembly = typeof(CoreAxis.Modules.AuthModule.API.AuthModule).Assembly;
     Console.WriteLine($"AuthModule assembly loaded: {authModuleAssembly.FullName}");
+    
+    // Force load WalletModule assembly
+    var walletModuleAssembly = typeof(CoreAxis.Modules.WalletModule.Api.WalletModule).Assembly;
+    Console.WriteLine($"WalletModule assembly loaded: {walletModuleAssembly.FullName}");
 
     // Debug: List all loaded assemblies
     var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();

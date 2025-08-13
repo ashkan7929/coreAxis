@@ -49,6 +49,8 @@ public class Transaction : EntityBase
         RelatedTransactionId = relatedTransactionId;
         ProcessedAt = DateTime.UtcNow;
         CreatedOn = DateTime.UtcNow;
+        CreatedBy = "System";
+        LastModifiedBy = "System";
         
         if (metadata != null)
         {
@@ -62,6 +64,7 @@ public class Transaction : EntityBase
     {
         Status = TransactionStatus.Completed;
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
         
         AddDomainEvent(new TransactionCompletedEvent(Id, WalletId, Amount, TransactionTypeId));
     }
@@ -71,6 +74,7 @@ public class Transaction : EntityBase
         Status = TransactionStatus.Failed;
         Description += $" - Failed: {reason}";
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
         
         AddDomainEvent(new TransactionFailedEvent(Id, WalletId, Amount, reason));
     }
@@ -80,6 +84,7 @@ public class Transaction : EntityBase
         Status = TransactionStatus.Cancelled;
         Description += $" - Cancelled: {reason}";
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
     }
 
     public T? GetMetadata<T>() where T : class

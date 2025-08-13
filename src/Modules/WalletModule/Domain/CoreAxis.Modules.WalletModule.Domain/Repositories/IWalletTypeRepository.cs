@@ -12,6 +12,7 @@ public interface IWalletTypeRepository
     Task UpdateAsync(WalletType walletType, CancellationToken cancellationToken = default);
     Task DeleteAsync(WalletType walletType, CancellationToken cancellationToken = default);
     Task<bool> ExistsAsync(string name, CancellationToken cancellationToken = default);
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }
 
 public interface IWalletProviderRepository

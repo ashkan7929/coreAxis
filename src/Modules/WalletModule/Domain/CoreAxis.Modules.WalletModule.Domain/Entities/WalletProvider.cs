@@ -32,6 +32,8 @@ public class WalletProvider : EntityBase
         SupportsWithdraw = supportsWithdraw;
         Configuration = configuration;
         CreatedOn = DateTime.UtcNow;
+        CreatedBy = "System";
+        LastModifiedBy = "System";
     }
 
     public void UpdateConfiguration(
@@ -51,17 +53,20 @@ public class WalletProvider : EntityBase
         if (configuration != null) Configuration = configuration;
         
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
     }
 
     public void Deactivate()
     {
         IsActive = false;
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
     }
 
     public void Activate()
     {
         IsActive = true;
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
     }
 }

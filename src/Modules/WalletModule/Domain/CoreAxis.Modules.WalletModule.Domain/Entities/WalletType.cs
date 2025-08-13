@@ -18,6 +18,8 @@ public class WalletType : EntityBase
         Name = name;
         Description = description;
         CreatedOn = DateTime.UtcNow;
+        CreatedBy = "System";
+        LastModifiedBy = "System";
     }
 
     public void UpdateDetails(string name, string description)
@@ -25,17 +27,31 @@ public class WalletType : EntityBase
         Name = name;
         Description = description;
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
     }
 
     public void Deactivate()
     {
         IsActive = false;
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
     }
 
     public void Activate()
     {
         IsActive = true;
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
+    }
+
+    // Methods to set audit fields for existing records
+    public void SetCreatedBy(string createdBy)
+    {
+        CreatedBy = createdBy;
+    }
+
+    public void SetLastModifiedBy(string lastModifiedBy)
+    {
+        LastModifiedBy = lastModifiedBy;
     }
 }

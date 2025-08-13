@@ -18,6 +18,7 @@
     <ProjectReference Include="..\..\Application\CoreAxis.Modules.WalletModule.Application\CoreAxis.Modules.WalletModule.Application.csproj" />
     <ProjectReference Include="..\..\Infrastructure\CoreAxis.Modules.WalletModule.Infrastructure\CoreAxis.Modules.WalletModule.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\..\BuildingBlocks\SharedKernel\CoreAxis.SharedKernel\CoreAxis.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\..\BuildingBlocks\BuildingBlocks\CoreAxis.BuildingBlocks\CoreAxis.BuildingBlocks.csproj" />
   </ItemGroup>
 
 </Project>

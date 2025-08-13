@@ -1,5 +1,6 @@
 using CoreAxis.Modules.WalletModule.Domain.Entities;
 using CoreAxis.SharedKernel;
+using CoreAxis.SharedKernel.DomainEvents;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
@@ -21,6 +22,9 @@ public class WalletDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Ignore DomainEvent as it's not an entity but a base class for domain events
+        modelBuilder.Ignore<DomainEvent>();
 
         // Apply configurations from current assembly
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());

@@ -40,6 +40,8 @@ public class WalletContract : EntityBase
         Terms = terms;
         LastResetDate = DateTime.UtcNow.Date;
         CreatedOn = DateTime.UtcNow;
+        CreatedBy = "System";
+        LastModifiedBy = "System";
     }
 
     public void UpdateLimits(decimal maxAmount, decimal dailyLimit, decimal monthlyLimit)
@@ -48,6 +50,7 @@ public class WalletContract : EntityBase
         DailyLimit = dailyLimit;
         MonthlyLimit = monthlyLimit;
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
     }
 
     public bool CanProcessAmount(decimal amount)
@@ -68,6 +71,7 @@ public class WalletContract : EntityBase
         UsedDailyAmount += amount;
         UsedMonthlyAmount += amount;
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
     }
 
     private void ResetLimitsIfNeeded()
@@ -92,11 +96,13 @@ public class WalletContract : EntityBase
     {
         IsActive = false;
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
     }
 
     public void Activate()
     {
         IsActive = true;
         LastModifiedOn = DateTime.UtcNow;
+        LastModifiedBy = "System";
     }
 }
