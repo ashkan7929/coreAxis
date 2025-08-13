@@ -19,7 +19,7 @@ public class WalletConfiguration : IEntityTypeConfiguration<Wallet>
             .IsRequired();
 
         builder.Property(w => w.Balance)
-            .HasColumnType("decimal(18,8)")
+            .HasPrecision(18, 6)
             .IsRequired();
 
         builder.Property(w => w.Currency)
@@ -29,6 +29,10 @@ public class WalletConfiguration : IEntityTypeConfiguration<Wallet>
         builder.Property(w => w.IsLocked)
             .IsRequired()
             .HasDefaultValue(false);
+
+        builder.Property(w => w.RowVersion)
+            .IsRowVersion()
+            .IsConcurrencyToken();
 
         // Relationships
         builder.HasOne(w => w.WalletType)

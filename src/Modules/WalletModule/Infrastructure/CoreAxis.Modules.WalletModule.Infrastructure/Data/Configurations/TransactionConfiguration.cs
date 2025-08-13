@@ -19,11 +19,11 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .IsRequired();
 
         builder.Property(t => t.Amount)
-            .HasColumnType("decimal(18,8)")
+            .HasPrecision(18, 6)
             .IsRequired();
 
         builder.Property(t => t.BalanceAfter)
-            .HasColumnType("decimal(18,8)")
+            .HasPrecision(18, 6)
             .IsRequired();
 
         builder.Property(t => t.Description)
@@ -31,6 +31,11 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
 
         builder.Property(t => t.Reference)
             .HasMaxLength(100);
+
+        builder.Property(t => t.IdempotencyKey)
+            .HasMaxLength(64);
+
+        builder.Property(t => t.CorrelationId);
 
         builder.Property(t => t.Metadata)
             .HasColumnType("nvarchar(max)");
@@ -78,5 +83,13 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
 
         builder.HasIndex(t => t.RelatedTransactionId)
             .HasDatabaseName("IX_Transactions_RelatedTransactionId");
+
+        builder.HasIndex(t => t.IdempotencyKey)
+            .IsUnique()
+            .HasDatabaseName("IX_Transactions_IdempotencyKey")
+            .HasFilter("[IdempotencyKey] IS NOT NULL");
+
+        builder.HasIndex(t => t.CorrelationId)
+            .HasDatabaseName("IX_Transactions_CorrelationId");
     }
 }

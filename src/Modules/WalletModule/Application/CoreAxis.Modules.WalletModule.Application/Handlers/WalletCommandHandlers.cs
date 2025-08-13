@@ -1,7 +1,9 @@
 using CoreAxis.Modules.WalletModule.Application.Commands;
 using CoreAxis.Modules.WalletModule.Application.DTOs;
+using CoreAxis.Modules.WalletModule.Application.Services;
 using CoreAxis.Modules.WalletModule.Domain.Entities;
 using CoreAxis.Modules.WalletModule.Domain.Repositories;
+using CoreAxis.Modules.WalletModule.Application.Services;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -62,19 +64,16 @@ public class CreateWalletCommandHandler : IRequestHandler<CreateWalletCommand, W
 
 public class DepositCommandHandler : IRequestHandler<DepositCommand, TransactionResultDto>
 {
-    private readonly IWalletRepository _walletRepository;
-    private readonly ITransactionRepository _transactionRepository;
+    private readonly ITransactionService _transactionService;
     private readonly ITransactionTypeRepository _transactionTypeRepository;
     private readonly ILogger<DepositCommandHandler> _logger;
 
     public DepositCommandHandler(
-        IWalletRepository walletRepository,
-        ITransactionRepository transactionRepository,
+        ITransactionService transactionService,
         ITransactionTypeRepository transactionTypeRepository,
         ILogger<DepositCommandHandler> logger)
     {
-        _walletRepository = walletRepository;
-        _transactionRepository = transactionRepository;
+        _transactionService = transactionService;
         _transactionTypeRepository = transactionTypeRepository;
         _logger = logger;
     }
@@ -83,18 +82,6 @@ public class DepositCommandHandler : IRequestHandler<DepositCommand, Transaction
     {
         try
         {
-            // Get wallet
-            var wallet = await _walletRepository.GetByIdAsync(request.WalletId, cancellationToken);
-            if (wallet == null)
-            {
-                return new TransactionResultDto
-                {
-                    Success = false,
-                    Message = "Wallet not found",
-                    Errors = ["Invalid wallet ID"]
-                };
-            }
-
             // Validate amount
             if (request.Amount <= 0)
             {
@@ -106,7 +93,7 @@ public class DepositCommandHandler : IRequestHandler<DepositCommand, Transaction
                 };
             }
 
-            // Get deposit transaction type
+            // Get deposit transaction type for response
             var transactionType = await _transactionTypeRepository.GetByCodeAsync("DEPOSIT", cancellationToken);
             if (transactionType == null)
             {
@@ -118,26 +105,19 @@ public class DepositCommandHandler : IRequestHandler<DepositCommand, Transaction
                 };
             }
 
-            // Credit wallet
-            wallet.Credit(request.Amount, request.Description);
-
-            // Create transaction record
-            var transaction = new Transaction(
-                wallet.Id,
-                transactionType.Id,
+            // Execute deposit using atomic transaction service
+            var transaction = await _transactionService.ExecuteDepositAsync(
+                request.WalletId,
                 request.Amount,
-                wallet.Balance,
                 request.Description,
                 request.Reference,
-                request.Metadata);
+                request.Metadata,
+                request.IdempotencyKey,
+                request.CorrelationId,
+                cancellationToken);
 
-            transaction.Complete();
-
-            // Save changes
-            await _walletRepository.UpdateAsync(wallet, cancellationToken);
-            await _transactionRepository.AddAsync(transaction, cancellationToken);
-
-            _logger.LogInformation("Deposit of {Amount} completed for wallet {WalletId}", request.Amount, request.WalletId);
+            _logger.LogInformation("Deposit of {Amount} completed for wallet {WalletId} with transaction {TransactionId}", 
+                request.Amount, request.WalletId, transaction.Id);
 
             return new TransactionResultDto
             {
@@ -155,8 +135,30 @@ public class DepositCommandHandler : IRequestHandler<DepositCommand, Transaction
                     Description = transaction.Description,
                     Reference = transaction.Reference,
                     Status = transaction.Status,
-                    ProcessedAt = transaction.ProcessedAt
+                    ProcessedAt = transaction.ProcessedAt,
+                    IdempotencyKey = transaction.IdempotencyKey,
+                    CorrelationId = transaction.CorrelationId
                 }
+            };
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Business rule violation for deposit on wallet {WalletId}", request.WalletId);
+            return new TransactionResultDto
+            {
+                Success = false,
+                Message = ex.Message,
+                Errors = [ex.Message]
+            };
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid argument for deposit on wallet {WalletId}", request.WalletId);
+            return new TransactionResultDto
+            {
+                Success = false,
+                Message = ex.Message,
+                Errors = [ex.Message]
             };
         }
         catch (Exception ex)
@@ -166,7 +168,7 @@ public class DepositCommandHandler : IRequestHandler<DepositCommand, Transaction
             {
                 Success = false,
                 Message = "Deposit failed",
-                Errors = [ex.Message]
+                Errors = ["An unexpected error occurred"]
             };
         }
     }

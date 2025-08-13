@@ -1,4 +1,3 @@
-using CoreAxis.SharedKernel.IntegrationEvents;
 using System.Threading.Tasks;
 
 namespace CoreAxis.EventBus
@@ -8,7 +7,7 @@ namespace CoreAxis.EventBus
     /// </summary>
     /// <typeparam name="TIntegrationEvent">The type of the integration event.</typeparam>
     public interface IIntegrationEventHandler<in TIntegrationEvent> : IIntegrationEventHandler
-        where TIntegrationEvent : CoreAxis.SharedKernel.IntegrationEvents.IntegrationEvent
+        where TIntegrationEvent : IntegrationEvent
     {
         /// <summary>
         /// Handles an integration event.

@@ -93,4 +93,18 @@ public class TransactionRepository : ITransactionRepository
         _context.Transactions.Update(transaction);
         return Task.CompletedTask;
     }
+
+    public async Task<Transaction?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken = default)
+    {
+        return await _context.Transactions
+            .Include(t => t.TransactionType)
+            .Include(t => t.Wallet)
+            .FirstOrDefaultAsync(t => t.IdempotencyKey == idempotencyKey, cancellationToken);
+    }
+
+    public async Task<bool> ExistsByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken = default)
+    {
+        return await _context.Transactions
+            .AnyAsync(t => t.IdempotencyKey == idempotencyKey, cancellationToken);
+    }
 }

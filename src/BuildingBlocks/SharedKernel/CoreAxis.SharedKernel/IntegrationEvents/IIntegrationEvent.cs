@@ -1,4 +1,4 @@
-namespace CoreAxis.SharedKernel.IntegrationEvents
+namespace CoreAxis.EventBus
 {
     /// <summary>
     /// Interface for all integration events in the system.

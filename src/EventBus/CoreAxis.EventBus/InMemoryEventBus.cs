@@ -1,4 +1,3 @@
-using CoreAxis.SharedKernel.IntegrationEvents;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
@@ -48,7 +47,7 @@ namespace CoreAxis.EventBus
         }
 
         /// <inheritdoc/>
-        public async Task PublishAsync<TIntegrationEvent>(TIntegrationEvent @event) where TIntegrationEvent : CoreAxis.SharedKernel.IntegrationEvents.IntegrationEvent
+        public async Task PublishAsync<TIntegrationEvent>(TIntegrationEvent @event) where TIntegrationEvent : IntegrationEvent
         {
             var eventName = @event.GetType().Name;
             _logger?.LogInformation("Publishing event: {EventName}", eventName);
@@ -127,7 +126,7 @@ namespace CoreAxis.EventBus
 
         /// <inheritdoc/>
         public void Subscribe<TIntegrationEvent, THandler>()
-            where TIntegrationEvent : CoreAxis.SharedKernel.IntegrationEvents.IntegrationEvent
+            where TIntegrationEvent : IntegrationEvent
             where THandler : IIntegrationEventHandler<TIntegrationEvent>
         {
             var eventName = typeof(TIntegrationEvent).Name;
@@ -150,7 +149,7 @@ namespace CoreAxis.EventBus
 
         /// <inheritdoc/>
         public void Subscribe<TIntegrationEvent>(IIntegrationEventHandler<TIntegrationEvent> handler)
-            where TIntegrationEvent : CoreAxis.SharedKernel.IntegrationEvents.IntegrationEvent
+            where TIntegrationEvent : IntegrationEvent
         {
             var eventName = typeof(TIntegrationEvent).Name;
             var handlerType = handler.GetType();
@@ -177,7 +176,7 @@ namespace CoreAxis.EventBus
 
         /// <inheritdoc/>
         public void Unsubscribe<TIntegrationEvent, THandler>()
-            where TIntegrationEvent : CoreAxis.SharedKernel.IntegrationEvents.IntegrationEvent
+            where TIntegrationEvent : IntegrationEvent
             where THandler : IIntegrationEventHandler<TIntegrationEvent>
         {
             var eventName = typeof(TIntegrationEvent).Name;
@@ -200,7 +199,7 @@ namespace CoreAxis.EventBus
 
         /// <inheritdoc/>
         public void Unsubscribe<TIntegrationEvent>(IIntegrationEventHandler<TIntegrationEvent> handler)
-            where TIntegrationEvent : CoreAxis.SharedKernel.IntegrationEvents.IntegrationEvent
+            where TIntegrationEvent : IntegrationEvent
         {
             var eventName = typeof(TIntegrationEvent).Name;
 

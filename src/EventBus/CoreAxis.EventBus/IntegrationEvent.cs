@@ -1,6 +1,6 @@
 using System;
 
-namespace CoreAxis.SharedKernel.IntegrationEvents
+namespace CoreAxis.EventBus
 {
     /// <summary>
     /// Base class for all integration events in the system.

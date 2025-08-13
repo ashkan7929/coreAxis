@@ -13,6 +13,8 @@ public class TransactionDto
     public decimal BalanceAfter { get; set; }
     public string Description { get; set; } = string.Empty;
     public string? Reference { get; set; }
+    public string? IdempotencyKey { get; set; }
+    public Guid? CorrelationId { get; set; }
     public TransactionStatus Status { get; set; }
     public DateTime ProcessedAt { get; set; }
     public Guid? RelatedTransactionId { get; set; }

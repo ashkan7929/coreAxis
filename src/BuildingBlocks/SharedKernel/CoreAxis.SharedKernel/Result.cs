@@ -19,7 +19,7 @@ namespace CoreAxis.SharedKernel
         /// <summary>
         /// Gets the value of the result.
         /// </summary>
-        public T Value { get; private set; }
+        public T Value { get; private set; } = default!;
 
         /// <summary>
         /// Gets the error messages associated with a failed operation.

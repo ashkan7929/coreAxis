@@ -18,6 +18,8 @@ public class DepositCommand : IRequest<TransactionResultDto>
     public string? Reference { get; set; }
     public object? Metadata { get; set; }
     public Guid UserId { get; set; }
+    public string? IdempotencyKey { get; set; }
+    public string? CorrelationId { get; set; }
 }
 
 public class WithdrawCommand : IRequest<TransactionResultDto>
@@ -28,6 +30,8 @@ public class WithdrawCommand : IRequest<TransactionResultDto>
     public string? Reference { get; set; }
     public object? Metadata { get; set; }
     public Guid UserId { get; set; }
+    public string? IdempotencyKey { get; set; }
+    public string? CorrelationId { get; set; }
 }
 
 public class TransferCommand : IRequest<TransactionResultDto>
@@ -39,4 +43,6 @@ public class TransferCommand : IRequest<TransactionResultDto>
     public string? Reference { get; set; }
     public object? Metadata { get; set; }
     public Guid UserId { get; set; }
+    public string? IdempotencyKey { get; set; }
+    public string? CorrelationId { get; set; }
 }

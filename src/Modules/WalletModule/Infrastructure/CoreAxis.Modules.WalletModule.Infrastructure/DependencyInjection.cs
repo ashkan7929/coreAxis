@@ -1,6 +1,8 @@
+using CoreAxis.Modules.WalletModule.Application.Services;
 using CoreAxis.Modules.WalletModule.Domain.Repositories;
 using CoreAxis.Modules.WalletModule.Infrastructure.Data;
 using CoreAxis.Modules.WalletModule.Infrastructure.Repositories;
+using CoreAxis.Modules.WalletModule.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +24,9 @@ public static class DependencyInjection
         services.AddScoped<ITransactionTypeRepository, TransactionTypeRepository>();
         services.AddScoped<IWalletProviderRepository, WalletProviderRepository>();
         services.AddScoped<IWalletContractRepository, WalletContractRepository>();
+
+        // Register services
+        services.AddScoped<ITransactionService, TransactionService>();
 
         return services;
     }

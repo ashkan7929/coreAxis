@@ -1,5 +1,6 @@
-using CoreAxis.Modules.WalletModule.Application.Commands;
 using CoreAxis.Modules.WalletModule.Application.DTOs;
+using CoreAxis.Modules.WalletModule.Application.Commands;
+using CoreAxis.Modules.WalletModule.Application.Services;
 using CoreAxis.Modules.WalletModule.Domain.Entities;
 using CoreAxis.Modules.WalletModule.Domain.Repositories;
 using MediatR;
@@ -9,19 +10,16 @@ namespace CoreAxis.Modules.WalletModule.Application.Handlers;
 
 public class WithdrawCommandHandler : IRequestHandler<WithdrawCommand, TransactionResultDto>
 {
-    private readonly IWalletRepository _walletRepository;
-    private readonly ITransactionRepository _transactionRepository;
+    private readonly ITransactionService _transactionService;
     private readonly ITransactionTypeRepository _transactionTypeRepository;
     private readonly ILogger<WithdrawCommandHandler> _logger;
 
     public WithdrawCommandHandler(
-        IWalletRepository walletRepository,
-        ITransactionRepository transactionRepository,
+        ITransactionService transactionService,
         ITransactionTypeRepository transactionTypeRepository,
         ILogger<WithdrawCommandHandler> logger)
     {
-        _walletRepository = walletRepository;
-        _transactionRepository = transactionRepository;
+        _transactionService = transactionService;
         _transactionTypeRepository = transactionTypeRepository;
         _logger = logger;
     }
@@ -30,18 +28,6 @@ public class WithdrawCommandHandler : IRequestHandler<WithdrawCommand, Transacti
     {
         try
         {
-            // Get wallet
-            var wallet = await _walletRepository.GetByIdAsync(request.WalletId, cancellationToken);
-            if (wallet == null)
-            {
-                return new TransactionResultDto
-                {
-                    Success = false,
-                    Message = "Wallet not found",
-                    Errors = ["Invalid wallet ID"]
-                };
-            }
-
             // Validate amount
             if (request.Amount <= 0)
             {
@@ -53,18 +39,7 @@ public class WithdrawCommandHandler : IRequestHandler<WithdrawCommand, Transacti
                 };
             }
 
-            // Check if wallet can be debited
-            if (!wallet.CanDebit(request.Amount))
-            {
-                return new TransactionResultDto
-                {
-                    Success = false,
-                    Message = "Insufficient balance or wallet is locked",
-                    Errors = [wallet.IsLocked ? $"Wallet is locked: {wallet.LockReason}" : "Insufficient balance"]
-                };
-            }
-
-            // Get withdraw transaction type
+            // Get withdrawal transaction type for response
             var transactionType = await _transactionTypeRepository.GetByCodeAsync("WITHDRAW", cancellationToken);
             if (transactionType == null)
             {
@@ -76,26 +51,19 @@ public class WithdrawCommandHandler : IRequestHandler<WithdrawCommand, Transacti
                 };
             }
 
-            // Debit wallet
-            wallet.Debit(request.Amount, request.Description);
-
-            // Create transaction record
-            var transaction = new Transaction(
-                wallet.Id,
-                transactionType.Id,
-                -request.Amount, // Negative for withdrawal
-                wallet.Balance,
+            // Execute withdrawal using atomic transaction service
+            var transaction = await _transactionService.ExecuteWithdrawalAsync(
+                request.WalletId,
+                request.Amount,
                 request.Description,
                 request.Reference,
-                request.Metadata);
+                request.Metadata,
+                request.IdempotencyKey,
+                request.CorrelationId,
+                cancellationToken);
 
-            transaction.Complete();
-
-            // Save changes
-            await _walletRepository.UpdateAsync(wallet, cancellationToken);
-            await _transactionRepository.AddAsync(transaction, cancellationToken);
-
-            _logger.LogInformation("Withdrawal of {Amount} completed for wallet {WalletId}", request.Amount, request.WalletId);
+            _logger.LogInformation("Withdrawal of {Amount} completed for wallet {WalletId} with transaction {TransactionId}", 
+                request.Amount, request.WalletId, transaction.Id);
 
             return new TransactionResultDto
             {
@@ -113,8 +81,30 @@ public class WithdrawCommandHandler : IRequestHandler<WithdrawCommand, Transacti
                     Description = transaction.Description,
                     Reference = transaction.Reference,
                     Status = transaction.Status,
-                    ProcessedAt = transaction.ProcessedAt
+                    ProcessedAt = transaction.ProcessedAt,
+                    IdempotencyKey = transaction.IdempotencyKey,
+                    CorrelationId = transaction.CorrelationId
                 }
+            };
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Business rule violation for withdrawal on wallet {WalletId}", request.WalletId);
+            return new TransactionResultDto
+            {
+                Success = false,
+                Message = ex.Message,
+                Errors = [ex.Message]
+            };
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid argument for withdrawal on wallet {WalletId}", request.WalletId);
+            return new TransactionResultDto
+            {
+                Success = false,
+                Message = ex.Message,
+                Errors = [ex.Message]
             };
         }
         catch (Exception ex)
@@ -124,7 +114,7 @@ public class WithdrawCommandHandler : IRequestHandler<WithdrawCommand, Transacti
             {
                 Success = false,
                 Message = "Withdrawal failed",
-                Errors = [ex.Message]
+                Errors = ["An unexpected error occurred"]
             };
         }
     }
@@ -132,19 +122,16 @@ public class WithdrawCommandHandler : IRequestHandler<WithdrawCommand, Transacti
 
 public class TransferCommandHandler : IRequestHandler<TransferCommand, TransactionResultDto>
 {
-    private readonly IWalletRepository _walletRepository;
-    private readonly ITransactionRepository _transactionRepository;
+    private readonly ITransactionService _transactionService;
     private readonly ITransactionTypeRepository _transactionTypeRepository;
     private readonly ILogger<TransferCommandHandler> _logger;
 
     public TransferCommandHandler(
-        IWalletRepository walletRepository,
-        ITransactionRepository transactionRepository,
+        ITransactionService transactionService,
         ITransactionTypeRepository transactionTypeRepository,
         ILogger<TransferCommandHandler> logger)
     {
-        _walletRepository = walletRepository;
-        _transactionRepository = transactionRepository;
+        _transactionService = transactionService;
         _transactionTypeRepository = transactionTypeRepository;
         _logger = logger;
     }
@@ -153,20 +140,6 @@ public class TransferCommandHandler : IRequestHandler<TransferCommand, Transacti
     {
         try
         {
-            // Get both wallets
-            var fromWallet = await _walletRepository.GetByIdAsync(request.FromWalletId, cancellationToken);
-            var toWallet = await _walletRepository.GetByIdAsync(request.ToWalletId, cancellationToken);
-
-            if (fromWallet == null || toWallet == null)
-            {
-                return new TransactionResultDto
-                {
-                    Success = false,
-                    Message = "One or both wallets not found",
-                    Errors = ["Invalid wallet IDs"]
-                };
-            }
-
             // Validate amount
             if (request.Amount <= 0)
             {
@@ -178,88 +151,32 @@ public class TransferCommandHandler : IRequestHandler<TransferCommand, Transacti
                 };
             }
 
-            // Check if source wallet can be debited
-            if (!fromWallet.CanDebit(request.Amount))
+            // Get transfer transaction type for response
+            var transactionType = await _transactionTypeRepository.GetByCodeAsync("TRANSFER", cancellationToken);
+            if (transactionType == null)
             {
                 return new TransactionResultDto
                 {
                     Success = false,
-                    Message = "Insufficient balance or source wallet is locked",
-                    Errors = [fromWallet.IsLocked ? $"Source wallet is locked: {fromWallet.LockReason}" : "Insufficient balance"]
+                    Message = "Transaction type not found",
+                    Errors = ["TRANSFER transaction type not configured"]
                 };
             }
 
-            // Check if destination wallet is locked
-            if (toWallet.IsLocked)
-            {
-                return new TransactionResultDto
-                {
-                    Success = false,
-                    Message = "Destination wallet is locked",
-                    Errors = [$"Destination wallet is locked: {toWallet.LockReason}"]
-                };
-            }
-
-            // Get transfer transaction types
-            var transferOutType = await _transactionTypeRepository.GetByCodeAsync("TRANSFER_OUT", cancellationToken);
-            var transferInType = await _transactionTypeRepository.GetByCodeAsync("TRANSFER_IN", cancellationToken);
-
-            if (transferOutType == null || transferInType == null)
-            {
-                return new TransactionResultDto
-                {
-                    Success = false,
-                    Message = "Transfer transaction types not found",
-                    Errors = ["TRANSFER_OUT or TRANSFER_IN transaction types not configured"]
-                };
-            }
-
-            // Perform transfer
-            fromWallet.Debit(request.Amount, request.Description);
-            toWallet.Credit(request.Amount, request.Description);
-
-            // Create transaction records
-            var outTransaction = new Transaction(
-                fromWallet.Id,
-                transferOutType.Id,
-                -request.Amount,
-                fromWallet.Balance,
-                request.Description,
-                request.Reference,
-                request.Metadata);
-
-            var inTransaction = new Transaction(
-                toWallet.Id,
-                transferInType.Id,
+            // Execute transfer using atomic transaction service
+            var (debitTransaction, creditTransaction) = await _transactionService.ExecuteTransferAsync(
+                request.FromWalletId,
+                request.ToWalletId,
                 request.Amount,
-                toWallet.Balance,
                 request.Description,
                 request.Reference,
                 request.Metadata,
-                outTransaction.Id);
+                request.IdempotencyKey,
+                request.CorrelationId,
+                cancellationToken);
 
-            // Link transactions
-            outTransaction = new Transaction(
-                fromWallet.Id,
-                transferOutType.Id,
-                -request.Amount,
-                fromWallet.Balance,
-                request.Description,
-                request.Reference,
-                request.Metadata,
-                inTransaction.Id);
-
-            outTransaction.Complete();
-            inTransaction.Complete();
-
-            // Save changes
-            await _walletRepository.UpdateAsync(fromWallet, cancellationToken);
-            await _walletRepository.UpdateAsync(toWallet, cancellationToken);
-            await _transactionRepository.AddAsync(outTransaction, cancellationToken);
-            await _transactionRepository.AddAsync(inTransaction, cancellationToken);
-
-            _logger.LogInformation("Transfer of {Amount} completed from wallet {FromWalletId} to wallet {ToWalletId}", 
-                request.Amount, request.FromWalletId, request.ToWalletId);
+            _logger.LogInformation("Transfer of {Amount} completed from wallet {FromWalletId} to wallet {ToWalletId} with transactions {DebitTransactionId} and {CreditTransactionId}", 
+                request.Amount, request.FromWalletId, request.ToWalletId, debitTransaction.Id, creditTransaction.Id);
 
             return new TransactionResultDto
             {
@@ -267,19 +184,42 @@ public class TransferCommandHandler : IRequestHandler<TransferCommand, Transacti
                 Message = "Transfer completed successfully",
                 Transaction = new TransactionDto
                 {
-                    Id = outTransaction.Id,
-                    WalletId = outTransaction.WalletId,
-                    TransactionTypeId = outTransaction.TransactionTypeId,
-                    TransactionTypeName = transferOutType.Name,
-                    TransactionTypeCode = transferOutType.Code,
-                    Amount = outTransaction.Amount,
-                    BalanceAfter = outTransaction.BalanceAfter,
-                    Description = outTransaction.Description,
-                    Reference = outTransaction.Reference,
-                    Status = outTransaction.Status,
-                    ProcessedAt = outTransaction.ProcessedAt,
-                    RelatedTransactionId = outTransaction.RelatedTransactionId
+                    Id = debitTransaction.Id,
+                    WalletId = debitTransaction.WalletId,
+                    TransactionTypeId = debitTransaction.TransactionTypeId,
+                    TransactionTypeName = transactionType.Name,
+                    TransactionTypeCode = transactionType.Code,
+                    Amount = debitTransaction.Amount,
+                    BalanceAfter = debitTransaction.BalanceAfter,
+                    Description = debitTransaction.Description,
+                    Reference = debitTransaction.Reference,
+                    Status = debitTransaction.Status,
+                    ProcessedAt = debitTransaction.ProcessedAt,
+                    IdempotencyKey = debitTransaction.IdempotencyKey,
+                    CorrelationId = debitTransaction.CorrelationId
                 }
+            };
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Business rule violation for transfer from wallet {FromWalletId} to wallet {ToWalletId}", 
+                request.FromWalletId, request.ToWalletId);
+            return new TransactionResultDto
+            {
+                Success = false,
+                Message = ex.Message,
+                Errors = [ex.Message]
+            };
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid argument for transfer from wallet {FromWalletId} to wallet {ToWalletId}", 
+                request.FromWalletId, request.ToWalletId);
+            return new TransactionResultDto
+            {
+                Success = false,
+                Message = ex.Message,
+                Errors = [ex.Message]
             };
         }
         catch (Exception ex)
@@ -290,7 +230,7 @@ public class TransferCommandHandler : IRequestHandler<TransferCommand, Transacti
             {
                 Success = false,
                 Message = "Transfer failed",
-                Errors = [ex.Message]
+                Errors = ["An unexpected error occurred"]
             };
         }
     }

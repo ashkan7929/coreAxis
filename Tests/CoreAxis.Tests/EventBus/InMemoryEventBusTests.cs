@@ -1,6 +1,5 @@
 using CoreAxis.EventBus;
 using CoreAxis.SharedKernel;
-using CoreAxis.SharedKernel.IntegrationEvents;
 using Moq;
 using System;
 using System.Threading.Tasks;

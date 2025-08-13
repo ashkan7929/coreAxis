@@ -1,4 +1,4 @@
-using CoreAxis.SharedKernel.IntegrationEvents;
+using CoreAxis.EventBus;
 
 namespace CoreAxis.Modules.AuthModule.Application.IntegrationEvents;
 

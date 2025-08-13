@@ -11,6 +11,7 @@ public class Wallet : EntityBase
     public string Currency { get; private set; } = "USD";
     public bool IsLocked { get; private set; } = false;
     public string? LockReason { get; private set; }
+    public byte[] RowVersion { get; private set; } = new byte[0];
 
     // Navigation properties
     public virtual WalletType WalletType { get; private set; } = null!;

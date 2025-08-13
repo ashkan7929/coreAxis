@@ -1,4 +1,3 @@
-using CoreAxis.SharedKernel.IntegrationEvents;
 using System;
 using System.Threading.Tasks;
 
@@ -15,7 +14,7 @@ namespace CoreAxis.EventBus
         /// <typeparam name="TIntegrationEvent">The type of the integration event.</typeparam>
         /// <param name="event">The integration event to publish.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        Task PublishAsync<TIntegrationEvent>(TIntegrationEvent @event) where TIntegrationEvent : CoreAxis.SharedKernel.IntegrationEvents.IntegrationEvent;
+        Task PublishAsync<TIntegrationEvent>(TIntegrationEvent @event) where TIntegrationEvent : IntegrationEvent;
         
         /// <summary>
         /// Publishes a dynamic integration event to the event bus.
@@ -31,7 +30,7 @@ namespace CoreAxis.EventBus
         /// <typeparam name="TIntegrationEvent">The type of the integration event.</typeparam>
         /// <typeparam name="THandler">The type of the handler.</typeparam>
         void Subscribe<TIntegrationEvent, THandler>()
-            where TIntegrationEvent : CoreAxis.SharedKernel.IntegrationEvents.IntegrationEvent
+            where TIntegrationEvent : IntegrationEvent
             where THandler : IIntegrationEventHandler<TIntegrationEvent>;
             
         /// <summary>
@@ -40,7 +39,7 @@ namespace CoreAxis.EventBus
         /// <typeparam name="TIntegrationEvent">The type of the integration event.</typeparam>
         /// <param name="handler">The integration event handler instance.</param>
         void Subscribe<TIntegrationEvent>(IIntegrationEventHandler<TIntegrationEvent> handler)
-            where TIntegrationEvent : CoreAxis.SharedKernel.IntegrationEvents.IntegrationEvent;
+            where TIntegrationEvent : IntegrationEvent;
 
         /// <summary>
         /// Unsubscribes from an integration event.
@@ -48,7 +47,7 @@ namespace CoreAxis.EventBus
         /// <typeparam name="TIntegrationEvent">The type of the integration event.</typeparam>
         /// <typeparam name="THandler">The type of the handler.</typeparam>
         void Unsubscribe<TIntegrationEvent, THandler>()
-            where TIntegrationEvent : CoreAxis.SharedKernel.IntegrationEvents.IntegrationEvent
+            where TIntegrationEvent : IntegrationEvent
             where THandler : IIntegrationEventHandler<TIntegrationEvent>;
             
         /// <summary>
@@ -57,7 +56,7 @@ namespace CoreAxis.EventBus
         /// <typeparam name="TIntegrationEvent">The type of the integration event.</typeparam>
         /// <param name="handler">The integration event handler instance.</param>
         void Unsubscribe<TIntegrationEvent>(IIntegrationEventHandler<TIntegrationEvent> handler)
-            where TIntegrationEvent : CoreAxis.SharedKernel.IntegrationEvents.IntegrationEvent;
+            where TIntegrationEvent : IntegrationEvent;
 
         /// <summary>
         /// Subscribes to an integration event dynamically.

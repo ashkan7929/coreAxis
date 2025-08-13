@@ -12,6 +12,8 @@ public class Transaction : EntityBase
     public decimal BalanceAfter { get; private set; }
     public string Description { get; private set; } = string.Empty;
     public string? Reference { get; private set; }
+    public string? IdempotencyKey { get; private set; }
+    public Guid? CorrelationId { get; private set; }
     public string? Metadata { get; private set; }
     public TransactionStatus Status { get; private set; } = TransactionStatus.Pending;
     public DateTime ProcessedAt { get; private set; }
@@ -31,6 +33,8 @@ public class Transaction : EntityBase
         decimal balanceAfter,
         string description, 
         string? reference = null,
+        string? idempotencyKey = null,
+        Guid? correlationId = null,
         object? metadata = null,
         Guid? relatedTransactionId = null)
     {
@@ -40,6 +44,8 @@ public class Transaction : EntityBase
         BalanceAfter = balanceAfter;
         Description = description;
         Reference = reference;
+        IdempotencyKey = idempotencyKey;
+        CorrelationId = correlationId;
         RelatedTransactionId = relatedTransactionId;
         ProcessedAt = DateTime.UtcNow;
         CreatedOn = DateTime.UtcNow;

@@ -51,7 +51,7 @@ namespace CoreAxis.SharedKernel.Domain
                     var handleMethod = handlerType.GetMethod("HandleAsync");
                     if (handleMethod != null)
                     {
-                        var task = (Task)handleMethod.Invoke(handler, new object[] { domainEvent });
+                        var task = (Task?)handleMethod.Invoke(handler, new object[] { domainEvent });
                         if (task != null)
                         {
                             tasks.Add(task);
@@ -96,7 +96,7 @@ namespace CoreAxis.SharedKernel.Domain
                 
                 if (dispatchMethod != null)
                 {
-                    var task = (Task)dispatchMethod.Invoke(this, new object[] { domainEvent });
+                    var task = (Task?)dispatchMethod.Invoke(this, new object[] { domainEvent });
                     if (task != null)
                     {
                         tasks.Add(task);

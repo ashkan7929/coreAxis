@@ -14,4 +14,8 @@ public interface ITransactionRepository
     Task UpdateAsync(Transaction transaction, CancellationToken cancellationToken = default);
     Task<decimal> GetTotalAmountByWalletAsync(Guid walletId, CancellationToken cancellationToken = default);
     Task<int> GetTransactionCountAsync(CancellationToken cancellationToken = default);
+    
+    // Idempotency support
+    Task<Transaction?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken = default);
+    Task<bool> ExistsByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken = default);
 }
