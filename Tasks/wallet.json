@@ -1,290 +1,217 @@
 {
-    "milestone": "M1 - Contract-first + Wallet slice (end-to-end, dynamic)",
-    "assumptions": [
-        "Auth & ACL در حال تکمیل طبق تسک‌های قبلی (HasPermission + RoleClaims).",
-        "EF Core + SQL آماده است. هدف: DB-agnostic (SQL Server/Postgres)."
+    "applyOn": "CURRENT CODEBASE",
+    "rootNotes": [
+        "هیچ ماژولی مستقیم به ماژول دیگر رفرنس نداشته باشد؛ فقط به SharedKernel/Contracts/Ports.",
+        "پروفایل ها: local-stub | integration | production (با DI متفاوت)."
     ],
+    "milestone": "M1 on current codebase - Contract-first + Wallet slice",
     "tasks": [
         {
-            "id": "PORTS-001",
-            "title": "Define integration ports (interfaces)",
-            "type": "design",
+            "id": "SK-ADD-001",
+            "title": "Create SharedKernel (Contracts/Ports/Outbox/Observability)",
+            "type": "new-project",
             "files": [
-                "SharedKernel/Ports/*.cs"
+                "CoreAxis.SharedKernel/Contracts/Events/*.cs",
+                "CoreAxis.SharedKernel/Ports/*.cs",
+                "CoreAxis.SharedKernel/Outbox/{OutboxMessage.cs, OutboxPublisher.cs}",
+                "CoreAxis.SharedKernel/Messaging/InMemoryEventBus.cs",
+                "CoreAxis.SharedKernel/Observability/CorrelationMiddleware.cs"
             ],
             "actions": [
-                "Create IPriceProvider.GetQuoteAsync(assetCode, quantity, context, ct)",
-                "Create IWorkflowClient.StartAsync(definitionId, context, ct) & SignalAsync(eventName, payload, ct)",
-                "Create ICommissionEngine.CalculateAsync(paymentCtx, ct)",
-                "Create IPaymentGateway.ChargeAsync(request, ct) & VerifyAsync(refId, ct)",
-                "Create INotificationClient.SendAsync(message, ct)"
+                "Contracts(v1): UserRegistered, OrderPlaced, PriceQuoted, PriceLocked, PaymentInitiated, PaymentConfirmed, CommissionCalculated (همراه correlationId, causationId, tenantId, schemaVersion).",
+                "Ports: IPriceProvider, IWorkflowClient, ICommissionEngine, IPaymentGateway, INotificationClient (همه async + CancellationToken).",
+                "Outbox: Entity + HostedService Publisher (retry/backoff) + مارک‌کردن Processed.",
+                "InMemoryEventBus: Publish/Subscribe ساده برای پروفایل local-stub.",
+                "CorrelationMiddleware: تولید/خواندن X-Correlation-Id و enrich کردن لاگ‌ها."
             ],
             "acceptanceCriteria": [
-                "هیچ ماژولی مستقیم به پروژهٔ دیگری رفرنس نداشته باشد؛ فقط به Ports.",
-                "همه متدها async و cancellation-aware باشند."
+                "Serialize/Deserialize رویدادها اوکی.",
+                "پابلیشر Outbox روی in-memory bus کار کند؛ بدون subscriber خطا ندهد."
             ],
-            "priority": "critical",
-            "status": "pending",
-            "dependencies": []
+            "priority": "critical"
         },
         {
-            "id": "EVENTS-002",
-            "title": "Versioned event contracts (v1)",
-            "type": "design",
+            "id": "WLT-PREC-002",
+            "title": "Precision & Concurrency on Wallet",
+            "type": "code-change",
             "files": [
-                "SharedKernel/Contracts/Events/*.cs"
+                "Modules/WalletModule/Infrastructure/CoreAxis.Modules.WalletModule.Infrastructure/Data/Configurations/WalletConfiguration.cs",
+                "Modules/WalletModule/Domain/CoreAxis.Modules.WalletModule.Domain/Entities/Wallet.cs"
             ],
             "actions": [
-                "Define: UserRegistered.v1, OrderPlaced.v1, PriceQuoted.v1, PriceLocked.v1, PaymentInitiated.v1, PaymentConfirmed.v1, CommissionCalculated.v1",
-                "تمام رویدادها شامل: correlationId, causationId, tenantId, occurredOn, schemaVersion"
+                "Wallet.cs: افزودن RowVersion (byte[]) و فیلد Balance اگر نیست.",
+                "WalletConfiguration.cs: HasPrecision(18,6) برای Balance؛ IsRowVersion/IsConcurrencyToken برای RowVersion؛ ایندکس یکتا روی (UserId, AssetCode یا WalletTypeId)."
             ],
             "acceptanceCriteria": [
-                "Contracts با System.Text.Json serialize/deserialize شوند.",
-                "Policy برای backward-compatibility مستند باشد (فیلد جدید اختیاری)."
+                "Migration جدید: Balance با precision 18,6؛ RowVersion به‌عنوان ConcurrencyToken.",
+                "Concurrent update باعث DbUpdateConcurrencyException شود و با retry حل شود."
+            ],
+            "priority": "critical"
+        },
+        {
+            "id": "WLT-IDEMP-003",
+            "title": "Idempotency for Transactions",
+            "type": "code-change",
+            "files": [
+                "Modules/WalletModule/Domain/CoreAxis.Modules.WalletModule.Domain/Entities/Transaction.cs",
+                "Modules/WalletModule/Infrastructure/CoreAxis.Modules.WalletModule.Infrastructure/Data/Configurations/TransactionConfiguration.cs",
+                "Modules/WalletModule/Api/CoreAxis.Modules.WalletModule.Api/Controllers/TransactionController.cs"
+            ],
+            "actions": [
+                "Transaction.cs: اضافه‌کردن IdempotencyKey (string 64) و CorrelationId (Guid) و Metadata (json).",
+                "TransactionConfiguration.cs: HasIndex(IdempotencyKey).IsUnique(); HasPrecision(18,6) برای Amount/BalanceAfter (اگر نیست).",
+                "TransactionController: خواندن هدر Idempotency-Key و پاس دادن به سرویس."
+            ],
+            "acceptanceCriteria": [
+                "درخواست تکراری با Idempotency-Key یکسان نتیجهٔ جدید نسازد؛ همان نتیجه قبلی را بدهد."
+            ],
+            "priority": "critical"
+        },
+        {
+            "id": "WLT-ATOMIC-004",
+            "title": "Atomic EF Transaction on handlers",
+            "type": "code-change",
+            "files": [
+                "Modules/WalletModule/Application/CoreAxis.Modules.WalletModule.Application/Handlers/TransactionCommandHandlers.cs",
+                "Modules/WalletModule/Application/CoreAxis.Modules.WalletModule.Application/Services/TransactionService.cs"
+            ],
+            "actions": [
+                "برای Deposit/Withdraw/Transfer از DbContext.Database.BeginTransaction استفاده کن.",
+                "Transfer: دو آپدیت کیف‌پول + دو رکورد تراکنش در یک تراکنش DB.",
+                "پس از موفقیت، رویداد TransactionCreated.v1 را در Outbox ثبت کن (نه publish مستقیم).",
+                "Retry حداکثر 3 بار روی DbUpdateConcurrencyException."
+            ],
+            "acceptanceCriteria": [
+                "اگر هر مرحله fail شود، کل عملیات rollback.",
+                "بعد از Commit، OutboxPublisher پیام را منتشر کند."
+            ],
+            "priority": "critical"
+        },
+        {
+            "id": "WLT-ACL-005",
+            "title": "JWT scoping + ACL on Wallet APIs",
+            "type": "code-change",
+            "files": [
+                "Modules/WalletModule/Api/CoreAxis.Modules.WalletModule.Api/Controllers/WalletController.cs",
+                "Modules/WalletModule/Api/CoreAxis.Modules.WalletModule.Api/Controllers/TransactionController.cs"
+            ],
+            "actions": [
+                "گرفتن UserId از JWT (ClaimTypes.NameIdentifier) و اعمال اسکوپ روی همه Queryها.",
+                "افزودن [HasPermission(\"WALLET\",\"READ/DEPOSIT/WITHDRAW/TRANSFER\")] روی اکشن‌ها.",
+                "بررسی مالکیت کیف‌پول هنگام عملیات."
+            ],
+            "acceptanceCriteria": [
+                "کاربر فقط کیف‌پول‌های خودش را می‌بیند/استفاده می‌کند.",
+                "بدون Permission مناسب → 403."
             ],
             "priority": "high",
-            "status": "pending",
-            "dependencies": []
-        },
-        {
-            "id": "OUTBOX-003",
-            "title": "Outbox infrastructure + in-memory event bus",
-            "type": "infra",
-            "files": [
-                "SharedKernel/Outbox/OutboxMessage.cs",
-                "SharedKernel/Outbox/OutboxPublisher.cs",
-                "SharedKernel/Messaging/InMemoryEventBus.cs"
-            ],
-            "actions": [
-                "OutboxMessage(Id,OccurredOn,Type,Payload,Headers,ProcessedOn,Attempt)",
-                "HostedService: publish از Outbox به InMemoryEventBus با retry/backoff",
-                "Consumerها idempotent باشند (بر اساس MessageId/CorrelationId)"
-            ],
-            "acceptanceCriteria": [
-                "در صورت Crash پس از Commit، پیام‌ها بعداً منتشر شوند.",
-                "بدون Subscriber هم خطا ندهد (log فقط)."
-            ],
-            "priority": "critical",
-            "status": "pending",
             "dependencies": [
-                "EVENTS-002"
+                "Auth & ACL policies"
             ]
         },
         {
-            "id": "FLAGS-004",
-            "title": "Feature flags / profiles (stub vs real)",
-            "type": "config",
+            "id": "PORT-PRICE-006",
+            "title": "IPriceProvider + Stub",
+            "type": "new-code",
             "files": [
-                "App/Configuration/Profiles.cs",
-                "appsettings*.json"
-            ],
-            "actions": [
-                "Profiles: local-stub | integration | production",
-                "DI: در local-stub، استاب‌ها ثبت شوند؛ در integration به آداپترهای واقعی وصل شود"
-            ],
-            "acceptanceCriteria": [
-                "تعویض بین استاب/واقعی فقط با کانفیگ ممکن باشد (بدون تغییر کد دامنه)."
-            ],
-            "priority": "high",
-            "status": "pending",
-            "dependencies": [
-                "PORTS-001"
-            ]
-        },
-        {
-            "id": "WALLET-005",
-            "title": "Wallet hardening (precision + concurrency + idempotency)",
-            "type": "data-model",
-            "files": [
-                "Modules/WalletModule/Infrastructure/.../Data/Configurations/*.cs",
-                "Modules/WalletModule/Domain/Entities/*.cs"
-            ],
-            "actions": [
-                "Set HasPrecision(18,6) برای Wallet.Balance و تمام Amountها (در TransactionConfiguration موجود است؛ برای Balance هم اضافه شود).",
-                "افزودن Wallet.RowVersion(byte[]) و IsConcurrencyToken + retry روی DbUpdateConcurrencyException",
-                "Transaction.IdempotencyKey (unique) + CorrelationId + Metadata(json)",
-                "ایندکس یکتا (UserId, AssetCode) یا (UserId, WalletTypeId)"
-            ],
-            "acceptanceCriteria": [
-                "Migration جدید precision/concurrency/idempotency را اعمال کند.",
-                "درخواست تکراری با Idempotency-Key نتیجهٔ تکراری ایجاد نکند."
-            ],
-            "priority": "critical",
-            "status": "pending",
-            "dependencies": []
-        },
-        {
-            "id": "WALLET-006",
-            "title": "Atomic EF transaction for Deposit/Withdraw/Transfer",
-            "type": "service",
-            "files": [
-                "Modules/WalletModule/Application/.../Handlers/TransactionCommandHandlers.cs"
-            ],
-            "actions": [
-                "DbContext.Database.BeginTransaction در هر عملیات مالی",
-                "Transfer: دو رکورد تراکنش + آپدیت دو کیف‌پول در یک تراکنش",
-                "Persist TransactionCreated.v1 در Outbox همان‌جا"
-            ],
-            "acceptanceCriteria": [
-                "اگر یک آپدیت fail شود، کل عملیات rollback شود.",
-                "پس از Commit، رویداد از Outbox منتشر شود."
-            ],
-            "priority": "critical",
-            "status": "pending",
-            "dependencies": [
-                "OUTBOX-003",
-                "WALLET-005"
-            ]
-        },
-        {
-            "id": "WALLET-007",
-            "title": "API enforcement (JWT scope + ACL + Idempotency-Key)",
-            "type": "api",
-            "files": [
-                "Modules/WalletModule/Api/.../Controllers/WalletController.cs",
-                "Modules/WalletModule/Api/.../Controllers/TransactionController.cs"
-            ],
-            "actions": [
-                "گرفتن UserId از JWT و اعمال اسکوپ روی تمام Queryها",
-                "افزودن [HasPermission(\"WALLET\",\"READ/DEPOSIT/WITHDRAW/TRANSFER\")] روی اکشن‌ها",
-                "پذیرش هدر Idempotency-Key و پاس‌دادن آن به سرویس"
-            ],
-            "acceptanceCriteria": [
-                "بدون Permission → 403؛ با Permission → 200",
-                "Idempotency-Key تکراری → پاسخ idempotent"
-            ],
-            "priority": "high",
-            "status": "pending",
-            "dependencies": [
-                "FLAGS-004"
-            ]
-        },
-        {
-            "id": "STUB-PRICE-008",
-            "title": "InMemory price provider stub (generic)",
-            "type": "feature",
-            "files": [
+                "CoreAxis.SharedKernel/Ports/IPriceProvider.cs",
                 "Adapters/Stubs/InMemoryPriceProvider.cs"
             ],
             "actions": [
-                "پیاده‌سازی IPriceProvider برای هر assetCode (XAU, IRR, BTC, ...)",
-                "فرمول نمونه: قیمت پایه از config + ضریب/اسپرد؛ خروجی: {price, timestamp, providerId, expiresIn}"
+                "متد GetQuoteAsync(assetCode, qty, context, ct) با خروجی {price, ts, providerId, expiresIn}.",
+                "استاب in-memory برای پروفایل local-stub: قیمت پایه از کانفیگ + اسپرد."
             ],
             "acceptanceCriteria": [
-                "Quote برای هر assetCode کار کند.",
+                "Quote برای هر assetCode (XAU/IRR/...) کار کند.",
                 "در پروفایل local-stub رجیستر شود."
             ],
-            "priority": "high",
-            "status": "pending",
-            "dependencies": [
-                "PORTS-001",
-                "FLAGS-004"
-            ]
+            "priority": "high"
         },
         {
-            "id": "ORDER-009",
-            "title": "Minimal generic Order + place endpoint",
-            "type": "feature",
+            "id": "ORD-MIN-007",
+            "title": "Minimal generic Order + OrderPlaced event",
+            "type": "new-code",
             "files": [
-                "Modules/ProductOrder/Domain/Entities/{Order,OrderLine}.cs",
+                "Modules/ProductOrder/Domain/Entities/Order.cs",
+                "Modules/ProductOrder/Domain/Entities/OrderLine.cs",
                 "Modules/ProductOrder/Api/Controllers/OrdersController.cs"
             ],
             "actions": [
-                "OrderLine.AttributesSnapshot (JSON) برای داینامیک بودن",
-                "POST /orders/place → publish OrderPlaced.v1 (با correlationId/tenantId)"
+                "OrderLine.AttributesSnapshot (JSON) برای داینامیک بودن.",
+                "POST /orders/place → publish OrderPlaced.v1 (Outbox)."
             ],
             "acceptanceCriteria": [
                 "ثبت سفارش برای هر محصول/دارایی بدون تغییر کد دامنه ممکن باشد."
             ],
-            "priority": "high",
-            "status": "pending",
-            "dependencies": [
-                "EVENTS-002",
-                "FLAGS-004"
-            ]
+            "priority": "high"
         },
         {
-            "id": "WF-010",
-            "title": "Workflow stub (quote→lock)",
-            "type": "feature",
+            "id": "WF-STUB-008",
+            "title": "Workflow stub (Quote→Lock)",
+            "type": "new-code",
             "files": [
+                "CoreAxis.SharedKernel/Ports/IWorkflowClient.cs",
                 "Adapters/Stubs/WorkflowClientStub.cs"
             ],
             "actions": [
-                "On OrderPlaced.v1 → call IPriceProvider → publish PriceQuoted.v1",
-                "Lock: تولید PriceLocked.v1 با expiry (مثلاً 120s) و ذخیره state ساده (in-memory/DB)"
+                "On OrderPlaced.v1: call IPriceProvider → publish PriceQuoted.v1 → سپس PriceLocked.v1 با expiry (مثلاً 120s).",
+                "Persist ساده state (in-memory/DB) برای تست‌های E2E."
             ],
             "acceptanceCriteria": [
-                "قیمت قفل‌شده با زمان انقضا برگردد.",
-                "State برای تست‌ها پایدار بماند."
+                "قیمت قفل‌شده با زمان انقضا ذخیره و برگردد."
             ],
-            "priority": "high",
-            "status": "pending",
-            "dependencies": [
-                "STUB-PRICE-008",
-                "OUTBOX-003"
-            ]
+            "priority": "high"
         },
         {
-            "id": "WF-PAY-011",
+            "id": "WF-PAY-009",
             "title": "Payment via Wallet (idempotent)",
             "type": "orchestration",
             "files": [
                 "Modules/ProductOrder/Application/Handlers/PaymentHandlers.cs"
             ],
             "actions": [
-                "در پاسخ PriceLocked.v1 → Withdraw از کیف پول خریدار با Idempotency-Key",
-                "On success → publish PaymentConfirmed.v1"
+                "در پاسخ PriceLocked.v1: Withdraw از کیف‌پول خریدار با Idempotency-Key.",
+                "موفقیت → PaymentConfirmed.v1 (Outbox)."
             ],
             "acceptanceCriteria": [
-                "پرداخت idempotent باشد.",
-                "در صورت شکست، هیچ debit تکراری رخ ندهد."
+                "پرداخت idempotent؛ بدون debit تکراری در retry."
             ],
             "priority": "critical",
-            "status": "pending",
             "dependencies": [
-                "WALLET-006",
-                "OUTBOX-003"
+                "WLT-ATOMIC-004"
             ]
         },
         {
-            "id": "E2E-012",
-            "title": "End-to-end test (local-stub profile)",
+            "id": "OBS-LOG-010",
+            "title": "Observability wiring",
+            "type": "ops",
+            "files": [
+                "ApiGateway/CoreAxis.ApiGateway/Program.cs"
+            ],
+            "actions": [
+                "افزودن CorrelationMiddleware (SharedKernel) در ابتدای pipeline.",
+                "Serilog enricher: correlationId, userId, tenantId در همهٔ لاگ‌ها."
+            ],
+            "acceptanceCriteria": [
+                "هر درخواست و رویداد با یک CorrelationId قابل رهگیری باشد."
+            ],
+            "priority": "high"
+        },
+        {
+            "id": "E2E-TEST-011",
+            "title": "End-to-End test (local-stub)",
             "type": "test",
             "files": [
                 "Tests/E2E/OrderWalletFlowTests.cs"
             ],
             "actions": [
-                "Scenario: place order → quote → lock → wallet withdraw → payment confirmed",
-                "تست بدون ماژول‌های واقعی و فقط با استاب‌ها سبز شود"
+                "سناریو: /orders/place → PriceQuoted → PriceLocked → /wallet/withdraw → PaymentConfirmed.",
+                "پروفایل local-stub: استاب‌های Workflow/Price فعال باشند."
             ],
             "acceptanceCriteria": [
-                "سناریو از ابتدا تا انتها پاس شود.",
-                "تعویض استاب PriceProvider با آداپتر واقعی، تست‌ها را نشکند."
+                "سناریو کامل پاس شود؛ جایگزینی استاب PriceProvider با آداپتر واقعی تست را نمی‌شکند."
             ],
-            "priority": "critical",
-            "status": "pending",
-            "dependencies": [
-                "WF-PAY-011"
-            ]
-        },
-        {
-            "id": "OBS-013",
-            "title": "Observability (correlation + structured logs)",
-            "type": "ops",
-            "files": [
-                "SharedKernel/Observability/CorrelationMiddleware.cs"
-            ],
-            "actions": [
-                "Middleware: تنظیم CorrelationId برای هر درخواست",
-                "Serilog enrichers: correlationId, userId, tenantId در همهٔ لاگ‌ها"
-            ],
-            "acceptanceCriteria": [
-                "کل فلو با یک CorrelationId قابل رهگیری باشد."
-            ],
-            "priority": "high",
-            "status": "pending",
-            "dependencies": []
+            "priority": "critical"
         }
     ]
 }
