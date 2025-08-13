@@ -43,7 +43,7 @@ try
     builder.Services.AddSwaggerGen(c =>
     {
         c.SwaggerDoc("v1", new() { Title = "CoreAxis API", Version = "v1" });
-        
+
         // Add JWT Bearer authentication to Swagger
         c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
         {
@@ -53,7 +53,7 @@ try
             Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
             Scheme = "Bearer"
         });
-        
+
         c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
         {
             {
@@ -108,9 +108,13 @@ try
     builder.Host.UseSerilog();
 
     var app = builder.Build();
-app.UseCors("AllowLocalhost8030");
+    app.UseCors("AllowLocalhost8030");
 
     // Configure the HTTP request pipeline.
+    // Always enable Swagger for API documentation
+    app.UseSwagger();
+    app.UseSwaggerUI();
+    
     if (app.Environment.IsDevelopment())
     {
         // Configure modules
@@ -119,11 +123,12 @@ app.UseCors("AllowLocalhost8030");
 
         // Use health checks
         app.UseCoreAxisHealthChecks();
-        app.UseSwagger();
-        app.UseSwaggerUI();
     }
 
-    app.UseHttpsRedirection();
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseHttpsRedirection();
+    }
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
