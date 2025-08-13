@@ -1,8 +1,10 @@
 using CoreAxis.Modules.AuthModule.Application;
 using CoreAxis.Modules.AuthModule.Infrastructure;
+using CoreAxis.Modules.AuthModule.API.Authz;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -37,7 +39,9 @@ public static class DependencyInjection
                 };
             });
         
-        // Add Authorization
+        // Add Authorization with custom policy provider
+        services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
+        services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
         services.AddAuthorization();
         
         // Add Controllers

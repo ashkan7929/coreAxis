@@ -36,6 +36,7 @@ public static class DependencyInjection
         services.AddScoped<IPageRepository, PageRepository>();
         services.AddScoped<IActionRepository, ActionRepository>();
         services.AddScoped<IAccessLogRepository, AccessLogRepository>();
+        services.AddScoped<IOtpCodeRepository, OtpCodeRepository>();
 
         // Add Services
         services.AddScoped<IPasswordHasher, PasswordHasher>();
@@ -49,8 +50,8 @@ public static class DependencyInjection
         services.AddHttpClient<IShahkarService, ShahkarService>();
         services.AddHttpClient<ICivilRegistryService, CivilRegistryService>();
 
-        // Add Memory Cache for OTP service
-        services.AddMemoryCache();
+        // Add HttpContextAccessor for OTP service
+        services.AddHttpContextAccessor();
 
         // Add Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();

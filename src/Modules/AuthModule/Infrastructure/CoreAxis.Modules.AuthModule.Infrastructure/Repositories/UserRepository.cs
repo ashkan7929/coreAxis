@@ -135,6 +135,16 @@ public class UserRepository : IUserRepository
         return permissions.ToList();
     }
 
+    public async Task<bool> UserHasPermissionAsync(Guid userId, string page, string action, CancellationToken cancellationToken = default)
+    {
+        var userPermissions = await GetUserPermissionsAsync(userId, cancellationToken);
+        
+        return userPermissions.Any(p => 
+            p.Page.Code.Equals(page, StringComparison.OrdinalIgnoreCase) && 
+            p.Action.Code.Equals(action, StringComparison.OrdinalIgnoreCase) &&
+            p.IsActive);
+    }
+
     // IRepository<User> interface implementations
     public IQueryable<User> GetAll()
     {

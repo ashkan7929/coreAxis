@@ -1,5 +1,6 @@
 using CoreAxis.Modules.AuthModule.Application.DTOs;
 using CoreAxis.Modules.AuthModule.Application.Services;
+using CoreAxis.Modules.AuthModule.Domain.Enums;
 using CoreAxis.Modules.AuthModule.Domain.Repositories;
 using CoreAxis.SharedKernel;
 using MediatR;

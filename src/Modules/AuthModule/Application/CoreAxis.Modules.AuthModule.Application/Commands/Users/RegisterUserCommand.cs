@@ -1,6 +1,7 @@
 using CoreAxis.Modules.AuthModule.Application.DTOs;
 using CoreAxis.Modules.AuthModule.Application.Services;
 using CoreAxis.Modules.AuthModule.Domain.Entities;
+using CoreAxis.Modules.AuthModule.Domain.Enums;
 using CoreAxis.Modules.AuthModule.Application.IntegrationEvents;
 using CoreAxis.Modules.AuthModule.Domain.Events;
 using CoreAxis.Modules.AuthModule.Domain.Repositories;

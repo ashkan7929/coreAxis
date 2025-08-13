@@ -1,5 +1,6 @@
 using CoreAxis.Modules.AuthModule.Application.Services;
 using CoreAxis.Modules.AuthModule.Domain.Entities;
+using CoreAxis.Modules.AuthModule.Domain.Repositories;
 using CoreAxis.SharedKernel;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -14,14 +15,16 @@ namespace CoreAxis.Modules.AuthModule.Infrastructure.Services;
 public class JwtTokenService : IJwtTokenService
 {
     private readonly IConfiguration _configuration;
+    private readonly IUserRepository _userRepository;
     private readonly string _secretKey;
     private readonly string _issuer;
     private readonly string _audience;
     private readonly int _expirationMinutes;
 
-    public JwtTokenService(IConfiguration configuration)
+    public JwtTokenService(IConfiguration configuration, IUserRepository userRepository)
     {
         _configuration = configuration;
+        _userRepository = userRepository;
         _secretKey = _configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured");
         _issuer = _configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("JWT Issuer is not configured");
         _audience = _configuration["Jwt:Audience"] ?? throw new InvalidOperationException("JWT Audience is not configured");
@@ -70,9 +73,11 @@ public class JwtTokenService : IJwtTokenService
 
     public async Task<TokenResult> GenerateTokenAsync(User user, CancellationToken cancellationToken = default)
     {
-        // Get user roles - for now we'll use empty collection, this should be implemented based on your role system
-        var roles = new List<string>(); // TODO: Implement role retrieval
-        return await Task.FromResult(GenerateToken(user.Id, user.Username, user.Email, roles));
+        // Get user roles from repository
+        var userRoles = await _userRepository.GetUserRolesAsync(user.Id, cancellationToken);
+        var roles = userRoles.Select(r => r.Name).ToList();
+        
+        return GenerateToken(user.Id, user.Username, user.Email, roles);
     }
 
     public bool ValidateToken(string token)

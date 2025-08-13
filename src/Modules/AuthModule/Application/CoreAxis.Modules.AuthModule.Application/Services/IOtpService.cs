@@ -1,4 +1,5 @@
 using CoreAxis.SharedKernel;
+using CoreAxis.Modules.AuthModule.Domain.Enums;
 
 namespace CoreAxis.Modules.AuthModule.Application.Services;
 
@@ -31,23 +32,4 @@ public interface IOtpService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Task representing the operation</returns>
     Task InvalidateOtpAsync(string mobileNumber, OtpPurpose purpose, CancellationToken cancellationToken = default);
-}
-
-public enum OtpPurpose
-{
-    Registration = 1,
-    Login = 2,
-    PasswordReset = 3,
-    PhoneVerification = 4
-}
-
-public class OtpCode
-{
-    public string MobileNumber { get; set; } = string.Empty;
-    public string Code { get; set; } = string.Empty;
-    public OtpPurpose Purpose { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime ExpiresAt { get; set; }
-    public bool IsUsed { get; set; }
-    public int AttemptCount { get; set; }
 }

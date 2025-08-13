@@ -16,6 +16,7 @@ public interface IUserRepository : IRepository<User>
     Task<User?> GetWithPermissionsAsync(Guid id, CancellationToken cancellationToken = default);
     Task<IEnumerable<Permission>> GetUserPermissionsAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<IEnumerable<Role>> GetUserRolesAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<bool> UserHasPermissionAsync(Guid userId, string page, string action, CancellationToken cancellationToken = default);
     Task<IEnumerable<User>> GetUsersByRoleNameAsync(string roleName, CancellationToken cancellationToken = default);
     Task<IEnumerable<User>> GetUsersByRoleIdAsync(Guid roleId, CancellationToken cancellationToken = default);
     Task RemoveAllUserRolesAsync(Guid userId, CancellationToken cancellationToken = default);

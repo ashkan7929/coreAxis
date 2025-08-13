@@ -2,6 +2,7 @@ using CoreAxis.Modules.AuthModule.Application.Commands.Users;
 using CoreAxis.Modules.AuthModule.Application.DTOs;
 using CoreAxis.Modules.AuthModule.Application.Queries.Users;
 using CoreAxis.Modules.AuthModule.Application.Services;
+using CoreAxis.Modules.AuthModule.Domain.Enums;
 using CoreAxis.SharedKernel;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -219,5 +220,26 @@ public class AuthController : ControllerBase
         }
 
         return NotFound(result.Errors);
+    }
+
+    /// <summary>
+    /// Check if mobile number exists and has password
+    /// </summary>
+    /// <param name="dto">Mobile number to check</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>User existence and password status</returns>
+    [HttpPost("check-mobile")]
+    [AllowAnonymous]
+    public async Task<ActionResult<CheckMobileResultDto>> CheckMobile([FromBody] CheckMobileDto dto, CancellationToken cancellationToken = default)
+    {
+        var query = new CheckMobileQuery(dto.MobileNumber);
+        var result = await _mediator.Send(query, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.Value);
+        }
+
+        return BadRequest(result.Errors);
     }
 }

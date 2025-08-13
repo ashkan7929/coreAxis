@@ -1,9 +1,12 @@
 using System.Security.Cryptography;
 using CoreAxis.Modules.AuthModule.Application.Services;
+using CoreAxis.Modules.AuthModule.Domain.Enums;
+using CoreAxis.Modules.AuthModule.Domain.Entities;
+using CoreAxis.Modules.AuthModule.Domain.Repositories;
 using CoreAxis.SharedKernel;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Http;
 
 namespace CoreAxis.Modules.AuthModule.Infrastructure.Services;
 
@@ -12,24 +15,29 @@ namespace CoreAxis.Modules.AuthModule.Infrastructure.Services;
 /// </summary>
 public class OtpService : IOtpService
 {
-    private readonly IMemoryCache _cache;
+    private readonly IOtpCodeRepository _otpCodeRepository;
     private readonly IConfiguration _configuration;
     private readonly ILogger<OtpService> _logger;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly int _otpLength;
     private readonly int _otpExpiryMinutes;
     private readonly int _maxAttempts;
+    private readonly int _maxOtpPerHour;
 
     public OtpService(
-        IMemoryCache cache,
+        IOtpCodeRepository otpCodeRepository,
         IConfiguration configuration,
-        ILogger<OtpService> logger)
+        ILogger<OtpService> logger,
+        IHttpContextAccessor httpContextAccessor)
     {
-        _cache = cache;
+        _otpCodeRepository = otpCodeRepository;
         _configuration = configuration;
         _logger = logger;
+        _httpContextAccessor = httpContextAccessor;
         _otpLength = _configuration.GetValue<int>("Otp:Length", 6);
         _otpExpiryMinutes = _configuration.GetValue<int>("Otp:ExpiryMinutes", 5);
         _maxAttempts = _configuration.GetValue<int>("Otp:MaxAttempts", 3);
+        _maxOtpPerHour = _configuration.GetValue<int>("Otp:MaxPerHour", 5);
     }
 
     /// <inheritdoc/>
@@ -40,43 +48,47 @@ public class OtpService : IOtpService
     {
         try
         {
-            var cacheKey = GetCacheKey(mobileNumber, purpose);
+            // Check rate limiting - max OTPs per hour
+            var otpCount = await _otpCodeRepository.GetActiveOtpCountAsync(
+                mobileNumber, purpose, TimeSpan.FromHours(1), cancellationToken);
             
-            // Check if there's an existing OTP that's still valid
-            if (_cache.TryGetValue(cacheKey, out OtpCode? existingOtp) && existingOtp != null)
+            if (otpCount >= _maxOtpPerHour)
             {
-                if (existingOtp.ExpiresAt > DateTime.UtcNow)
-                {
-                    _logger.LogInformation("Returning existing valid OTP for {MobileNumber} with purpose {Purpose}", 
-                        mobileNumber, purpose);
-                    return Result<string>.Success(existingOtp.Code);
-                }
-                
-                // Remove expired OTP
-                _cache.Remove(cacheKey);
+                _logger.LogWarning("Rate limit exceeded for {MobileNumber} with purpose {Purpose}. Count: {Count}", 
+                    mobileNumber, purpose, otpCount);
+                return Result<string>.Failure("Too many OTP requests. Please try again later.");
             }
+            
+            // Check if there's an existing valid OTP
+            var existingOtp = await _otpCodeRepository.GetLatestOtpAsync(mobileNumber, purpose, cancellationToken);
+            if (existingOtp != null && existingOtp.IsValid)
+            {
+                _logger.LogInformation("Returning existing valid OTP for {MobileNumber} with purpose {Purpose}", 
+                    mobileNumber, purpose);
+                return Result<string>.Success(existingOtp.Code);
+            }
+
+            // Expire old OTPs for this mobile number and purpose
+            await _otpCodeRepository.ExpireOldOtpsAsync(mobileNumber, purpose, cancellationToken);
 
             // Generate new OTP code
             var code = GenerateRandomCode(_otpLength);
             var expiresAt = DateTime.UtcNow.AddMinutes(_otpExpiryMinutes);
             
-            var otpCode = new OtpCode
-            {
-                Code = code,
-                MobileNumber = mobileNumber,
-                Purpose = purpose,
-                CreatedAt = DateTime.UtcNow,
-                ExpiresAt = expiresAt
-            };
-
-            // Store in cache with expiration
-            var cacheOptions = new MemoryCacheEntryOptions
-            {
-                AbsoluteExpiration = expiresAt,
-                Priority = CacheItemPriority.Normal
-            };
+            // Get client info
+            var ipAddress = GetClientIpAddress();
+            var userAgent = GetUserAgent();
             
-            _cache.Set(cacheKey, otpCode, cacheOptions);
+            var otpCode = new Domain.Entities.OtpCode(
+                mobileNumber, 
+                code, 
+                purpose, 
+                expiresAt,
+                ipAddress,
+                userAgent);
+
+            // Store in database
+            await _otpCodeRepository.AddAsync(otpCode, cancellationToken);
             
             _logger.LogInformation("Generated new OTP for {MobileNumber} with purpose {Purpose}. Expires at {ExpiresAt}", 
                 mobileNumber, purpose, expiresAt);
@@ -100,65 +112,43 @@ public class OtpService : IOtpService
     {
         try
         {
-            var cacheKey = GetCacheKey(mobileNumber, purpose);
-            OtpCode? storedOtp = null;
-            
             // First try to find OTP with the exact purpose
-            if (!_cache.TryGetValue(cacheKey, out storedOtp) || storedOtp == null)
+            var storedOtp = await _otpCodeRepository.GetValidOtpAsync(mobileNumber, otpCode, purpose, cancellationToken);
+            
+            // If not found and purpose is Login, try to find Registration OTP
+            if (storedOtp == null && purpose == OtpPurpose.Login)
             {
-                // If not found and purpose is Login, try to find Registration OTP
-                if (purpose == OtpPurpose.Login)
-                {
-                    var registrationCacheKey = GetCacheKey(mobileNumber, OtpPurpose.Registration);
-                    if (!_cache.TryGetValue(registrationCacheKey, out storedOtp) || storedOtp == null)
-                    {
-                        _logger.LogWarning("OTP verification failed: No OTP found for {MobileNumber} with purpose {Purpose}", 
-                            mobileNumber, purpose);
-                        return Result<bool>.Success(false);
-                    }
-                }
-                else
-                {
-                    _logger.LogWarning("OTP verification failed: No OTP found for {MobileNumber} with purpose {Purpose}", 
-                        mobileNumber, purpose);
-                    return Result<bool>.Success(false);
-                }
+                storedOtp = await _otpCodeRepository.GetValidOtpAsync(mobileNumber, otpCode, OtpPurpose.Registration, cancellationToken);
             }
-
-            // Check if OTP is expired
-            if (storedOtp.ExpiresAt <= DateTime.UtcNow)
+            
+            if (storedOtp == null)
             {
-                _logger.LogWarning("OTP verification failed: OTP expired for {MobileNumber} with purpose {Purpose}", 
-                    mobileNumber, purpose);
-                _cache.Remove(cacheKey);
+                _logger.LogWarning("OTP verification failed: No valid OTP found for {MobileNumber} with code {Code} and purpose {Purpose}", 
+                    mobileNumber, otpCode, purpose);
                 return Result<bool>.Success(false);
             }
 
-            // Verify the code
-            if (storedOtp.Code != otpCode)
+            // Increment attempt count
+            storedOtp.IncrementAttemptCount();
+            
+            // Check if too many attempts
+            if (storedOtp.AttemptCount > _maxAttempts)
             {
-                _logger.LogWarning("OTP verification failed: Invalid code for {MobileNumber} with purpose {Purpose}", 
+                storedOtp.MarkAsUsed();
+                await _otpCodeRepository.UpdateAsync(storedOtp, cancellationToken);
+                
+                _logger.LogWarning("OTP verification failed: Too many attempts for {MobileNumber} with purpose {Purpose}", 
                     mobileNumber, purpose);
                 return Result<bool>.Success(false);
             }
 
-            // Remove the OTP after successful verification only for certain purposes
-            // For Registration and Login, keep the OTP for a short time to allow multiple verifications
+            // Mark as used for certain purposes
             if (purpose == OtpPurpose.PasswordReset || purpose == OtpPurpose.PhoneVerification)
             {
-                _cache.Remove(cacheKey);
+                storedOtp.MarkAsUsed();
             }
-            else
-            {
-                // For Registration and Login, mark as used but keep for 2 more minutes
-                storedOtp.IsUsed = true;
-                var shortExpiryOptions = new MemoryCacheEntryOptions
-                {
-                    AbsoluteExpiration = DateTime.UtcNow.AddMinutes(2),
-                    Priority = CacheItemPriority.Normal
-                };
-                _cache.Set(cacheKey, storedOtp, shortExpiryOptions);
-            }
+            
+            await _otpCodeRepository.UpdateAsync(storedOtp, cancellationToken);
             
             _logger.LogInformation("OTP verification successful for {MobileNumber} with purpose {Purpose}", 
                 mobileNumber, purpose);
@@ -181,8 +171,7 @@ public class OtpService : IOtpService
     {
         try
         {
-            var cacheKey = GetCacheKey(mobileNumber, purpose);
-            _cache.Remove(cacheKey);
+            await _otpCodeRepository.ExpireOldOtpsAsync(mobileNumber, purpose, cancellationToken);
             
             _logger.LogInformation("OTP invalidated for {MobileNumber} with purpose {Purpose}", 
                 mobileNumber, purpose);
@@ -193,14 +182,6 @@ public class OtpService : IOtpService
                 mobileNumber, purpose);
             throw;
         }
-    }
-
-    /// <summary>
-    /// Generates a cache key for the OTP
-    /// </summary>
-    private static string GetCacheKey(string mobileNumber, OtpPurpose purpose)
-    {
-        return $"otp:{purpose}:{mobileNumber}";
     }
 
     /// <summary>
@@ -220,5 +201,51 @@ public class OtpService : IOtpService
         }
         
         return code;
+    }
+
+    /// <summary>
+    /// Gets the client IP address from HTTP context
+    /// </summary>
+    private string? GetClientIpAddress()
+    {
+        try
+        {
+            var context = _httpContextAccessor.HttpContext;
+            if (context == null) return null;
+
+            var ipAddress = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(ipAddress))
+            {
+                return ipAddress.Split(',')[0].Trim();
+            }
+
+            ipAddress = context.Request.Headers["X-Real-IP"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(ipAddress))
+            {
+                return ipAddress;
+            }
+
+            return context.Connection.RemoteIpAddress?.ToString();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Gets the user agent from HTTP context
+    /// </summary>
+    private string? GetUserAgent()
+    {
+        try
+        {
+            var context = _httpContextAccessor.HttpContext;
+            return context?.Request.Headers["User-Agent"].FirstOrDefault();
+        }
+        catch
+        {
+            return null;
+        }
     }
 }

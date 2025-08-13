@@ -20,6 +20,7 @@ public class AuthDbContext : DbContext
     public DbSet<RolePermission> RolePermissions { get; set; }
     public DbSet<UserPermission> UserPermissions { get; set; }
     public DbSet<AccessLog> AccessLogs { get; set; }
+    public DbSet<OtpCode> OtpCodes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -152,6 +153,25 @@ public class AuthDbContext : DbContext
                 .WithMany(u => u.AccessLogs)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Configure OtpCode entity
+        modelBuilder.Entity<OtpCode>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.MobileNumber).IsRequired().HasMaxLength(15);
+            entity.Property(e => e.Code).IsRequired().HasMaxLength(10);
+            entity.Property(e => e.Purpose).IsRequired();
+            entity.Property(e => e.ExpiresAt).IsRequired();
+            entity.Property(e => e.IsUsed).IsRequired();
+            entity.Property(e => e.AttemptCount).IsRequired();
+            entity.Property(e => e.IpAddress).HasMaxLength(45); // IPv6 support
+            entity.Property(e => e.UserAgent).HasMaxLength(500);
+            
+            // Create indexes for better performance
+            entity.HasIndex(e => new { e.MobileNumber, e.Purpose, e.IsUsed });
+            entity.HasIndex(e => e.ExpiresAt);
+            entity.HasIndex(e => e.CreatedOn);
         });
     }
 

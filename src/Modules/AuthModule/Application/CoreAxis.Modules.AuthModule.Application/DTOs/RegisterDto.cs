@@ -1,4 +1,5 @@
 using CoreAxis.Modules.AuthModule.Application.Services;
+using CoreAxis.Modules.AuthModule.Domain.Enums;
 
 namespace CoreAxis.Modules.AuthModule.Application.DTOs;
 
