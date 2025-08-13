@@ -1,0 +1,127 @@
+{
+    "milestone": "M2 - Wallet Advanced (Production-Grade)",
+    "goal": "ارتقای Wallet از MVP به معماری داینامیک و پایدار برای هر نوع دارایی/ارز",
+    "tasks": [
+        {
+            "id": "WLT-LEDGER-201",
+            "title": "Double-entry Ledger + Posting",
+            "type": "data-model",
+            "actions": [
+                "ایجاد جداول JournalEntry, JournalLine با قوانین دوطرفه (Debit/Credit)",
+                "هر Transaction اپلیکیشنی → یک/چند Posting در لجر",
+                "Balance کیف‌پول از روی Ledger قابل بازسازی باشد (materialized + reconciliation)"
+            ],
+            "acceptanceCriteria": [
+                "جمع Debit=Credit برای هر JournalEntry",
+                "RebuildBalance(Job) اختلافی با Wallet.Balance نداشته باشد (یا اختلاف گزارش شود)"
+            ],
+            "priority": "critical",
+            "status": "pending"
+        },
+        {
+            "id": "WLT-ASSET-202",
+            "title": "AssetRegistry (داینامیک)",
+            "type": "feature",
+            "actions": [
+                "جدول AssetRegistry با فیلدهای code, name, precision, minIncrement, roundingMode",
+                "اعتبارسنجی مبلغ/مقدار بر اساس تنظیمات هر دارایی (XAU, IRR, BTC, ...)"
+            ],
+            "acceptanceCriteria": [
+                "هر دارایی precision خاص خود را enforce کند",
+                "درخواست با مقدار نامعتبر رد شود"
+            ],
+            "priority": "high",
+            "status": "pending"
+        },
+        {
+            "id": "WLT-LIMIT-203",
+            "title": "Limits & Policies (User/Contract/Provider)",
+            "type": "feature",
+            "actions": [
+                "Entities: WalletProvider, WalletContract, LimitPolicy (daily/monthly, per-tx)",
+                "Enforce قبل از Withdraw/Transfer؛ ثبت علت رد"
+            ],
+            "acceptanceCriteria": [
+                "تجاوز از حد → خطای ولیدیشن با کد مشخص",
+                "لاگ سیاست نقض‌شده همراه تراکنش ثبت شود"
+            ],
+            "priority": "high",
+            "status": "pending"
+        },
+        {
+            "id": "WLT-FEE-204",
+            "title": "Fees & Commission Posting",
+            "type": "feature",
+            "actions": [
+                "پشتیبانی از fee/commission به صورت خطوط جداگانه در Ledger (multi-line posting)",
+                "قوانین داینامیک fee از Rule/Formula (plug via port)"
+            ],
+            "acceptanceCriteria": [
+                "برداشت با فی → سه پست: debit مشتری، credit درآمد، (اختیاری) فی درون‌سازمانی",
+                "گزارش تفکیک درآمد فی ممکن باشد"
+            ],
+            "priority": "medium",
+            "status": "pending"
+        },
+        {
+            "id": "WLT-HOLD-205",
+            "title": "Holds / Escrow / Reservation",
+            "type": "feature",
+            "actions": [
+                "حالت Hold روی بخشی از موجودی (غیرقابل خرج تا آزادسازی/تسویه)",
+                "API: createHold/releaseHold/settleHold (اتمیک)"
+            ],
+            "acceptanceCriteria": [
+                "Withdraw در حضور Hold فقط روی availableBalance مجاز باشد",
+                "آزادسازی Hold لجر و بالانس را صحیح به‌روزرسانی کند"
+            ],
+            "priority": "high",
+            "status": "pending"
+        },
+        {
+            "id": "WLT-REV-206",
+            "title": "Reversal & Refund Flow",
+            "type": "feature",
+            "actions": [
+                "Operation معکوس برای هر Transaction قابل برگشت (با Link به منشاء)",
+                "Compensation در Workflow از همین API استفاده کند"
+            ],
+            "acceptanceCriteria": [
+                "یک Reversal با پست‌های معکوس Ledger ثبت شود",
+                "بالانس نهایی بدون انحراف"
+            ],
+            "priority": "high",
+            "status": "pending"
+        },
+        {
+            "id": "WLT-SETTLE-207",
+            "title": "Batch Settlement Jobs",
+            "type": "ops",
+            "actions": [
+                "HostedService زمان‌بندی‌شده برای تسویه‌های تجمیعی (T+N)",
+                "رویداد SettlementRequested/Completed منتشر شود"
+            ],
+            "acceptanceCriteria": [
+                "گروه تسویه با CorrelationId واحد ردگیری شود",
+                "شکست جزئی → Retry/Partial"
+            ],
+            "priority": "medium",
+            "status": "pending"
+        },
+        {
+            "id": "WLT-REPORT-208",
+            "title": "Statements & Reporting APIs",
+            "type": "api",
+            "actions": [
+                "API: /wallets/{id}/statement?from..to..&type..&page",
+                "خروجی CSV/JSON برای اکانتینگ/BI"
+            ],
+            "acceptanceCriteria": [
+                "فیلترها و Paging کار کنند",
+                "Totals با Ledger منطبق باشند"
+            ],
+            "priority": "medium",
+            "status": "pending"
+        }
+    ]
+}

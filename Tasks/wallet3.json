@@ -1,0 +1,76 @@
+{
+    "milestone": "M3 - Ops, Security & Compliance",
+    "goal": "پایدارسازی عملیاتی، امنیت، مانیتورینگ، و انطباق",
+    "tasks": [
+        {
+            "id": "WLT-AUDIT-301",
+            "title": "Immutable Audit Trail",
+            "type": "infra",
+            "actions": [
+                "Append-only audit log برای تغییرات حساس (permissions, limits, provider config)",
+                "امضای دیجیتال/هش زنجیره‌ای برای شواهد عدم‌دستکاری (اختیاری)"
+            ],
+            "acceptanceCriteria": [
+                "هر تغییر حساس قابل ردیابی با actor/time و hash باشد"
+            ],
+            "priority": "high",
+            "status": "pending"
+        },
+        {
+            "id": "WLT-AML-302",
+            "title": "Risk/AML Hooks",
+            "type": "integration",
+            "actions": [
+                "پرچم‌گذاری تراکنش‌های مشکوک (rule-based hooks)",
+                "پورت به سرویس‌های KYC/AML (stub تا آماده‌شدن واقعی)"
+            ],
+            "acceptanceCriteria": [
+                "تراکنش پرریسک وارد صف بررسی دستی شود"
+            ],
+            "priority": "medium",
+            "status": "pending"
+        },
+        {
+            "id": "WLT-OBS-303",
+            "title": "Observability & Alerting",
+            "type": "ops",
+            "actions": [
+                "متریک‌ها: tx/s, latency, error rate, ledger lag",
+                "آلارم برای spike خطا/تفاوت بالانس/تاخیر Outbox"
+            ],
+            "acceptanceCriteria": [
+                "Dashboard پایه و آلارم‌های کلیدی فعال باشند"
+            ],
+            "priority": "high",
+            "status": "pending"
+        },
+        {
+            "id": "WLT-PERF-304",
+            "title": "Performance & Caching",
+            "type": "enhancement",
+            "actions": [
+                "Cache permission set و موجودی‌های پرخوانش (با invalidation event)",
+                "Index Tuning روی جداول تراکنش/لجر"
+            ],
+            "acceptanceCriteria": [
+                "پرفورمنس خواندن statement و balance بهبود محسوس داشته باشد"
+            ],
+            "priority": "medium",
+            "status": "pending"
+        },
+        {
+            "id": "WLT-DR-305",
+            "title": "Resilience & DR",
+            "type": "ops",
+            "actions": [
+                "استراتژی retry/backoff یکنواخت برای تمام adapterها",
+                "سیاست‌های backup/restore و آزمون DR"
+            ],
+            "acceptanceCriteria": [
+                "Failover تست‌شده و RPO/RTO مستند"
+            ],
+            "priority": "medium",
+            "status": "pending"
+        }
+    ]
+}

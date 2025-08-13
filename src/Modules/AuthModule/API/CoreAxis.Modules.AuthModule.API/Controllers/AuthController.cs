@@ -154,7 +154,7 @@ public class AuthController : ControllerBase
         var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
         
         var command = new LoginCommand(
-            dto.Username,
+            dto.MobileNumber,
             dto.Password,
             ipAddress);
 

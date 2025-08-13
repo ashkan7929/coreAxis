@@ -8,7 +8,7 @@ using MediatR;
 namespace CoreAxis.Modules.AuthModule.Application.Commands.Users;
 
 public record LoginCommand(
-    string Username,
+    string MobileNumber,
     string Password,
     string IpAddress
 ) : IRequest<Result<LoginResultDto>>;
@@ -37,25 +37,25 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
 
     public async Task<Result<LoginResultDto>> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
-        // Get user by username
-        var user = await _userRepository.GetByUsernameAsync(request.Username, cancellationToken);
+        // Get user by mobile number
+        var user = await _userRepository.GetByPhoneNumberAsync(request.MobileNumber, cancellationToken);
         if (user == null)
         {
-            await LogFailedAttempt(request.Username, request.IpAddress, "User not found", cancellationToken);
-            return Result<LoginResultDto>.Failure("Invalid username or password");
+            await LogFailedAttempt(request.MobileNumber, request.IpAddress, "User not found", cancellationToken);
+            return Result<LoginResultDto>.Failure("Invalid mobile number or password");
         }
 
         // Check if user is active
         if (!user.IsActive)
         {
-            await LogFailedAttempt(request.Username, request.IpAddress, "User inactive", cancellationToken);
+            await LogFailedAttempt(request.MobileNumber, request.IpAddress, "User inactive", cancellationToken);
             return Result<LoginResultDto>.Failure("Account is inactive");
         }
 
         // Check if user is locked
         if (user.IsLocked)
         {
-            await LogFailedAttempt(request.Username, request.IpAddress, "User locked", cancellationToken);
+            await LogFailedAttempt(request.MobileNumber, request.IpAddress, "User locked", cancellationToken);
             return Result<LoginResultDto>.Failure("Account is locked");
         }
 
@@ -64,9 +64,9 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
         {
             user.RecordFailedLogin();
             _userRepository.Update(user);
-            await LogFailedAttempt(request.Username, request.IpAddress, "Invalid password", cancellationToken);
+            await LogFailedAttempt(request.MobileNumber, request.IpAddress, "Invalid password", cancellationToken);
             await _unitOfWork.SaveChangesAsync();
-            return Result<LoginResultDto>.Failure("Invalid username or password");
+            return Result<LoginResultDto>.Failure("Invalid mobile number or password");
         }
 
         // Successful login
