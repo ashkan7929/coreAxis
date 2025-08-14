@@ -17,7 +17,7 @@ public class CommissionCalculated : IntegrationEvent
     public CommissionCalculated(Guid orderId, Guid userId, decimal orderAmount, decimal commissionAmount,
         decimal commissionRate, string commissionType, Dictionary<string, decimal> breakdown, string tenantId,
         Guid correlationId, Guid? causationId = null)
-        : base(Guid.NewGuid(), DateTime.UtcNow)
+        : base(Guid.NewGuid(), DateTime.UtcNow, correlationId, causationId)
     {
         OrderId = orderId;
         UserId = userId;

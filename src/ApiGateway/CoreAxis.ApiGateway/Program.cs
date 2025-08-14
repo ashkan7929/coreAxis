@@ -13,7 +13,7 @@ using DotNetEnv;
 try
 {
     // Load environment variables from .env file if it exists
-    var envPath = Path.Combine(Directory.GetCurrentDirectory(), "../../../.env");
+    var envPath = Path.Combine(AppContext.BaseDirectory, ".env");
     if (File.Exists(envPath))
     {
         Env.Load(envPath);
@@ -84,7 +84,7 @@ try
     // Force load AuthModule assembly
     var authModuleAssembly = typeof(CoreAxis.Modules.AuthModule.API.AuthModule).Assembly;
     Console.WriteLine($"AuthModule assembly loaded: {authModuleAssembly.FullName}");
-    
+
     // Force load WalletModule assembly
     var walletModuleAssembly = typeof(CoreAxis.Modules.WalletModule.Api.WalletModule).Assembly;
     Console.WriteLine($"WalletModule assembly loaded: {walletModuleAssembly.FullName}");
@@ -118,7 +118,7 @@ try
     // Always enable Swagger for API documentation
     app.UseSwagger();
     app.UseSwaggerUI();
-    
+
     if (app.Environment.IsDevelopment())
     {
         // Configure modules
@@ -147,6 +147,15 @@ try
     {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
+
+    app.MapGet("/_diag/env", (IConfiguration cfg) =>
+    {
+        return Results.Ok(new
+        {
+            Env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+            BaseUrl = cfg["Megfa:BaseUrl"]
+        });
+    });
 
     app.MapGet("/weatherforecast", () =>
     {

@@ -19,6 +19,16 @@ namespace CoreAxis.EventBus
         public DateTime CreationDate { get; }
 
         /// <summary>
+        /// Gets the correlation identifier for tracking related events.
+        /// </summary>
+        public Guid CorrelationId { get; }
+
+        /// <summary>
+        /// Gets the causation identifier indicating which event caused this event.
+        /// </summary>
+        public Guid? CausationId { get; }
+
+        /// <summary>
         /// Gets the type name of the event.
         /// </summary>
         public string EventType => GetType().Name;
@@ -30,6 +40,8 @@ namespace CoreAxis.EventBus
         {
             Id = Guid.NewGuid();
             CreationDate = DateTime.UtcNow;
+            CorrelationId = Guid.NewGuid();
+            CausationId = null;
         }
 
         /// <summary>
@@ -41,6 +53,23 @@ namespace CoreAxis.EventBus
         {
             Id = id;
             CreationDate = creationDate;
+            CorrelationId = Guid.NewGuid();
+            CausationId = null;
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="IntegrationEvent"/> class with correlation and causation tracking.
+        /// </summary>
+        /// <param name="id">The event ID.</param>
+        /// <param name="creationDate">The event creation date.</param>
+        /// <param name="correlationId">The correlation ID for tracking related events.</param>
+        /// <param name="causationId">The causation ID indicating which event caused this event.</param>
+        protected IntegrationEvent(Guid id, DateTime creationDate, Guid correlationId, Guid? causationId = null)
+        {
+            Id = id;
+            CreationDate = creationDate;
+            CorrelationId = correlationId;
+            CausationId = causationId;
         }
     }
 }

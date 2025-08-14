@@ -10,7 +10,7 @@ public class UserRegistered : IntegrationEvent
     public string SchemaVersion { get; } = "v1";
 
     public UserRegistered(Guid userId, string email, string tenantId, Guid correlationId, Guid? causationId = null)
-        : base(Guid.NewGuid(), DateTime.UtcNow)
+        : base(Guid.NewGuid(), DateTime.UtcNow, correlationId, causationId)
     {
         UserId = userId;
         Email = email;

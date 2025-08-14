@@ -16,7 +16,7 @@ public class PriceLocked : IntegrationEvent
     public PriceLocked(Guid orderId, string assetCode, decimal quantity, decimal lockedPrice,
         DateTime lockedAt, DateTime expiresAt, string tenantId,
         Guid correlationId, Guid? causationId = null)
-        : base(Guid.NewGuid(), DateTime.UtcNow)
+        : base(Guid.NewGuid(), DateTime.UtcNow, correlationId, causationId)
     {
         OrderId = orderId;
         AssetCode = assetCode;

@@ -142,10 +142,10 @@ public class WorkflowClientStub : IWorkflowClient
             // Publish PriceLocked event
             var priceLocked = new PriceLocked(
                 orderId: lockRequest.OrderId,
-                lockId: lockId,
                 assetCode: lockRequest.AssetCode,
-                price: lockRequest.Price,
                 quantity: lockRequest.Quantity,
+                lockedPrice: lockRequest.Price,
+                lockedAt: DateTime.UtcNow,
                 expiresAt: expiresAt,
                 tenantId: lockRequest.TenantId,
                 correlationId: lockRequest.CorrelationId

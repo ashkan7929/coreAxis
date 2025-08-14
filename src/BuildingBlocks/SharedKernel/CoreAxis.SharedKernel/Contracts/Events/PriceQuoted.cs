@@ -17,7 +17,7 @@ public class PriceQuoted : IntegrationEvent
     public PriceQuoted(Guid orderId, string assetCode, decimal quantity, decimal price, 
         DateTime timestamp, string providerId, int expiresInSeconds, string tenantId,
         Guid correlationId, Guid? causationId = null)
-        : base(Guid.NewGuid(), DateTime.UtcNow)
+        : base(Guid.NewGuid(), DateTime.UtcNow, correlationId, causationId)
     {
         OrderId = orderId;
         AssetCode = assetCode;

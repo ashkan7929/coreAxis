@@ -17,7 +17,7 @@ public class PaymentInitiated : IntegrationEvent
     public PaymentInitiated(Guid orderId, Guid paymentId, Guid userId, decimal amount, 
         string currency, string paymentMethod, string idempotencyKey, string tenantId,
         Guid correlationId, Guid? causationId = null)
-        : base(Guid.NewGuid(), DateTime.UtcNow)
+        : base(Guid.NewGuid(), DateTime.UtcNow, correlationId, causationId)
     {
         OrderId = orderId;
         PaymentId = paymentId;

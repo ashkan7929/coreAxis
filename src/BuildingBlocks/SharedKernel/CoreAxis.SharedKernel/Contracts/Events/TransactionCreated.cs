@@ -19,7 +19,7 @@ public class TransactionCreated : IntegrationEvent
     public TransactionCreated(Guid transactionId, Guid walletId, Guid userId, decimal amount,
         decimal balanceAfter, string transactionType, string description, string? reference,
         string? idempotencyKey, string tenantId, Guid correlationId, Guid? causationId = null)
-        : base(Guid.NewGuid(), DateTime.UtcNow)
+        : base(Guid.NewGuid(), DateTime.UtcNow, correlationId, causationId)
     {
         TransactionId = transactionId;
         WalletId = walletId;

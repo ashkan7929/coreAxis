@@ -16,7 +16,7 @@ public class PaymentConfirmed : IntegrationEvent
     public PaymentConfirmed(Guid orderId, Guid paymentId, Guid transactionId, decimal amount,
         string currency, DateTime confirmedAt, string tenantId,
         Guid correlationId, Guid? causationId = null)
-        : base(Guid.NewGuid(), DateTime.UtcNow)
+        : base(Guid.NewGuid(), DateTime.UtcNow, correlationId, causationId)
     {
         OrderId = orderId;
         PaymentId = paymentId;
