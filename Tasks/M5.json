@@ -1,0 +1,413 @@
+{
+    "milestone": "M5 - Workflow Engine v1 (Orchestrator)",
+    "goal": "پیاده‌سازی موتور Workflow واقعی با نگهداری state، اجرای Stepهای ترتیبی/موازی، پشتیبانی از CallAPI/Decision/HumanTask/WaitForEvent/Timer/Compensation، نسخه‌بندی Process و Audit کامل. اتصال مستقیم به ApiManager برای Quote/Lock قیمت، به Order/Wallet/MLM/Form Builder از طریق EventBus/Adapters.",
+    "assumptions": [
+        "Solution بر پایه .NET 8 و EF Core است.",
+        "SharedKernel شامل Outbox/Contracts/Correlation و IWorkflowClient آماده است.",
+        "ApiManager در فاز 4 قابل استفاده است (invoke با Retry/Timeout/CB).",
+        "Auth & ACL اجرا شده و HasPermission قابل استفاده است.",
+        "EventBus فعلاً به صورت Outbox + InProcessPublisher کار می‌کند."
+    ],
+    "projects": [
+        "Modules/Workflow/Domain/CoreAxis.Modules.Workflow.Domain",
+        "Modules/Workflow/Application/CoreAxis.Modules.Workflow.Application",
+        "Modules/Workflow/Infrastructure/CoreAxis.Modules.Workflow.Infrastructure",
+        "Modules/Workflow/Api/CoreAxis.Modules.Workflow.Api"
+    ],
+    "domainModel": {
+        "entities": [
+            {
+                "name": "ProcessDefinition",
+                "fields": [
+                    "Id (Guid)",
+                    "Code (string, unique)",
+                    "Name (string)",
+                    "IsActive (bool)"
+                ]
+            },
+            {
+                "name": "ProcessVersion",
+                "fields": [
+                    "Id (Guid)",
+                    "ProcessDefinitionId (Guid)",
+                    "Version (int)",
+                    "SchemaJson (json, immutable)",
+                    "IsPublished (bool)",
+                    "CreatedAt/By"
+                ],
+                "notes": "SchemaJson شامل Stepها، ترنزیشن‌ها، SLA و Compensation mapping"
+            },
+            {
+                "name": "ProcessInstance",
+                "fields": [
+                    "Id (Guid)",
+                    "ProcessVersionId (Guid)",
+                    "BusinessKey (string: e.g., OrderId)",
+                    "Status (Running|Waiting|Errored|Completed|Canceled)",
+                    "InitiatedByUserId (string)",
+                    "TenantId (string?)",
+                    "ContextJson (json)",
+                    "CorrelationId (string)",
+                    "CreatedAt/UpdatedAt",
+                    "RowVersion (byte[])"
+                ]
+            },
+            {
+                "name": "StepInstance",
+                "fields": [
+                    "Id (Guid)",
+                    "ProcessInstanceId (Guid)",
+                    "StepCode (string)",
+                    "Type (CallApi|Decision|HumanTask|WaitForEvent|Timer|Compensation|PublishEvent|EvaluateFormula)",
+                    "Status (Pending|Running|Waiting|Succeeded|Failed|Compensated|Canceled)",
+                    "InputJson (json)",
+                    "OutputJson (json?)",
+                    "RetryCount (int)",
+                    "ScheduledAt (datetime? for Timer/Delayed)",
+                    "AssigneeRole (string? for HumanTask)",
+                    "CreatedAt/UpdatedAt"
+                ]
+            },
+            {
+                "name": "Bookmark",
+                "fields": [
+                    "Id (Guid)",
+                    "ProcessInstanceId (Guid)",
+                    "StepInstanceId (Guid)",
+                    "EventCode (string)  // e.g., FormSubmitted, PaymentConfirmed",
+                    "ExpiresAt (datetime?)"
+                ],
+                "notes": "برای WaitForEvent"
+            },
+            {
+                "name": "WorkflowAuditLog",
+                "fields": [
+                    "Id (Guid)",
+                    "ProcessInstanceId (Guid)",
+                    "StepInstanceId (Guid?)",
+                    "Action (Started|StepExecuted|Transition|Error|Retry|Escalation|Completed|Canceled)",
+                    "Payload (json)",
+                    "Timestamp"
+                ]
+            }
+        ],
+        "enums": [
+            "StepType { CallApi, Decision, HumanTask, WaitForEvent, Timer, Compensation, PublishEvent, EvaluateFormula }",
+            "ProcessStatus { Running, Waiting, Errored, Completed, Canceled }",
+            "StepStatus { Pending, Running, Waiting, Succeeded, Failed, Compensated, Canceled }"
+        ]
+    },
+    "stepAbstractions": {
+        "ports": [
+            "IWorkflowRuntime (Start/Dispatch/Complete/Fail/Resume/Cancel)",
+            "IStepExecutor<TStep> per type",
+            "IApiInvoker (bridge به ApiManager)",
+            "IFormulaClient (bridge به Formula/Rule engine - فعلاً Stub)",
+            "IHumanTaskService (assign/check permissions)",
+            "ITimerScheduler (BackgroundService برای Timer/Retry)"
+        ],
+        "policies": [
+            "IdempotencyKey برای Start و Event ها",
+            "Retry با backoff برای CallApi/Decision",
+            "CircuitBreaker برون‌سپاری به ApiManager",
+            "RowVersion برای خوشه‌بندی/Concurrency"
+        ]
+    },
+    "apiContracts": {
+        "security": "Bearer JWT + [HasPermission(\"WORKFLOW\",\"MANAGE/READ/START/ACT\")]",
+        "routes": [
+            "[POST] /api/workflows/{processCode}/start  // body: {businessKey, context, idempotencyKey}",
+            "[POST] /api/workflows/instances/{id}/events/{eventCode}  // e.g., FormSubmitted",
+            "[GET]  /api/workflows/instances/{id}",
+            "[GET]  /api/workflows/instances?processCode=&status=&from=&to=&page=&pageSize=",
+            "[GET]  /api/workflows/instances/{id}/history",
+            "[GET]  /api/workflows/tasks/my  // Human tasks for current user (by role/ACL)",
+            "[POST] /api/workflows/tasks/{taskId}/complete  // body: {output}",
+            "[POST] /api/workflows/admin/definitions  // create/update ProcessDefinition",
+            "[POST] /api/workflows/admin/definitions/{code}/versions/publish  // attach SchemaJson+Version",
+            "[GET]  /api/workflows/admin/definitions/{code}/versions"
+        ]
+    },
+    "integration": {
+        "orderFlowV1": [
+            "Trigger: OrderPlaced.v1 → Start(OrderFlow, businessKey=OrderId, context={userId, assetCode, qty})",
+            "Step1: CallApi(Quote via ApiManager) → Output: quoteId, price",
+            "Decision: اگر price قابل قبول/در بازه → ادامه؛ وگرنه Fail/ManualReview",
+            "Step2: CallApi(Lock via ApiManager) → Output: lockedPrice, expiresAt → PublishEvent: PriceLocked.v1",
+            "WaitForEvent: PaymentConfirmed → سپس Publish: OrderCompleted (یا ادامه مراحل بعدی)",
+            "Compensation: اگر Lock شد ولی پرداخت fail → CallApi(CancelLock) یا MarkExpired"
+        ],
+        "eventsUsed": [
+            "OrderPlaced.v1 (consume)",
+            "PriceLocked.v1 (produce)",
+            "PaymentConfirmed.v1 (consume)",
+            "OrderCompleted.v1 (produce)"
+        ]
+    },
+    "tasks": [
+        {
+            "id": "WF-DOM-001",
+            "title": "Define Domain Entities + EF Config + Migrations",
+            "description": "تعریف Entityها (ProcessDefinition/Version/Instance/StepInstance/Bookmark/AuditLog) با Fluent API، ایندکس‌ها و Migration اولیه.",
+            "changes": [
+                "DbContext: WorkflowDbContext",
+                "ایندکس‌ها: ProcessInstance(Status, CreatedAt), StepInstance(ProcessInstanceId, Status), Bookmark(EventCode, ExpiresAt)"
+            ],
+            "acceptance": [
+                "اجرای migration و ایجاد جداول",
+                "RowVersion در ProcessInstance فعال"
+            ],
+            "priority": "critical",
+            "estimate_hours": 10
+        },
+        {
+            "id": "WF-RUN-002",
+            "title": "WorkflowRuntime (Start/Dispatch/Transition)",
+            "description": "هسته‌ی Runtime برای Start/اجرای گام‌ها/ترنزیشن وضعیت/ثبت Audit.",
+            "changes": [
+                "StartAsync(processCode, businessKey, context, idempotencyKey)",
+                "DispatchAsync(step) بر اساس StepType",
+                "ثبت WorkflowAuditLog و Update statuses با تراکنش"
+            ],
+            "acceptance": [
+                "Start یک ProcessInstance ایجاد و اولین Step را Pending کند",
+                "AuditLog برای Start/Transition ثبت شود"
+            ],
+            "priority": "critical",
+            "estimate_hours": 14,
+            "depends_on": [
+                "WF-DOM-001"
+            ]
+        },
+        {
+            "id": "WF-EXEC-003",
+            "title": "StepExecutors: CallApi / EvaluateFormula / PublishEvent",
+            "description": "اکزیکیوترهای هسته برای CallApi (از ApiManager)، EvaluateFormula (Stub) و PublishEvent (Outbox).",
+            "changes": [
+                "IApiInvoker → ApiManagerProxyAdapter (invoke methodId + params)",
+                "IFormulaClient → Stub: echo result با version ثابت",
+                "PublishEvent → OutboxMessage(Type, Payload, CorrelationId)"
+            ],
+            "acceptance": [
+                "CallApi در خطای 5xx با Retry/backoff انجام شود",
+                "OutboxRecord برای PublishEvent ساخته شود"
+            ],
+            "priority": "critical",
+            "estimate_hours": 12,
+            "depends_on": [
+                "WF-RUN-002"
+            ]
+        },
+        {
+            "id": "WF-HUM-004",
+            "title": "HumanTask Executor + ACL",
+            "description": "گام HumanTask با AssigneeRole و چک دسترسی از طریق ACL; اکشن Complete از API.",
+            "changes": [
+                "ثبت StepInstance با Status=Waiting و AssigneeRole",
+                "API: GET tasks/my, POST tasks/{taskId}/complete",
+                "بررسی HasPermission و Role روی Complete"
+            ],
+            "acceptance": [
+                "کاربر غیرمجاز 403",
+                "Complete باعث Transition به Step بعدی شود"
+            ],
+            "priority": "high",
+            "estimate_hours": 10
+        },
+        {
+            "id": "WF-WFE-005",
+            "title": "WaitForEvent + Bookmarking",
+            "description": "پشتیبانی از انتظار برای eventهای خارجی با ثبت Bookmark و Resume.",
+            "changes": [
+                "CreateBookmark(EventCode, expiresAt?)",
+                "API: POST /instances/{id}/events/{eventCode} → Resume",
+                "Cleanup Bookmark هنگام Resume"
+            ],
+            "acceptance": [
+                "ارسال event صحیح → Step ادامه پیدا کند",
+                "ارسال event نامعتبر → 404/400 مناسب"
+            ],
+            "priority": "critical",
+            "estimate_hours": 12
+        },
+        {
+            "id": "WF-TMR-006",
+            "title": "Timer & Retry Scheduler (BackgroundService)",
+            "description": "BackgroundService که Stepهای Scheduled/Retry را بر اساس زمان اجرا کند.",
+            "changes": [
+                "ITimerScheduler با اسکن دوره‌ای هر X ثانیه",
+                "Policy: حداکثر N retry با backoff (configurable)"
+            ],
+            "acceptance": [
+                "Steps با ScheduledAt گذشته اجرا شوند",
+                "RetryCount به‌درستی افزایش یابد"
+            ],
+            "priority": "high",
+            "estimate_hours": 8
+        },
+        {
+            "id": "WF-CMP-007",
+            "title": "Compensation Tasks",
+            "description": "الگوی جبران: تعریف mapping برای Revert (e.g., CancelLock, RefundCustomer).",
+            "changes": [
+                "StepType=Compensation",
+                "Trigger Compensation در مسیر Failure یا دستور Admin"
+            ],
+            "acceptance": [
+                "Fail در Lock → اجرای Compensation و ثبت Audit",
+                "Error در Compensation → Escalation ثبت شود"
+            ],
+            "priority": "high",
+            "estimate_hours": 10
+        },
+        {
+            "id": "WF-API-008",
+            "title": "Workflow API Layer + Swagger",
+            "description": "کنترلرهای Start/Events/Query/Tasks + مستندسازی Swagger.",
+            "changes": [
+                "پروتکل‌های ورودی/خروجی یکنواخت (ProblemDetails برای خطا)",
+                "هدرهای X-Correlation-Id, X-Tenant-Id پشتیبانی"
+            ],
+            "acceptance": [
+                "Swagger شامل مثال‌ها و status codes",
+                "امنیت Bearer روی همهٔ اکشن‌های حساس"
+            ],
+            "priority": "critical",
+            "estimate_hours": 8,
+            "depends_on": [
+                "WF-RUN-002",
+                "WF-WFE-005",
+                "WF-HUM-004"
+            ]
+        },
+        {
+            "id": "WF-ORD-009",
+            "title": "Wire OrderFlow.v1 (Quote→Lock)",
+            "description": "مصرف OrderPlaced → اجرای Steps: Quote(CallApi)→Decision→Lock(CallApi)→Publish PriceLocked.",
+            "changes": [
+                "OrderPlacedIntegrationEventHandler → Start(OrderFlow)",
+                "استفاده از ApiManager methodIds برای Quote/Lock",
+                "Publish PriceLocked.v1 از Workflow"
+            ],
+            "acceptance": [
+                "Place → Start → PriceLocked منتشر شود",
+                "OrderModule همان PriceLocked را مصرف و Order را PriceLocked کند"
+            ],
+            "priority": "critical",
+            "estimate_hours": 10,
+            "depends_on": [
+                "WF-EXEC-003",
+                "WF-API-008"
+            ]
+        },
+        {
+            "id": "WF-PAY-010",
+            "title": "Handle PaymentConfirmed.v1",
+            "description": "WaitForEvent در OrderFlow برای PaymentConfirmed و ادامه‌ی فرایند تا Completed.",
+            "changes": [
+                "Bookmark روی PaymentConfirmed",
+                "مصرف PaymentConfirmed → Resume و Publish OrderCompleted.v1"
+            ],
+            "acceptance": [
+                "پس از PaymentConfirmed، وضعیت ProcessInstance=Completed",
+                "OrderCompleted.v1 در Outbox ثبت شود"
+            ],
+            "priority": "high",
+            "estimate_hours": 6,
+            "depends_on": [
+                "WF-WFE-005"
+            ]
+        },
+        {
+            "id": "WF-AUD-011",
+            "title": "Audit/Observability (Serilog+Seq)",
+            "description": "لاگ ساختاری برای همهٔ Transitionها/Errors/Retries با correlation/tenant/user.",
+            "changes": [
+                "Enricher برای CorrelationId/TenantId/UserId",
+                "Query API برای History: /instances/{id}/history"
+            ],
+            "acceptance": [
+                "در Seq بتوان Chain رو کامل دید",
+                "History API رویدادها را به ترتیب زمانی برگرداند"
+            ],
+            "priority": "high",
+            "estimate_hours": 6
+        },
+        {
+            "id": "WF-SEC-012",
+            "title": "Security & ACL",
+            "description": "افزودن HasPermission ها و Seed پرمیشن‌های WORKFLOW.*",
+            "changes": [
+                "WORKFLOW.MANAGE, WORKFLOW.READ, WORKFLOW.START, WORKFLOW.ACT",
+                "HumanTask فقط توسط Actor با Role درست Complete شود"
+            ],
+            "acceptance": [
+                "بررسی 403 برای نقش نامعتبر",
+                "ادمین قادر به مشاهده همه Instances"
+            ],
+            "priority": "medium",
+            "estimate_hours": 4
+        },
+        {
+            "id": "WF-TST-013",
+            "title": "Unit/Integration Tests",
+            "description": "تست واحد برای Runtime/Executors و تست انتگرال OrderFlow (local-stub & integration).",
+            "changes": [
+                "Unit: Transition logic, Retry policy, Bookmark",
+                "Integration: place → OrderPlaced → Start → Quote/Lock(through ApiManager fake) → PriceLocked → PaymentConfirmed → Completed"
+            ],
+            "acceptance": [
+                "CI سبز؛ پوشش حداقلی مسیرهای بحرانی",
+                "Smoke تست‌ها پایدار"
+            ],
+            "priority": "critical",
+            "estimate_hours": 12
+        },
+        {
+            "id": "WF-DOC-014",
+            "title": "Docs & Samples",
+            "description": "Module_README با ERD، Schema نمونه برای ProcessDefinition/Version، Sequence Diagram، Runbook خطا/Compensation.",
+            "changes": [
+                "نمونه JSON تعریف OrderFlow.v1",
+                "نمونه cURL برای Start/Events/Tasks"
+            ],
+            "acceptance": [
+                "با مطالعه README، Dev بتواند یک Process جدید تعریف و اجرا کند"
+            ],
+            "priority": "medium",
+            "estimate_hours": 4
+        }
+    ],
+    "smokeTests": [
+        "۱) POST /api/workflows/orderflow/start با {businessKey: <orderId>, context:{assetCode, qty}, idempotencyKey}",
+        "۲) Engine → CallApi(Quote) و سپس Lock → Outbox: PriceLocked.v1",
+        "۳) OrderModule مصرف PriceLocked و Update وضعیت",
+        "۴) POST /api/workflows/instances/{id}/events/PaymentConfirmed → Process Completed",
+        "۵) GET /api/workflows/instances/{id}/history → Transitionها و خروجی Stepها ثبت شده‌اند"
+    ],
+    "config": {
+        "profiles": [
+            "local-stub",
+            "integration"
+        ],
+        "retry": {
+            "maxRetries": 3,
+            "backoff": "exponential",
+            "jitter": true
+        },
+        "timeouts": {
+            "callApiMs": 5000,
+            "decisionMs": 2000
+        },
+        "idempotency": {
+            "header": "Idempotency-Key",
+            "store": "ProcessInstance table/unique index"
+        }
+    },
+    "doneDefinition": [
+        "OrderFlow.v1 از OrderPlaced تا PriceLocked و سپس PaymentConfirmed → Completed به‌صورت end-to-end کار می‌کند.",
+        "Workflow API مستند، امن و دارای لاگ ساختاری و History است.",
+        "تست‌های Unit/Integration سبز و در CI اجرا می‌شوند.",
+        "Compensation برای سناریوی Lock-but-no-payment پیاده‌سازی و تست شده است."
+    ]
+}
