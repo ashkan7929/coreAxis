@@ -45,25 +45,31 @@ namespace CoreAxis.Tests.ApiGateway
                 Enumerable.Empty<LogEventProperty>());
 
             // Act
-            enricher.Enrich(logEvent, null);
+            var mockPropertyFactory = new Mock<ILogEventPropertyFactory>();
+            mockPropertyFactory.Setup(x => x.CreateProperty(It.IsAny<string>(), It.IsAny<object>(), false))
+                .Returns<string, object, bool>((name, value, destructureObjects) => new LogEventProperty(name, new ScalarValue(value)));
+            
+            enricher.Enrich(logEvent, mockPropertyFactory.Object);
 
             // Assert
-            Assert.True(logEvent.Properties.ContainsKey("ModuleCount"));
-            Assert.True(logEvent.Properties.ContainsKey("Modules"));
+            // Debug: Check what properties are actually added
+            var propertyKeys = string.Join(", ", logEvent.Properties.Keys);
+            Console.WriteLine($"Properties added: {propertyKeys}");
+            
+            Assert.True(logEvent.Properties.ContainsKey("ModuleCount"), $"ModuleCount not found. Available properties: {propertyKeys}");
+            Assert.True(logEvent.Properties.ContainsKey("Modules"), $"Modules not found. Available properties: {propertyKeys}");
             
             var moduleCount = (ScalarValue)logEvent.Properties["ModuleCount"];
-            var moduleNames = (SequenceValue)logEvent.Properties["Modules"];
+            var moduleNames = (ScalarValue)logEvent.Properties["Modules"];
             
             Assert.Equal(3, moduleCount.Value);
-            Assert.Equal(3, moduleNames.Elements.Count);
+            Assert.IsType<List<string>>(moduleNames.Value);
+            var moduleNamesList = (List<string>)moduleNames.Value;
+            Assert.Equal(3, moduleNamesList.Count);
             
-            var moduleNameValues = moduleNames.Elements
-                .Select(e => ((ScalarValue)e).Value.ToString())
-                .ToList();
-                
-            Assert.Contains("Module1", moduleNameValues);
-            Assert.Contains("Module2", moduleNameValues);
-            Assert.Contains("Module3", moduleNameValues);
+            Assert.Contains("Module1", moduleNamesList);
+            Assert.Contains("Module2", moduleNamesList);
+            Assert.Contains("Module3", moduleNamesList);
         }
 
         /// <summary>
@@ -86,17 +92,26 @@ namespace CoreAxis.Tests.ApiGateway
                 Enumerable.Empty<LogEventProperty>());
 
             // Act
-            enricher.Enrich(logEvent, null);
+            var mockPropertyFactory = new Mock<ILogEventPropertyFactory>();
+            mockPropertyFactory.Setup(x => x.CreateProperty(It.IsAny<string>(), It.IsAny<object>(), false))
+                .Returns<string, object, bool>((name, value, destructureObjects) => new LogEventProperty(name, new ScalarValue(value)));
+            
+            enricher.Enrich(logEvent, mockPropertyFactory.Object);
 
             // Assert
-            Assert.True(logEvent.Properties.ContainsKey("ModuleCount"));
-            Assert.True(logEvent.Properties.ContainsKey("Modules"));
+            // Debug: Check what properties are actually added
+            var propertyKeys = string.Join(", ", logEvent.Properties.Keys);
+            Console.WriteLine($"Properties added (empty test): {propertyKeys}");
+            
+            Assert.True(logEvent.Properties.ContainsKey("ModuleCount"), $"ModuleCount not found. Available properties: {propertyKeys}");
+            Assert.True(logEvent.Properties.ContainsKey("Modules"), $"Modules not found. Available properties: {propertyKeys}");
             
             var moduleCount = (ScalarValue)logEvent.Properties["ModuleCount"];
-            var moduleNames = (SequenceValue)logEvent.Properties["Modules"];
+            var moduleNames = (ScalarValue)logEvent.Properties["Modules"];
             
             Assert.Equal(0, moduleCount.Value);
-            Assert.Empty(moduleNames.Elements);
+            Assert.IsType<List<string>>(moduleNames.Value);
+            Assert.Empty((List<string>)moduleNames.Value);
         }
 
         /// <summary>
@@ -112,10 +127,14 @@ namespace CoreAxis.Tests.ApiGateway
         /// <summary>
         /// A test module implementation for testing purposes.
         /// </summary>
-        private class TestModule : IModule
+        internal class TestModule : IModule
         {
             public string Name { get; }
             public string Version => "1.0.0";
+
+            public TestModule() : this("DefaultModule")
+            {
+            }
 
             public TestModule(string name)
             {

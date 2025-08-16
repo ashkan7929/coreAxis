@@ -31,8 +31,9 @@ namespace CoreAxis.Tests.BuildingBlocks
             var modules = moduleRegistrar.DiscoverModules(assemblies);
 
             // Assert
-            Assert.Single(modules);
-            Assert.IsType<TestModule>(modules.First());
+            // Should find both TestModule classes (one from ModuleRegistrarTests and one from ModuleEnricherTests)
+            Assert.Equal(2, modules.Count());
+            Assert.All(modules, module => Assert.IsAssignableFrom<IModule>(module));
         }
 
         /// <summary>
@@ -112,7 +113,7 @@ namespace CoreAxis.Tests.BuildingBlocks
     /// <summary>
     /// Test module implementation for testing purposes.
     /// </summary>
-    public class TestModule : IModule
+    internal class TestModule : IModule
     {
         public string Name => "Test Module";
         public string Version => "1.0.0";

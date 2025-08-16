@@ -70,6 +70,11 @@ namespace CoreAxis.SharedKernel
         /// <returns>A paginated list.</returns>
         public static PaginatedList<T> Create(IQueryable<T> source, int pageNumber, int pageSize)
         {
+            if (pageNumber < 1)
+                throw new ArgumentException("Page number must be greater than 0.", nameof(pageNumber));
+            if (pageSize < 1)
+                throw new ArgumentException("Page size must be greater than 0.", nameof(pageSize));
+
             var totalCount = source.Count();
             var items = source.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
             return new PaginatedList<T>(items, totalCount, pageNumber, pageSize);
@@ -84,6 +89,11 @@ namespace CoreAxis.SharedKernel
         /// <returns>A paginated list.</returns>
         public static PaginatedList<T> Create(IEnumerable<T> source, int pageNumber, int pageSize)
         {
+            if (pageNumber < 1)
+                throw new ArgumentException("Page number must be greater than 0.", nameof(pageNumber));
+            if (pageSize < 1)
+                throw new ArgumentException("Page size must be greater than 0.", nameof(pageSize));
+
             var list = source.ToList();
             var totalCount = list.Count;
             var items = list.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();

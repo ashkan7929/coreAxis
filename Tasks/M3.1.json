@@ -1,0 +1,77 @@
+{
+    "milestone": "M3 - Finalize Product & Order",
+    "tasks": [
+        {
+            "id": "POM-WF-START-001",
+            "title": "Start workflow after order placed",
+            "description": "پس از OrderPlaced، جریان Quote→Lock را با WorkflowClient شروع کن.",
+            "option": "B",
+            "changes": [
+                "ایجاد IntegrationEventHandler<OrderPlaced.v1>",
+                "Resolve IWorkflowClient و فراخوانی StartAsync(def=\"OrderFlow\", ctx:{orderId,userId,assetCode,quantity,tenantId})",
+                "لاگ correlationId در شروع"
+            ],
+            "acceptance": [
+                "پس از place، لاگ start workflow با همان correlationId دیده شود"
+            ],
+            "priority": "critical"
+        },
+        {
+            "id": "POM-WF-LOCK-002",
+            "title": "Handle PriceLocked event and update Order",
+            "description": "مصرف PriceLocked و آپدیت وضعیت سفارش.",
+            "changes": [
+                "ایجاد IntegrationEventHandler<PriceLocked>",
+                "Load Order با for update، چک Status==Pending، سپس: Status=PriceLocked, LockedPrice/PriceExpiresAt set",
+                "SaveChanges و لاگ ساختاری"
+            ],
+            "acceptance": [
+                "بعد از چند لحظه از place، GET /api/order/{id} وضعیت PriceLocked و قیمت/انقضا را نشان بدهد"
+            ],
+            "priority": "critical"
+        },
+        {
+            "id": "POM-TESTS-003",
+            "title": "Unit & Integration tests",
+            "changes": [
+                "Unit: PlaceOrder idempotency (same Idempotency-Key → same result)",
+                "Unit: mapping/precision برای Money و خطوط",
+                "Integration (profile=local-stub): place → outbox(OrderPlaced) → handler(start) → WorkflowStub → PriceLocked → handler(update) → GET"
+            ],
+            "acceptance": [
+                "تمام تست‌ها در CI سبز"
+            ],
+            "priority": "high"
+        },
+        {
+            "id": "POM-PREC-004",
+            "title": "Precision alignment (optional)",
+            "changes": [
+                "مستندسازی یا یکسان‌سازی precision بین Wallet و ProductOrder (18,6 یا 18,8)",
+                "اگر تغییر دادید: migration جدید و هماهنگی در DTOها"
+            ],
+            "acceptance": [
+                "README ماژول Precision را مشخص کند و مایگریشن‌ها سازگار باشند"
+            ],
+            "priority": "medium"
+        },
+        {
+            "id": "POM-IDEMP-005",
+            "title": "Graceful idempotency (optional)",
+            "changes": [
+                "در PlaceOrderCommandHandler: در صورت وجود IdempotencyKey، رکورد قبلی را برگردان",
+                "Log outcome: reused vs created"
+            ],
+            "acceptance": [
+                "دو بار place با کلید یکسان → بدوم exception و با همان خروجی"
+            ],
+            "priority": "low"
+        }
+    ],
+    "doneDefinition": [
+        "Handler شروع Workflow و Handler مصرف PriceLocked عملیاتی و لاگ‌دار هستند",
+        "GET وضعیت PriceLocked را نشان می‌دهد",
+        "تست‌های Unit/Integration سبز",
+        "README/Swagger به‌روز"
+    ]
+}

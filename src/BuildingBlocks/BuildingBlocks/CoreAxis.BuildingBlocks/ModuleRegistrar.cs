@@ -30,8 +30,19 @@ namespace CoreAxis.BuildingBlocks
             var modules = new List<IModule>();
             foreach (var moduleType in moduleTypes)
             {
-                var module = (IModule)Activator.CreateInstance(moduleType);
-                modules.Add(module);
+                try
+                {
+                    var module = (IModule)Activator.CreateInstance(moduleType);
+                    modules.Add(module);
+                }
+                catch (MissingMethodException ex)
+                {
+                    throw new InvalidOperationException($"Module type '{moduleType.FullName}' must have a parameterless constructor.", ex);
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException($"Failed to create instance of module type '{moduleType.FullName}'.", ex);
+                }
             }
 
             return modules;

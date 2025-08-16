@@ -73,6 +73,55 @@ namespace CoreAxis.SharedKernel
         {
             Id = Guid.NewGuid();
             CreatedOn = DateTime.UtcNow;
+            LastModifiedOn = CreatedOn;
+        }
+
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false.</returns>
+        public override bool Equals(object obj)
+        {
+            if (obj is null) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if (obj.GetType() != GetType()) return false;
+            
+            var other = (EntityBase)obj;
+            return Id.Equals(other.Id);
+        }
+
+        /// <summary>
+        /// Returns a hash code for the current object.
+        /// </summary>
+        /// <returns>A hash code for the current object.</returns>
+        public override int GetHashCode()
+        {
+            return Id.GetHashCode();
+        }
+
+        /// <summary>
+        /// Determines whether two entities are equal.
+        /// </summary>
+        /// <param name="left">The first entity to compare.</param>
+        /// <param name="right">The second entity to compare.</param>
+        /// <returns>true if the entities are equal; otherwise, false.</returns>
+        public static bool operator ==(EntityBase left, EntityBase right)
+        {
+            if (left is null && right is null) return true;
+            if (left is null || right is null) return false;
+            return left.Equals(right);
+        }
+
+        /// <summary>
+        /// Determines whether two entities are not equal.
+        /// </summary>
+        /// <param name="left">The first entity to compare.</param>
+        /// <param name="right">The second entity to compare.</param>
+        /// <returns>true if the entities are not equal; otherwise, false.</returns>
+        public static bool operator !=(EntityBase left, EntityBase right)
+        {
+            return !(left == right);
         }
     }
 }

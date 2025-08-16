@@ -1,0 +1,281 @@
+{
+    "milestone": "M3 - Product & Order (Minimal + Stubs integration)",
+    "goal": "ایجاد ماژول مستقل Product & Order با ۴ لایه، تعریف Order/OrderLine با اسنپ‌شات داینامیک، APIهای مینیمال (place/query) با ACL و Idempotency، انتشار رویداد OrderPlaced.v1 از طریق Outbox، و اتصال به Workflow/Price از طریق پورت‌ها/استاب‌ها.",
+    "assumptions": [
+        "Phase 2 (Wallet MVP) done: precision(18,6)، RowVersion، Idempotency، تراکنش‌های اتمیک، JWT اعمال شده.",
+        "SharedKernel شامل OutboxMessage و OutboxPublisher موجود است.",
+        "Auth & ACL فعال است و [HasPermission] پیاده‌سازی شده.",
+        "Ports در SharedKernel/Ports تعریف یا آماده‌ی تعریف است: IWorkflowClient, IPriceProvider."
+    ],
+    "moduleStructure": {
+        "solutionFolders": [
+            "Modules/ProductOrderModule/Domain/CoreAxis.Modules.ProductOrderModule.Domain",
+            "Modules/ProductOrderModule/Application/CoreAxis.Modules.ProductOrderModule.Application",
+            "Modules/ProductOrderModule/Infrastructure/CoreAxis.Modules.ProductOrderModule.Infrastructure",
+            "Modules/ProductOrderModule/Api/CoreAxis.Modules.ProductOrderModule.Api"
+        ]
+    },
+    "eventsV1": [
+        {
+            "name": "OrderPlaced.v1",
+            "payload": {
+                "orderId": "guid",
+                "userId": "string",
+                "lines": [
+                    {
+                        "productId": "guid",
+                        "qty": "decimal(18,6)",
+                        "unitPrice": "decimal(18,6) | null",
+                        "attributesSnapshot": "json"
+                    }
+                ],
+                "totalPrice": "decimal(18,6) | null",
+                "tenantId": "string | null",
+                "correlationId": "string",
+                "occurredOn": "datetime",
+                "schemaVersion": "1"
+            }
+        }
+    ],
+    "apiContracts": {
+        "placeOrder": {
+            "method": "POST",
+            "route": "/api/orders/place",
+            "headers": {
+                "Authorization": "Bearer <jwt>",
+                "Idempotency-Key": "string (اختیاری ولی توصیه‌شده)"
+            },
+            "permissions": [
+                "ORDER.CREATE"
+            ],
+            "request": {
+                "items": [
+                    {
+                        "productId": "guid",
+                        "qty": "decimal(18,6)",
+                        "attributes": "object (اختیاری)"
+                    }
+                ],
+                "note": "string (اختیاری)",
+                "tenantId": "string (اختیاری)"
+            },
+            "response": {
+                "orderId": "guid",
+                "status": "Pending",
+                "correlationId": "string"
+            }
+        },
+        "getOrder": {
+            "method": "GET",
+            "route": "/api/orders/{id}",
+            "permissions": [
+                "ORDER.READ"
+            ],
+            "response": "Order DTO با خطوط و وضعیت و قفل قیمت (اگر موجود)"
+        },
+        "queryOrders": {
+            "method": "GET",
+            "route": "/api/orders?status=&from=&to=&page=&pageSize=",
+            "permissions": [
+                "ORDER.READ"
+            ],
+            "response": "Paging<OrderSummary>"
+        }
+    },
+    "tasks": [
+        {
+            "id": "POM-SETUP-001",
+            "title": "ایجاد پروژه‌های ۴ لایه و رجیستری DI",
+            "changes": [
+                "ساخت ۴ پروژه طبق مسیر moduleStructure.",
+                "افزودن مرجع‌ها: Api→Application، Application→Domain، Infrastructure→(Domain, Application).",
+                "افزودن Swagger/HealthCheck به Api.",
+                "افزودن Profileها: local-stub / integration / production (هماهنگ با پروژه‌های دیگر)."
+            ],
+            "acceptanceCriteria": [
+                "Solution build شود.",
+                "GET /api/orders/health → 200 (ساده)."
+            ],
+            "priority": "critical",
+            "dependencies": []
+        },
+        {
+            "id": "POM-DOMAIN-002",
+            "title": "تعریف دامنه: Order/OrderLine/Enums",
+            "changes": [
+                "Entities: Order(Id, UserId, Status, CreatedAt, UpdatedAt, TotalPrice(decimal? 18,6), AttributesSnapshot(json), PriceLockExpiresAt(datetime?)).",
+                "OrderLine(Id, OrderId, ProductId, Qty(decimal 18,6), UnitPrice(decimal? 18,6), LineTotal(decimal? 18,6), AttributesSnapshot(json)).",
+                "Enums: OrderStatus { Pending, PriceLocked, Paid, Processing, Completed, Canceled }.",
+                "ValueObjects/DTO: PlaceOrderCommand, PlaceOrderResult."
+            ],
+            "acceptanceCriteria": [
+                "کلیه مقادیر پولی/عددی = decimal(18,6).",
+                "AttributesSnapshot برای Order و Line موجود باشد."
+            ],
+            "priority": "critical",
+            "dependencies": [
+                "POM-SETUP-001"
+            ]
+        },
+        {
+            "id": "POM-INFRA-003",
+            "title": "EF Core Config + DbContext + Migrations",
+            "changes": [
+                "ProductOrderDbContext با DbSet<Order>, DbSet<OrderLine>.",
+                "FluentConfig: HasPrecision(18,6) برای تمام قیمت‌ها/تعداد.",
+                "Config JSON: در SQL Server به nvarchar(max)، در Postgres به jsonb (با HasColumnType بر اساس provider).",
+                "ایندکس‌ها: IX_Order_UserId, IX_Order_Status, IX_Order_CreatedAt; IX_OrderLine_OrderId.",
+                "فیلدهای سیستمی: CreatedAt/UpdatedAt (BaseEntity)."
+            ],
+            "acceptanceCriteria": [
+                "Migration ساخته و قابل اجرا باشد.",
+                "Queryهای ساده روی Order/OrderLine کار کنند."
+            ],
+            "priority": "high",
+            "dependencies": [
+                "POM-DOMAIN-002"
+            ]
+        },
+        {
+            "id": "POM-ACL-004",
+            "title": "اعمال ACL و اسکوپ JWT",
+            "changes": [
+                "در OrdersController: [Authorize] و [HasPermission('ORDER','CREATE/READ')].",
+                "Scope همه Queryها به CurrentUserId از JWT (کاربر فقط سفارش‌های خودش).",
+                "Seeding Permission: ORDER.CREATE, ORDER.READ."
+            ],
+            "acceptanceCriteria": [
+                "بدون توکن → 401، بدون پرمی션 → 403.",
+                "کاربر A سفارش کاربر B را نمی‌بیند."
+            ],
+            "priority": "critical",
+            "dependencies": [
+                "POM-SETUP-001"
+            ]
+        },
+        {
+            "id": "POM-API-005",
+            "title": "Endpointها: place, get, query (با Idempotency-Key)",
+            "changes": [
+                "POST /api/orders/place: خواندن هدر 'Idempotency-Key' (fallback از body)، ساخت Order (Pending) و بازگشت orderId + correlationId.",
+                "GET /api/orders/{id}: اطلاعات سفارش + خطوط.",
+                "GET /api/orders: فیلتر status/date + paging.",
+                "Logging ساختاری با correlationId/tenantId."
+            ],
+            "acceptanceCriteria": [
+                "دو بار place با Idempotency-Key یکسان → سفارش تکراری نسازد (همان نتیجه).",
+                "Swagger نمونه Request/Response داشته باشد."
+            ],
+            "priority": "critical",
+            "dependencies": [
+                "POM-ACL-004",
+                "POM-INFRA-003"
+            ]
+        },
+        {
+            "id": "POM-OUTBOX-006",
+            "title": "انتشار OrderPlaced.v1 از طریق Outbox",
+            "changes": [
+                "پس از place موفق، ساخت OutboxMessage(Type='OrderPlaced.v1', Payload=eventJson, CorrelationId, TenantId).",
+                "Commit در همان تراکنش DB.",
+                "اتکا به OutboxPublisher (SharedKernel) برای Dispatch."
+            ],
+            "acceptanceCriteria": [
+                "بعد از place یک OutboxMessage درج شود و Publisher لاگ انتشار بدهد.",
+                "Payload با schema تعریف‌شده منطبق باشد."
+            ],
+            "priority": "critical",
+            "dependencies": [
+                "POM-API-005"
+            ]
+        },
+        {
+            "id": "POM-WF-STUB-007",
+            "title": "اتصال به WorkflowClient (Stub) برای Quote→Lock",
+            "changes": [
+                "Application Service: OnPlaceOrderHandler → فراخوانی IWorkflowClient.StartAsync(def='OrderFlow', ctx:{orderId,userId,items}).",
+                "Stub جریان: PriceQuoted → PriceLocked(expirySeconds=120) را شبیه‌سازی کند.",
+                "Persist: در دریافت PriceLocked، فیلدهای Order: TotalPrice و PriceLockExpiresAt را پر کن و Status = PriceLocked."
+            ],
+            "acceptanceCriteria": [
+                "پس از place، طی چند لحظه Status=PriceLocked و expiry پر شود (در Stub profile).",
+                "Query GET /orders/{id} این وضعیت را نشان دهد."
+            ],
+            "priority": "high",
+            "dependencies": [
+                "POM-OUTBOX-006"
+            ]
+        },
+        {
+            "id": "POM-MOVE-008",
+            "title": "انتقال OrderController موقتی از Wallet",
+            "changes": [
+                "حذف/انتقال کنترلر موقتی Order از ماژول Wallet به ProductOrder.Api.",
+                "اصلاح namespace/routeها."
+            ],
+            "acceptanceCriteria": [
+                "زیر Wallet هیچ Order* باقی نماند.",
+                "رoutes به درستی پاسخ دهند."
+            ],
+            "priority": "medium",
+            "dependencies": [
+                "POM-API-005"
+            ]
+        },
+        {
+            "id": "POM-TEST-009",
+            "title": "تست‌ها (Unit + Integration)",
+            "changes": [
+                "Unit: PlaceOrderIdempotencyTests (همان Idempotency-Key → بدون دابل).",
+                "Unit: Mapping/PrecisionTests برای decimal(18,6).",
+                "Integration (WebApplicationFactory): place → (Outbox) → Stub workflow → PriceLocked → GET.",
+                "Log assertions: وجود CorrelationId در لاگ‌ها."
+            ],
+            "acceptanceCriteria": [
+                "CI سبز؛ تست‌های E2E در profile=local-stub پاس شوند.",
+                "تست تکرار place با کلید یکسان پاس شود."
+            ],
+            "priority": "critical",
+            "dependencies": [
+                "POM-WF-STUB-007"
+            ]
+        },
+        {
+            "id": "POM-DOC-010",
+            "title": "مستندسازی ماژول و نمونه‌ها",
+            "changes": [
+                "Module_README: ERD ساده، فلو place→lock، قرارداد رویدادها، نمونه cURL.",
+                "نمونه درخواست/پاسخ Swagger و سناریوی smoke-test."
+            ],
+            "acceptanceCriteria": [
+                "Dev می‌تواند با خواندن README ماژول را راه بیندازد و تست کند.",
+                "نمونه‌ها با API واقعی همخوان باشند."
+            ],
+            "priority": "medium",
+            "dependencies": [
+                "POM-API-005"
+            ]
+        }
+    ],
+    "smokeTest": [
+        "1) Login و دریافت JWT.",
+        "2) POST /api/orders/place با هدر Idempotency-Key و 1-2 آیتم ساختگی.",
+        "3) بررسی درج رکورد در Orders و OutboxMessage(Type='OrderPlaced.v1').",
+        "4) در profile=local-stub: انتظار دریافت PriceLocked (Status=PriceLocked, TotalPrice, PriceLockExpiresAt).",
+        "5) GET /api/orders/{id} باید وضعیت به‌روزشده را نشان دهد.",
+        "6) همان place را با Idempotency-Key یکسان تکرار کن → نتیجه‌ی قبلی بازگردد (بدون ایجاد سفارش جدید).",
+        "7) بدون پرمی션 ORDER.CREATE → 403، با پرمیشن → 200."
+    ],
+    "risks": [
+        "عدم هماهنگی Providerهای مختلف DB برای JSON column (sqlserver vs postgres) → با Feature Flag یا HasColumnType کنترل شود.",
+        "Race condition در Update وضعیت PriceLocked → حفظ تراکنش و RowVersion (اختیاری) در Order.",
+        "حجم Payload در Outbox برای سفارش‌های بزرگ → بررسی سایز ستون و فشرده‌سازی اختیاری."
+    ],
+    "doneDefinition": [
+        "تمام acceptanceCriteria تسک‌ها پاس شده.",
+        "E2E profile=local-stub سبز.",
+        "Outbox برای OrderPlaced کار می‌کند.",
+        "ACL و اسکوپ کاربر روی تمام endpointها enforced.",
+        "OrderController موقتی در Wallet حذف/منتقل شده."
+    ]
+}

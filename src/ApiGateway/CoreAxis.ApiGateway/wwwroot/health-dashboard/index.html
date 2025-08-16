@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoreAxis Health Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .health-status {
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        .status-healthy {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .status-unhealthy {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .status-degraded {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">CoreAxis Health Dashboard</h1>
+                <button id="refresh-btn" class="btn btn-primary mb-3">Refresh Status</button>
+                <div id="health-status">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading health status...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        async function fetchHealthStatus() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                displayHealthStatus(data);
+            } catch (error) {
+                console.error('Error fetching health status:', error);
+                displayError('Failed to fetch health status');
+            }
+        }
+
+        function displayHealthStatus(data) {
+            const container = document.getElementById('health-status');
+            const status = data.status || 'Unknown';
+            const statusClass = getStatusClass(status);
+            
+            let html = `
+                <div class="health-status ${statusClass}">
+                    <h3>Overall Status: ${status}</h3>
+                    <p><strong>Total Duration:</strong> ${data.totalDuration || 'N/A'}</p>
+                </div>
+            `;
+
+            if (data.entries) {
+                html += '<h4>Service Details:</h4>';
+                for (const [key, value] of Object.entries(data.entries)) {
+                    const serviceStatusClass = getStatusClass(value.status);
+                    html += `
+                        <div class="health-status ${serviceStatusClass}">
+                            <h5>${key}</h5>
+                            <p><strong>Status:</strong> ${value.status}</p>
+                            <p><strong>Duration:</strong> ${value.duration || 'N/A'}</p>
+                            ${value.description ? `<p><strong>Description:</strong> ${value.description}</p>` : ''}
+                            ${value.data ? `<pre><code>${JSON.stringify(value.data, null, 2)}</code></pre>` : ''}
+                        </div>
+                    `;
+                }
+            }
+
+            container.innerHTML = html;
+        }
+
+        function getStatusClass(status) {
+            switch (status?.toLowerCase()) {
+                case 'healthy':
+                    return 'status-healthy';
+                case 'unhealthy':
+                    return 'status-unhealthy';
+                case 'degraded':
+                    return 'status-degraded';
+                default:
+                    return 'status-degraded';
+            }
+        }
+
+        function displayError(message) {
+            const container = document.getElementById('health-status');
+            container.innerHTML = `
+                <div class="health-status status-unhealthy">
+                    <h3>Error</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        // Event listeners
+        document.getElementById('refresh-btn').addEventListener('click', fetchHealthStatus);
+
+        // Initial load
+        fetchHealthStatus();
+    </script>
+</body>
+</html>

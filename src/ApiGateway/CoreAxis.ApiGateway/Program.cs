@@ -3,6 +3,8 @@ using CoreAxis.ApiGateway.Logging;
 using CoreAxis.BuildingBlocks;
 using CoreAxis.EventBus;
 using CoreAxis.Modules.AuthModule.API;
+using CoreAxis.Modules.WalletModule.Api;
+using CoreAxis.Modules.ProductOrderModule.Api;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
@@ -89,6 +91,10 @@ try
     var walletModuleAssembly = typeof(CoreAxis.Modules.WalletModule.Api.WalletModule).Assembly;
     Console.WriteLine($"WalletModule assembly loaded: {walletModuleAssembly.FullName}");
 
+    // Force load ProductOrderModule assembly
+    var productOrderModuleAssembly = typeof(CoreAxis.Modules.ProductOrderModule.Api.ProductOrderModule).Assembly;
+    Console.WriteLine($"ProductOrderModule assembly loaded: {productOrderModuleAssembly.FullName}");
+
     // Debug: List all loaded assemblies
     var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
     Console.WriteLine($"Total loaded assemblies: {loadedAssemblies.Length}");
@@ -97,6 +103,9 @@ try
         Console.WriteLine($"Assembly: {assembly.GetName().Name}");
     }
 
+    // Register ProductOrderModule
+    builder.Services.AddProductOrderModuleApi(builder.Configuration);
+    
     var modules = moduleRegistrar.DiscoverAndRegisterModules(builder.Services);
     Console.WriteLine($"Discovered modules: {modules.Count()}");
 

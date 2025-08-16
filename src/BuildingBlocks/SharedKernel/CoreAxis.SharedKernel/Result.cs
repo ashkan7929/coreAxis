@@ -33,18 +33,22 @@ namespace CoreAxis.SharedKernel
         /// <returns>A successful result.</returns>
         public static Result<T> Success(T value)
         {
+            if (value == null)
+                throw new ArgumentNullException(nameof(value));
             return new Result<T> { IsSuccess = true, Value = value };
         }
 
         /// <summary>
         /// Creates a failed result with the specified error message.
         /// </summary>
-        /// <param name="error">The error message.</param>
+        /// <param name="errorMessage">The error message.</param>
         /// <returns>A failed result.</returns>
-        public static Result<T> Failure(string error)
+        public static Result<T> Failure(string errorMessage)
         {
+            if (string.IsNullOrWhiteSpace(errorMessage))
+                throw new ArgumentException("Error message cannot be null or empty.", nameof(errorMessage));
             var result = new Result<T> { IsSuccess = false };
-            result._errors.Add(error);
+            result._errors.Add(errorMessage);
             return result;
         }
 
@@ -66,6 +70,8 @@ namespace CoreAxis.SharedKernel
         /// <param name="value">The value to convert.</param>
         public static implicit operator Result<T>(T value)
         {
+            if (value == null)
+                throw new ArgumentNullException(nameof(value));
             return Success(value);
         }
     }
@@ -87,11 +93,13 @@ namespace CoreAxis.SharedKernel
         /// <summary>
         /// Creates a failed result with the specified error message.
         /// </summary>
-        /// <param name="error">The error message.</param>
+        /// <param name="errorMessage">The error message.</param>
         /// <returns>A failed result.</returns>
-        public static Result<bool> Failure(string error)
+        public static Result<bool> Failure(string errorMessage)
         {
-            return Result<bool>.Failure(error);
+            if (string.IsNullOrWhiteSpace(errorMessage))
+                throw new ArgumentException("Error message cannot be null or empty.", nameof(errorMessage));
+            return Result<bool>.Failure(errorMessage);
         }
 
         /// <summary>
