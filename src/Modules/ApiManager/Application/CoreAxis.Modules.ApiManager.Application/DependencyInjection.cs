@@ -1,5 +1,6 @@
 using CoreAxis.Modules.ApiManager.Application.Contracts;
 using CoreAxis.Modules.ApiManager.Application.Services;
+using CoreAxis.Modules.ApiManager.Application.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly;
@@ -23,6 +24,9 @@ public static class DependencyInjection
 
         // Register services
         services.AddScoped<IApiProxy, ApiProxy>();
+
+        // Add health checks
+        services.AddApiManagerHealthChecks();
 
         return services;
     }

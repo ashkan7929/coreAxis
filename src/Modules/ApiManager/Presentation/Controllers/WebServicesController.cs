@@ -1,6 +1,8 @@
 using CoreAxis.Modules.ApiManager.Application.Commands;
 using CoreAxis.Modules.ApiManager.Application.Queries;
+using CoreAxis.Modules.AuthModule.API.Authz;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -8,6 +10,7 @@ namespace CoreAxis.Modules.ApiManager.Presentation.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class WebServicesController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -23,6 +26,7 @@ public class WebServicesController : ControllerBase
     /// Get all web services with optional filtering and pagination
     /// </summary>
     [HttpGet]
+    [HasPermission("ApiManager", "Read")]
     public async Task<ActionResult<GetWebServicesResult>> GetWebServices(
         [FromQuery] string? ownerTenantId = null,
         [FromQuery] bool? isActive = null,
@@ -47,6 +51,7 @@ public class WebServicesController : ControllerBase
     /// Get web service details by ID
     /// </summary>
     [HttpGet("{id:guid}")]
+    [HasPermission("ApiManager", "Read")]
     public async Task<ActionResult<WebServiceDetailsDto>> GetWebService(
         Guid id,
         CancellationToken cancellationToken = default)
@@ -74,6 +79,7 @@ public class WebServicesController : ControllerBase
     /// Create a new web service
     /// </summary>
     [HttpPost]
+    [HasPermission("ApiManager", "Create")]
     public async Task<ActionResult<CreateWebServiceResponse>> CreateWebService(
         [FromBody] CreateWebServiceRequest request,
         CancellationToken cancellationToken = default)
@@ -114,6 +120,7 @@ public class WebServicesController : ControllerBase
     /// Create a new method for a web service
     /// </summary>
     [HttpPost("{webServiceId:guid}/methods")]
+    [HasPermission("ApiManager", "Create")]
     public async Task<ActionResult<CreateWebServiceMethodResponse>> CreateWebServiceMethod(
         Guid webServiceId,
         [FromBody] CreateWebServiceMethodRequest request,
@@ -166,6 +173,7 @@ public class WebServicesController : ControllerBase
     /// Test/invoke a web service method
     /// </summary>
     [HttpPost("methods/{methodId:guid}/invoke")]
+    [HasPermission("ApiManager", "Execute")]
     public async Task<ActionResult<InvokeApiMethodResponse>> InvokeMethod(
         Guid methodId,
         [FromBody] InvokeApiMethodRequest request,
@@ -203,6 +211,7 @@ public class WebServicesController : ControllerBase
     /// Get call logs with optional filtering
     /// </summary>
     [HttpGet("call-logs")]
+    [HasPermission("ApiManager", "Read")]
     public async Task<ActionResult<GetCallLogsResult>> GetCallLogs(
         [FromQuery] Guid? webServiceId = null,
         [FromQuery] Guid? methodId = null,

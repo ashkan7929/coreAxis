@@ -1,5 +1,6 @@
 using MediatR;
 using CoreAxis.Modules.ApiManager.Domain;
+using CoreAxis.Modules.ApiManager.Application.DTOs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -14,19 +15,14 @@ public record WebServiceDetailsDto(
     string BaseUrl,
     bool IsActive,
     Guid? SecurityProfileId,
-    SecurityProfileDto? SecurityProfile,
+    SecurityProfileSummaryDto? SecurityProfile,
     string? OwnerTenantId,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
     List<WebServiceMethodDto> Methods
 );
 
-public record SecurityProfileDto(
-    Guid Id,
-    string Type,
-    string ConfigJson,
-    string? RotationPolicy
-);
+
 
 public record WebServiceMethodDto(
     Guid Id,
@@ -85,7 +81,7 @@ public class GetWebServiceDetailsQueryHandler : IRequestHandler<GetWebServiceDet
             webService.BaseUrl,
             webService.IsActive,
             webService.SecurityProfileId,
-            webService.SecurityProfile != null ? new SecurityProfileDto(
+            webService.SecurityProfile != null ? new SecurityProfileSummaryDto(
                 webService.SecurityProfile.Id,
                 webService.SecurityProfile.Type.ToString(),
                 webService.SecurityProfile.ConfigJson,

@@ -1,21 +1,25 @@
-using CoreAxis.Modules.ApiManager.Domain;
+using CoreAxis.Modules.ApiManager.Application.Commands;
+using CoreAxis.Modules.ApiManager.Application.Queries;
+using CoreAxis.Modules.ApiManager.Application.DTOs;
+using CoreAxis.Modules.AuthModule.API.Authz;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace CoreAxis.Modules.ApiManager.Presentation.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class SecurityProfilesController : ControllerBase
 {
-    private readonly DbContext _dbContext;
+    private readonly IMediator _mediator;
     private readonly ILogger<SecurityProfilesController> _logger;
 
-    public SecurityProfilesController(DbContext dbContext, ILogger<SecurityProfilesController> logger)
+    public SecurityProfilesController(IMediator mediator, ILogger<SecurityProfilesController> logger)
     {
-        _dbContext = dbContext;
+        _mediator = mediator;
         _logger = logger;
     }
 
@@ -23,22 +27,13 @@ public class SecurityProfilesController : ControllerBase
     /// Get all security profiles
     /// </summary>
     [HttpGet]
+    [HasPermission("ApiManager", "Read")]
     public async Task<ActionResult<List<SecurityProfileDto>>> GetSecurityProfiles(
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var profiles = await _dbContext.Set<SecurityProfile>()
-                .Select(sp => new SecurityProfileDto(
-                    sp.Id,
-                    sp.Type.ToString(),
-                    sp.ConfigJson,
-                    sp.RotationPolicy,
-                    sp.CreatedAt,
-                    sp.UpdatedAt
-                ))
-                .ToListAsync(cancellationToken);
-
+            var profiles = await _mediator.Send(new GetSecurityProfilesQuery(), cancellationToken);
             return Ok(profiles);
         }
         catch (Exception ex)
@@ -52,23 +47,14 @@ public class SecurityProfilesController : ControllerBase
     /// Get security profile by ID
     /// </summary>
     [HttpGet("{id:guid}")]
+    [HasPermission("ApiManager", "Read")]
     public async Task<ActionResult<SecurityProfileDto>> GetSecurityProfile(
         Guid id,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var profile = await _dbContext.Set<SecurityProfile>()
-                .Where(sp => sp.Id == id)
-                .Select(sp => new SecurityProfileDto(
-                    sp.Id,
-                    sp.Type.ToString(),
-                    sp.ConfigJson,
-                    sp.RotationPolicy,
-                    sp.CreatedAt,
-                    sp.UpdatedAt
-                ))
-                .FirstOrDefaultAsync(cancellationToken);
+            var profile = await _mediator.Send(new GetSecurityProfileByIdQuery(id), cancellationToken);
 
             if (profile == null)
             {
@@ -88,31 +74,30 @@ public class SecurityProfilesController : ControllerBase
     /// Create a new security profile
     /// </summary>
     [HttpPost]
+    [HasPermission("ApiManager", "Create")]
     public async Task<ActionResult<CreateSecurityProfileResponse>> CreateSecurityProfile(
         [FromBody] CreateSecurityProfileRequest request,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            if (!Enum.TryParse<SecurityType>(request.Type, out var securityType))
-            {
-                return BadRequest(new { message = $"Invalid security type: {request.Type}" });
-            }
-
-            var profile = new SecurityProfile(
-                securityType,
+            var command = new CreateSecurityProfileCommand(
+                request.Type,
                 request.ConfigJson,
                 request.RotationPolicy
             );
 
-            _dbContext.Set<SecurityProfile>().Add(profile);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            var profileId = await _mediator.Send(command, cancellationToken);
 
-            _logger.LogInformation("Created security profile {Type} with ID {Id}", 
-                request.Type, profile.Id);
-
-            var response = new CreateSecurityProfileResponse(profile.Id);
-            return CreatedAtAction(nameof(GetSecurityProfile), new { id = profile.Id }, response);
+            return CreatedAtAction(
+                nameof(GetSecurityProfile),
+                new { id = profileId },
+                new CreateSecurityProfileResponse(profileId)
+            );
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -122,9 +107,10 @@ public class SecurityProfilesController : ControllerBase
     }
 
     /// <summary>
-    /// Update an existing security profile
+    /// Update a security profile
     /// </summary>
     [HttpPut("{id:guid}")]
+    [HasPermission("ApiManager", "Update")]
     public async Task<ActionResult> UpdateSecurityProfile(
         Guid id,
         [FromBody] UpdateSecurityProfileRequest request,
@@ -132,23 +118,18 @@ public class SecurityProfilesController : ControllerBase
     {
         try
         {
-            var profile = await _dbContext.Set<SecurityProfile>()
-                .FirstOrDefaultAsync(sp => sp.Id == id, cancellationToken);
+            var command = new UpdateSecurityProfileCommand(
+                id,
+                request.ConfigJson,
+                request.RotationPolicy
+            );
 
-            if (profile == null)
+            var success = await _mediator.Send(command, cancellationToken);
+
+            if (!success)
             {
                 return NotFound(new { message = $"Security profile with ID {id} not found" });
             }
-
-            profile.Update(
-                profile.Type,
-                !string.IsNullOrEmpty(request.ConfigJson) ? request.ConfigJson : profile.ConfigJson,
-                !string.IsNullOrEmpty(request.RotationPolicy) ? request.RotationPolicy : profile.RotationPolicy
-            );
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Updated security profile {ProfileId}", id);
 
             return NoContent();
         }
@@ -163,35 +144,26 @@ public class SecurityProfilesController : ControllerBase
     /// Delete a security profile
     /// </summary>
     [HttpDelete("{id:guid}")]
+    [HasPermission("ApiManager", "Delete")]
     public async Task<ActionResult> DeleteSecurityProfile(
         Guid id,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var profile = await _dbContext.Set<SecurityProfile>()
-                .FirstOrDefaultAsync(sp => sp.Id == id, cancellationToken);
+            var command = new DeleteSecurityProfileCommand(id);
+            var success = await _mediator.Send(command, cancellationToken);
 
-            if (profile == null)
+            if (!success)
             {
                 return NotFound(new { message = $"Security profile with ID {id} not found" });
             }
 
-            // Check if profile is being used by any web services
-            var isInUse = await _dbContext.Set<WebService>()
-                .AnyAsync(ws => ws.SecurityProfileId == id, cancellationToken);
-
-            if (isInUse)
-            {
-                return BadRequest(new { message = "Cannot delete security profile that is in use by web services" });
-            }
-
-            _dbContext.Set<SecurityProfile>().Remove(profile);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Deleted security profile {ProfileId}", id);
-
             return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {

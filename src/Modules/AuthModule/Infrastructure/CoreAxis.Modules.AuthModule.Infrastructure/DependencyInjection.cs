@@ -45,6 +45,7 @@ public static class DependencyInjection
         services.AddScoped<IShahkarService, ShahkarService>();
         services.AddScoped<ICivilRegistryService, CivilRegistryService>();
         services.AddScoped<IMegfaSmsService, MegfaSmsService>();
+        services.AddScoped<IAuthDataSeeder, AuthDataSeeder>();
 
         // Add HttpClient for external services
         services.AddHttpClient<IShahkarService, ShahkarService>();

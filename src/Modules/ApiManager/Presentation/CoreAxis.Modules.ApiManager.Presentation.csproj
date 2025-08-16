@@ -17,6 +17,7 @@
     <ProjectReference Include="..\..\..\SharedKernel\CoreAxis.SharedKernel.csproj" />
     <ProjectReference Include="..\Application\CoreAxis.Modules.ApiManager.Application\CoreAxis.Modules.ApiManager.Application.csproj" />
     <ProjectReference Include="..\Domain\CoreAxis.Modules.ApiManager.Domain.csproj" />
+    <ProjectReference Include="..\..\AuthModule\API\CoreAxis.Modules.AuthModule.API\CoreAxis.Modules.AuthModule.API.csproj" />
   </ItemGroup>
 
 </Project>

@@ -10,6 +10,8 @@
     <PackageReference Include="MediatR" Version="12.2.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.8" />
     <PackageReference Include="Polly" Version="8.2.0" />
     <PackageReference Include="Polly.Extensions.Http" Version="3.0.0" />
   </ItemGroup>
@@ -18,6 +20,7 @@
     <ProjectReference Include="..\..\..\..\BuildingBlocks\SharedKernel\CoreAxis.SharedKernel\CoreAxis.SharedKernel.csproj" />
     <ProjectReference Include="..\..\..\..\EventBus\CoreAxis.EventBus\CoreAxis.EventBus.csproj" />
     <ProjectReference Include="..\..\Domain\CoreAxis.Modules.ApiManager.Domain\CoreAxis.Modules.ApiManager.Domain.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\CoreAxis.Modules.ApiManager.Infrastructure\CoreAxis.Modules.ApiManager.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

@@ -106,10 +106,70 @@ public class WorkflowClientStub : IWorkflowClient
 
     private async Task HandleQuoteWorkflow(WorkflowState state, CancellationToken cancellationToken)
     {
-        // This is a placeholder for quote workflow logic
-        await Task.Delay(100, cancellationToken);
-        state.Status = "Completed";
-        state.Result = "Quote workflow completed";
+        try
+        {
+            // Extract order context from workflow state
+            var contextJson = JsonSerializer.Serialize(state.Context);
+            var orderContext = JsonSerializer.Deserialize<Dictionary<string, object>>(contextJson);
+            
+            if (orderContext == null)
+            {
+                state.Status = "Failed";
+                state.Error = "Invalid order context";
+                return;
+            }
+
+            var orderId = Guid.Parse(orderContext["OrderId"].ToString()!);
+            var assetCode = orderContext["AssetCode"].ToString()!;
+            var quantity = Convert.ToDecimal(orderContext["Quantity"]);
+            var tenantId = orderContext["TenantId"].ToString()!;
+            var correlationId = Guid.Parse(orderContext["CorrelationId"].ToString()!);
+
+            _logger.LogInformation("Processing Quote→Lock workflow for Order {OrderId}, Asset {AssetCode}, Quantity {Quantity}", 
+                orderId, assetCode, quantity);
+
+            // Step 1: Get price quote using PriceProvider
+             var priceContext = new CoreAxis.SharedKernel.Ports.PriceContext(
+                 tenantId: tenantId,
+                 userId: Guid.Parse(orderContext["UserId"].ToString()!),
+                 correlationId: correlationId
+             );
+
+             var quote = await _priceProvider.GetQuoteAsync(assetCode, quantity, priceContext, cancellationToken);
+             var price = quote.Price;
+            
+            _logger.LogInformation("Retrieved price {Price} for asset {AssetCode}", price, assetCode);
+
+            // Step 2: Lock the price (simulate lock duration)
+            var lockedAt = DateTime.UtcNow;
+            var expiresAt = lockedAt.AddMinutes(15); // 15 minutes lock duration
+            
+            // Step 3: Publish PriceLocked event
+            var priceLocked = new PriceLocked(
+                orderId: orderId,
+                assetCode: assetCode,
+                quantity: quantity,
+                lockedPrice: price,
+                lockedAt: lockedAt,
+                expiresAt: expiresAt,
+                tenantId: tenantId,
+                correlationId: correlationId
+            );
+
+            await _eventBus.PublishAsync(priceLocked);
+            
+            state.Status = "Completed";
+            state.Result = new { Price = price, LockedAt = lockedAt, ExpiresAt = expiresAt };
+            
+            _logger.LogInformation("Successfully completed Quote→Lock workflow for Order {OrderId}. Price {Price} locked until {ExpiresAt}", 
+                orderId, price, expiresAt);
+        }
+        catch (Exception ex)
+        {
+            state.Status = "Failed";
+            state.Error = ex.Message;
+            _logger.LogError(ex, "Error in quote workflow for workflow {WorkflowId}", state.WorkflowId);
+        }
     }
 
     private async Task HandlePriceLockWorkflow(WorkflowState state, CancellationToken cancellationToken)

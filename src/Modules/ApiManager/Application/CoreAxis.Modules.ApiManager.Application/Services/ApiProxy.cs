@@ -51,6 +51,8 @@ public class ApiProxy : IApiProxy
 
             // Create call log
             var callLog = new WebServiceCallLog(method.WebServiceId, method.Id, correlationId);
+            callLog.CreatedBy = "system"; // TODO: Get from current user context
+            callLog.LastModifiedBy = "system";
             _dbContext.Set<WebServiceCallLog>().Add(callLog);
 
             // Build HTTP request

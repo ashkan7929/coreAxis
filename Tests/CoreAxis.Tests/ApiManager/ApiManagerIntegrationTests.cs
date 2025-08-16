@@ -31,6 +31,8 @@ namespace CoreAxis.Tests.ApiManager
         {
             // Create
             var webService = new WebService("TestAPI", "https://api.test.com", "Test API Description");
+            webService.CreatedBy = "test-user";
+            webService.LastModifiedBy = "test-user";
             _dbContext.WebServices.Add(webService);
             await _dbContext.SaveChangesAsync();
 
@@ -64,10 +66,14 @@ namespace CoreAxis.Tests.ApiManager
         {
             // Arrange
             var webService = new WebService("TestAPI", "https://api.test.com");
+            webService.CreatedBy = "test-user";
+            webService.LastModifiedBy = "test-user";
             _dbContext.WebServices.Add(webService);
             await _dbContext.SaveChangesAsync();
 
             var method = new WebServiceMethod(webService.Id, "/users", "GET", 30000);
+            method.CreatedBy = "test-user";
+            method.LastModifiedBy = "test-user";
             _dbContext.WebServiceMethods.Add(method);
             await _dbContext.SaveChangesAsync();
 
@@ -89,11 +95,15 @@ namespace CoreAxis.Tests.ApiManager
             // Arrange
             var configJson = "{\"headerName\": \"X-API-Key\", \"apiKey\": \"test-key\"}";
             var securityProfile = new SecurityProfile(SecurityType.ApiKey, configJson);
+            securityProfile.CreatedBy = "test-user";
+            securityProfile.LastModifiedBy = "test-user";
             _dbContext.SecurityProfiles.Add(securityProfile);
             await _dbContext.SaveChangesAsync();
 
             var webService = new WebService("SecureAPI", "https://secure.api.com", 
                 "Secure API", securityProfile.Id);
+            webService.CreatedBy = "test-user";
+            webService.LastModifiedBy = "test-user";
             _dbContext.WebServices.Add(webService);
             await _dbContext.SaveChangesAsync();
 
@@ -114,15 +124,21 @@ namespace CoreAxis.Tests.ApiManager
         {
             // Arrange
             var webService = new WebService("LogTestAPI", "https://log.test.com");
+            webService.CreatedBy = "test-user";
+            webService.LastModifiedBy = "test-user";
             _dbContext.WebServices.Add(webService);
             await _dbContext.SaveChangesAsync();
 
             var method = new WebServiceMethod(webService.Id, "/test", "POST", 15000);
+            method.CreatedBy = "test-user";
+            method.LastModifiedBy = "test-user";
             _dbContext.WebServiceMethods.Add(method);
             await _dbContext.SaveChangesAsync();
 
             var correlationId = Guid.NewGuid().ToString();
             var callLog = new WebServiceCallLog(webService.Id, method.Id, correlationId);
+            callLog.CreatedBy = "test-user";
+            callLog.LastModifiedBy = "test-user";
             callLog.SetRequest("POST /test HTTP/1.1\nContent-Type: application/json\n\n{\"test\": true}");
             callLog.SetResponse("{\"success\": true}", 200, 150, true);
             
