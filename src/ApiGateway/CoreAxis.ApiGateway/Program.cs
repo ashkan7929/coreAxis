@@ -54,39 +54,34 @@ try
               .AllowCredentials();
     });
 });
+    // Add Swagger
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen(c =>
-    {
-        c.SwaggerDoc("v1", new() { Title = "CoreAxis API", Version = "v1" });
-
-        // Add JWT Bearer authentication to Swagger
-        c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-        {
-            Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
-            Name = "Authorization",
-            In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-            Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-            Scheme = "Bearer"
-        });
-
-        c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
-        {
-            {
-                new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-                {
-                    Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                    {
-                        Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                        Id = "Bearer"
-                    }
-                },
-                Array.Empty<string>()
-            }
-        });
-    });
+    builder.Services.AddSwaggerGen();
 
     // Register event bus
     builder.Services.AddSingleton<IEventBus, InMemoryEventBus>();
+
+    // Add JWT Authentication (centralized configuration)
+    builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+                    System.Text.Encoding.ASCII.GetBytes(builder.Configuration["Jwt:SecretKey"] ?? 
+                    throw new InvalidOperationException("JWT SecretKey is not configured"))),
+                ValidateIssuer = true,
+                ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                ValidateAudience = true,
+                ValidAudience = builder.Configuration["Jwt:Audience"],
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            };
+        });
+    
+    // Add Authorization
+    builder.Services.AddAuthorization();
 
     // Add health checks
     builder.Services.AddCoreAxisHealthChecks();
@@ -136,16 +131,18 @@ try
     app.UseCors("AllowLocalhost8030");
 
     // Configure the HTTP request pipeline.
-    // Always enable Swagger for API documentation
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI(c =>
+        {
+            c.SwaggerEndpoint("/swagger/v1/swagger.json", "CoreAxis API V1");
+            c.RoutePrefix = "swagger";
+        });
+    }
 
     if (app.Environment.IsDevelopment())
     {
-        // Configure modules
-        var devModules = moduleRegistrar.GetRegisteredModules();
-        moduleRegistrar.ConfigureModules(devModules, app);
-
         // Use health checks
         app.UseCoreAxisHealthChecks();
     }
@@ -201,14 +198,34 @@ try
     moduleRegistrar.ConfigureModules(registeredModules, app);
 
     // Log registered modules
+    Console.WriteLine("About to get logger service...");
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    Console.WriteLine("Logger service obtained successfully.");
+    Console.WriteLine("About to log registered modules...");
     logger.LogInformation("Registered modules: {ModuleCount}", registeredModules.Count);
+    Console.WriteLine("Logged module count.");
     foreach (var module in registeredModules)
     {
         logger.LogInformation("Module: {ModuleName}", module.Name);
     }
+    Console.WriteLine("Finished logging all modules.");
 
-    app.Run();
+    Console.WriteLine("About to log starting message...");
+    logger.LogInformation("Starting CoreAxis API Gateway on http://localhost:5000");
+    Console.WriteLine("Starting message logged.");
+    
+    try
+    {
+        Console.WriteLine("About to call app.Run()...");
+        app.Run();
+        Console.WriteLine("app.Run() completed.");
+    }
+    catch (Exception runEx)
+    {
+        Console.WriteLine($"Exception in app.Run(): {runEx.Message}");
+        logger.LogError(runEx, "Error occurred while running the application");
+        throw;
+    }
 }
 catch (Exception ex)
 {

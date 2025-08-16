@@ -121,7 +121,7 @@ public class WorkflowClientStub : IWorkflowClient
 
             var orderId = Guid.Parse(orderContext["OrderId"].ToString()!);
             var assetCode = orderContext["AssetCode"].ToString()!;
-            var quantity = Convert.ToDecimal(orderContext["Quantity"]);
+            var quantity = Convert.ToDecimal(orderContext["Quantity"].ToString());
             var tenantId = orderContext["TenantId"].ToString()!;
             var correlationId = Guid.Parse(orderContext["CorrelationId"].ToString()!);
 

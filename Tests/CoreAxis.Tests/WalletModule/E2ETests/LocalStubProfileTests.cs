@@ -128,9 +128,12 @@ public class LocalStubProfileTests
         
         var context = new Dictionary<string, object>
         {
-            ["orderId"] = Guid.NewGuid(),
-            ["assetCode"] = "BTC",
-            ["quantity"] = 0.1m
+            ["OrderId"] = Guid.NewGuid(),
+            ["AssetCode"] = "BTC",
+            ["Quantity"] = 0.1m,
+            ["TenantId"] = "test-tenant",
+            ["CorrelationId"] = Guid.NewGuid(),
+            ["UserId"] = Guid.NewGuid()
         };
 
         // Act

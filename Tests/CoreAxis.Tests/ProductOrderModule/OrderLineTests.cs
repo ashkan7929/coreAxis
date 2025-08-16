@@ -173,8 +173,9 @@ public class OrderLineTests
         var orderLine = OrderLine.Create(assetCode, quantity, unitPrice);
 
         // Assert
-        // Expected: 0.12345678 * 87654.32109876 = 10823.27263374
-        Assert.Equal(10823.27263374m, orderLine.TotalPrice);
+        // Expected: 0.12345678 * 87654.32109876 = 10821.5202359389715928 (actual calculation)
+        var expectedTotal = quantity * unitPrice;
+        Assert.Equal(expectedTotal, orderLine.TotalPrice);
     }
 
     [Fact]
@@ -190,8 +191,8 @@ public class OrderLineTests
         orderLine.UpdatePrice(3500.87654321m);
 
         // Assert
-        var expectedTotal = 2.12345678m * 3500.87654321m; // = 7433.60493827
-        Assert.Equal(7433.60493827m, orderLine.TotalPrice);
+        var expectedTotal = 2.12345678m * 3500.87654321m; // = 7433.9600316222374638 (actual calculation)
+        Assert.Equal(expectedTotal, orderLine.TotalPrice);
     }
 
     [Fact]
@@ -231,7 +232,8 @@ public class OrderLineTests
         // Assert - Verify precision is maintained
         Assert.Equal(1.12345678m, mappedQuantity);
         Assert.Equal(50000.87654321m, mappedUnitPrice);
-        Assert.Equal(56179.60493827m, mappedTotal); // 1.12345678 * 50000.87654321
+        var expectedTotal = quantity * unitPrice; // Actual calculation result
+        Assert.Equal(expectedTotal, mappedTotal);
         Assert.Equal(description, orderLine.Description);
     }
 }

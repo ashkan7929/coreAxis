@@ -20,24 +20,8 @@ public static class DependencyInjection
         // Add Infrastructure layer
         services.AddAuthModuleInfrastructure(configuration);
         
-        // Add JWT Authentication
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.ASCII.GetBytes(configuration["Jwt:SecretKey"] ?? 
-                        throw new InvalidOperationException("JWT SecretKey is not configured"))),
-                    ValidateIssuer = true,
-                    ValidIssuer = configuration["Jwt:Issuer"],
-                    ValidateAudience = true,
-                    ValidAudience = configuration["Jwt:Audience"],
-                    ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero
-                };
-            });
+        // JWT Authentication is configured globally in API Gateway
+        // No need to configure it here to avoid "Scheme already exists" error
         
         // Add Authorization with custom policy provider
         services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
