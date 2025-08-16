@@ -15,8 +15,13 @@ CoreAxis/
 │   │   └── SharedKernel/        # Shared kernel for the project
 │   ├── EventBus/                # Event bus system
 │   ├── Infrastructure/          # Shared infrastructure
-│   └── Modules/                 # Various modules
-│       └── DemoModule/          # Illustrative module
+│   ├── Adapters/                # External service adapters
+│   │   └── Stubs/               # Test stubs and mocks
+│   └── Modules/                 # Business modules
+│       ├── DemoModule/          # Illustrative module
+│       ├── ProductOrderModule/  # Product and order management
+│       ├── WalletModule/        # Wallet and balance management
+│       └── MLMModule/           # Multi-level marketing
 │           ├── API/             # Application Programming Interface
 │           ├── Application/     # Application layer
 │           ├── Domain/          # Domain layer
@@ -62,10 +67,13 @@ CoreAxis/
 
 -   **Clean Architecture**: Clear separation between domain, application, infrastructure, and user interface layers
 -   **Modular Design**: Independent modules that can be developed and deployed separately
--   **Event System**: Communication between modules via events using MediatR
+-   **Event-Driven Architecture**: Communication between modules via integration events using MediatR and Outbox pattern
+-   **High-Precision Calculations**: Support for decimal precision up to 18,8 for financial operations
+-   **Idempotency Support**: Built-in idempotency handling for critical operations
 -   **Multi-language Support**: Full support for localization and translation
 -   **Health Checks**: Monitoring application and service status
 -   **API Documentation**: Automatic documentation using Swagger
+-   **Comprehensive Testing**: Unit, integration, and end-to-end tests with high coverage
 
 ## Module Development
 
@@ -80,11 +88,28 @@ Each module should contain:
 
 ## Tests
 
-Run tests:
+The project includes comprehensive test coverage:
+
+### Running Tests
 
 ```bash
+# Run all tests
 dotnet test
+
+# Run specific module tests
+dotnet test --filter "ProductOrderModule"
+dotnet test --filter "WalletModule"
+
+# Run tests with coverage
+dotnet test --collect:"XPlat Code Coverage"
 ```
+
+### Test Categories
+
+- **Unit Tests**: Domain logic, value objects, and business rules
+- **Integration Tests**: Module interactions and event handling
+- **Precision Tests**: High-precision decimal calculations and Money value object
+- **Idempotency Tests**: Ensuring operations can be safely retried
 
 ## Documentation
 
@@ -93,6 +118,13 @@ Refer to the `docs/` folder for detailed documentation on:
 -   System Architecture (ARCHITECTURE.md)
 -   Health Checks (HealthChecks.md)
 -   Continuous Integration (ContinuousIntegration.md)
+-   Precision Alignment (precision-alignment.md) - Decimal precision analysis between modules
+
+### Module-Specific Documentation
+
+- **ProductOrderModule**: Order management, pricing, and workflow integration
+- **WalletModule**: Balance management and transaction handling
+- **MLMModule**: Multi-level marketing and commission calculations
 
 ## Contribution
 

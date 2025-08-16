@@ -1,9 +1,9 @@
 using CoreAxis.EventBus;
-using CoreAxis.Modules.ProductOrderModule.Infrastructure.Data;
+using CoreAxis.Modules.ProductOrderModule.Domain.Orders;
 using CoreAxis.SharedKernel.Contracts.Events;
 using CoreAxis.Modules.ProductOrderModule.Domain.Entities;
 using CoreAxis.Modules.ProductOrderModule.Domain.ValueObjects;
-using Microsoft.EntityFrameworkCore;
+using CoreAxis.Modules.ProductOrderModule.Domain.Orders.ValueObjects;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 
@@ -15,14 +15,14 @@ namespace CoreAxis.Modules.ProductOrderModule.Infrastructure.EventHandlers;
 /// </summary>
 public class PriceLockedIntegrationEventHandler : IIntegrationEventHandler<PriceLocked>
 {
-    private readonly ProductOrderDbContext _context;
+    private readonly IOrderRepository _orderRepository;
     private readonly ILogger<PriceLockedIntegrationEventHandler> _logger;
 
     public PriceLockedIntegrationEventHandler(
-        ProductOrderDbContext context,
+        IOrderRepository orderRepository,
         ILogger<PriceLockedIntegrationEventHandler> logger)
     {
-        _context = context;
+        _orderRepository = orderRepository;
         _logger = logger;
     }
 
@@ -39,8 +39,7 @@ public class PriceLockedIntegrationEventHandler : IIntegrationEventHandler<Price
                 @event.OrderId, @event.LockedPrice);
 
             // Load order with for update to prevent race conditions
-            var order = await _context.Orders
-                .FirstOrDefaultAsync(o => o.Id == @event.OrderId);
+            var order = await _orderRepository.GetByIdAsync(@event.OrderId);
 
             if (order == null)
             {
@@ -49,19 +48,19 @@ public class PriceLockedIntegrationEventHandler : IIntegrationEventHandler<Price
             }
 
             // Check if order is in correct status for price locking
-            if (order.Status != CoreAxis.Modules.ProductOrderModule.Domain.Enums.OrderStatus.Pending)
+            if (order.Status != OrderStatus.Pending)
             {
                 _logger.LogWarning("Order {OrderId} is not in pending status. Current status: {Status}", @event.OrderId, order.Status);
                 return;
             }
 
             // Update order with locked price information
-            var lockedPrice = Money.Create(@event.LockedPrice, "USD"); // Default currency, should be configurable
             var expiryDuration = @event.ExpiresAt - @event.LockedAt;
             
-            order.LockPrice(lockedPrice, expiryDuration);
+            order.SetPriceLock(@event.LockedPrice, @event.ExpiresAt);
 
-            await _context.SaveChangesAsync();
+            await _orderRepository.UpdateAsync(order);
+            await _orderRepository.SaveChangesAsync();
 
             _logger.LogInformation("Successfully updated Order {OrderId} with locked price {LockedPrice}, expires at {ExpiresAt}", 
                 @event.OrderId, @event.LockedPrice, @event.ExpiresAt);
