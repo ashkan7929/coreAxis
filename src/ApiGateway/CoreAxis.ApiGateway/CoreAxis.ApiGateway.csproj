@@ -12,11 +12,13 @@
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.1" />
     <PackageReference Include="Serilog.Sinks.Console" Version="5.0.1" />
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+    <PackageReference Include="Serilog.Sinks.Seq" Version="6.0.0" />
     <PackageReference Include="AspNetCore.HealthChecks.UI" Version="8.0.0" />
     <PackageReference Include="AspNetCore.HealthChecks.UI.Client" Version="8.0.0" />
     <PackageReference Include="AspNetCore.HealthChecks.UI.InMemory.Storage" Version="8.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageReference Include="DotNetEnv" Version="3.0.0" />
+    <PackageReference Include="AspNetCoreRateLimit" Version="5.0.0" />
     <None Update=".env" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
@@ -26,6 +28,7 @@
     <ProjectReference Include="..\..\Modules\ProductOrderModule\Api\CoreAxis.Modules.ProductOrderModule.Api\CoreAxis.Modules.ProductOrderModule.Api.csproj" />
     <ProjectReference Include="..\..\Modules\AuthModule\API\CoreAxis.Modules.AuthModule.API\CoreAxis.Modules.AuthModule.API.csproj" />
     <ProjectReference Include="..\..\Modules\AuthModule\Infrastructure\CoreAxis.Modules.AuthModule.Infrastructure\CoreAxis.Modules.AuthModule.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\ApiManager\API\CoreAxis.Modules.ApiManager.API\CoreAxis.Modules.ApiManager.API.csproj" />
     <ProjectReference Include="..\..\EventBus\CoreAxis.EventBus\CoreAxis.EventBus.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\SharedKernel\CoreAxis.SharedKernel\CoreAxis.SharedKernel.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\BuildingBlocks\CoreAxis.BuildingBlocks\CoreAxis.BuildingBlocks.csproj" />

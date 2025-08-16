@@ -5,12 +5,14 @@ using CoreAxis.EventBus;
 using CoreAxis.Modules.AuthModule.API;
 using CoreAxis.Modules.WalletModule.Api;
 using CoreAxis.Modules.ProductOrderModule.Api;
+using CoreAxis.Modules.ApiManager.API;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
 using System;
 using DotNetEnv;
+using AspNetCoreRateLimit;
 
 try
 {
@@ -31,6 +33,17 @@ try
 
     // Add services to the container.
     builder.Services.AddControllers();
+    
+    // Add Localization
+    builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+    builder.Services.AddSingleton<Microsoft.Extensions.Localization.IStringLocalizer, Microsoft.Extensions.Localization.StringLocalizer<Program>>();
+
+    // Add Rate Limiting
+    builder.Services.AddMemoryCache();
+    builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
+    builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));
+    builder.Services.AddInMemoryRateLimiting();
+    builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
     builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowLocalhost8030", policy =>
@@ -95,6 +108,10 @@ try
     var productOrderModuleAssembly = typeof(CoreAxis.Modules.ProductOrderModule.Api.ProductOrderModule).Assembly;
     Console.WriteLine($"ProductOrderModule assembly loaded: {productOrderModuleAssembly.FullName}");
 
+    // Force load ApiManager assembly
+    var apiManagerModuleAssembly = typeof(CoreAxis.Modules.ApiManager.API.ApiManagerModule).Assembly;
+    Console.WriteLine($"ApiManager assembly loaded: {apiManagerModuleAssembly.FullName}");
+
     // Debug: List all loaded assemblies
     var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
     Console.WriteLine($"Total loaded assemblies: {loadedAssemblies.Length}");
@@ -109,14 +126,9 @@ try
     var modules = moduleRegistrar.DiscoverAndRegisterModules(builder.Services);
     Console.WriteLine($"Discovered modules: {modules.Count()}");
 
-    // Register ModuleEnricher for Serilog
-    builder.Services.AddSingleton<ModuleEnricher>();
+    // Configure Serilog
     Log.Logger = new LoggerConfiguration()
-        .ReadFrom.Configuration(new ConfigurationBuilder()
-            .AddJsonFile("serilog.json")
-            .Build())
-        .Enrich.FromLogContext()
-        .Enrich.With(builder.Services.BuildServiceProvider().GetRequiredService<ModuleEnricher>())
+        .ReadFrom.Configuration(builder.Configuration)
         .CreateLogger();
     builder.Host.UseSerilog();
 
@@ -142,6 +154,10 @@ try
     {
         app.UseHttpsRedirection();
     }
+    
+    // Use Rate Limiting
+    app.UseIpRateLimiting();
+    
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();

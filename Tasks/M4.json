@@ -1,0 +1,306 @@
+{
+    "milestone": "M4 - API Manager + Real Price Provider Integration",
+    "goal": "ایجاد ماژول API Manager برای تعریف/فراخوانی امن APIهای خارجی (با Retry/Timeout/CircuitBreaker/Logging) + پیاده‌سازی PriceProvider واقعی بر بستر API Manager و جایگزینی Stub قیمت در جریان Order (Quote→Lock).",
+    "assumptions": [
+        "SharedKernel شامل Outbox/Contracts/Correlation آماده است.",
+        "Auth & ACL فعال و نقش ادمین برای مدیریت WebServiceها موجود است.",
+        "ProductOrder از پورت IPriceProvider/IWorkflowClient استفاده می‌کند و قابل سوییچ از Stub به Real Provider است."
+    ],
+    "moduleStructure": {
+        "projects": [
+            "Modules/ApiManager/Domain/CoreAxis.Modules.ApiManager.Domain",
+            "Modules/ApiManager/Application/CoreAxis.Modules.ApiManager.Application",
+            "Modules/ApiManager/Infrastructure/CoreAxis.Modules.ApiManager.Infrastructure",
+            "Modules/ApiManager/Api/CoreAxis.Modules.ApiManager.Api"
+        ]
+    },
+    "domainEntities": [
+        {
+            "name": "WebService",
+            "fields": [
+                "Id",
+                "Name",
+                "BaseUrl",
+                "Description",
+                "SecurityProfileId",
+                "IsActive",
+                "OwnerTenantId",
+                "CreatedAt",
+                "UpdatedAt"
+            ]
+        },
+        {
+            "name": "SecurityProfile",
+            "fields": [
+                "Id",
+                "Type (ApiKey|OAuth2|None)",
+                "ConfigJson (kv for headers/tokens/scopes)",
+                "RotationPolicy"
+            ],
+            "note": "اسرار در محیط dev از appsettings؛ در prod با Secret Manager. فقط اشاره ذخیره شود."
+        },
+        {
+            "name": "WebServiceMethod",
+            "fields": [
+                "Id",
+                "WebServiceId",
+                "Path",
+                "HttpMethod",
+                "RequestSchema",
+                "ResponseSchema",
+                "TimeoutMs",
+                "RetryPolicyJson",
+                "CircuitPolicyJson",
+                "IsActive"
+            ]
+        },
+        {
+            "name": "WebServiceParam",
+            "fields": [
+                "Id",
+                "MethodId",
+                "Name",
+                "Location (query|header|route|body)",
+                "Type",
+                "IsRequired",
+                "DefaultValue"
+            ]
+        },
+        {
+            "name": "WebServiceCallLog",
+            "fields": [
+                "Id",
+                "WebServiceId",
+                "MethodId",
+                "CorrelationId",
+                "RequestDump",
+                "ResponseDump",
+                "StatusCode",
+                "LatencyMs",
+                "Succeeded",
+                "Error",
+                "CreatedAt"
+            ],
+            "index": [
+                "MethodId, CreatedAt",
+                "Succeeded, CreatedAt"
+            ]
+        }
+    ],
+    "portsAndAdapters": [
+        {
+            "port": "IPriceProvider",
+            "methods": [
+                "QuoteAsync(AssetCode, Quantity, UserId, TenantId)",
+                "LockAsync(QuoteId, ttlSeconds)"
+            ],
+            "adapter": "PriceProviderViaApiManager (calls ApiManager Proxy)"
+        },
+        {
+            "port": "IApiProxy",
+            "methods": [
+                "InvokeAsync(webServiceMethodId, params, cancellationToken)"
+            ],
+            "policy": "Polly-based retry + timeout + circuit breaker"
+        }
+    ],
+    "apiContracts": [
+        {
+            "name": "Admin WebService CRUD",
+            "routes": [
+                "[POST] /api/apim/webservices",
+                "[PUT] /api/apim/webservices/{id}",
+                "[GET] /api/apim/webservices/{id}",
+                "[GET] /api/apim/webservices?name=&page=&pageSize="
+            ],
+            "permissions": [
+                "APIMANAGER.MANAGE"
+            ]
+        },
+        {
+            "name": "Admin Method & Param CRUD",
+            "routes": [
+                "[POST] /api/apim/webservices/{id}/methods",
+                "[PUT] /api/apim/methods/{id}",
+                "[POST] /api/apim/methods/{id}/params",
+                "[GET] /api/apim/methods/{id}"
+            ],
+            "permissions": [
+                "APIMANAGER.MANAGE"
+            ]
+        },
+        {
+            "name": "Test Runner",
+            "routes": [
+                "[POST] /api/apim/test/{methodId}"
+            ],
+            "permissions": [
+                "APIMANAGER.MANAGE"
+            ],
+            "desc": "اجرای آنلاین یک call با پارامترهای ورودی و بازگرداندن لاگ و پاسخ"
+        }
+    ],
+    "integrationFlow": {
+        "productOrder": [
+            "Replace DI binding: IPriceProvider -> PriceProviderViaApiManager",
+            "Quote flow: OrderPlacedHandler → PriceProvider.QuoteAsync → دریافت quoteId/price → انتشار Event PriceQuoted.v1 (اختیاری) یا ادامه‌ی لاک",
+            "Lock flow: پس از Quote، PriceProvider.LockAsync(ttl) → انتشار PriceLocked.v1 (از همون کانال قبلی که Stub می‌کرد)"
+        ],
+        "events": [
+            {
+                "name": "PriceLocked.v1",
+                "payload": {
+                    "orderId": "guid",
+                    "assetCode": "string",
+                    "lockedPrice": "decimal(18,6|8)",
+                    "expiresAt": "datetime",
+                    "correlationId": "string",
+                    "tenantId": "string|null",
+                    "schemaVersion": "1"
+                }
+            }
+        ]
+    },
+    "tasks": [
+        {
+            "id": "API-DOM-001",
+            "title": "Domain & EF Config (ApiManager)",
+            "changes": [
+                "ایجاد Entities و Fluent Config (indexes, lengths)",
+                "Migration اولیه: WebService/SecurityProfile/WebServiceMethod/WebServiceParam/WebServiceCallLog"
+            ],
+            "acceptance": [
+                "DB ایجاد و جداول مطابق مدل",
+                "HealthCheck ماژول: /api/apim/health = 200"
+            ],
+            "priority": "critical"
+        },
+        {
+            "id": "API-CORE-002",
+            "title": "API Proxy with Policies",
+            "changes": [
+                "IApiProxy + ApiProxy (HttpClientFactory)",
+                "Polly: Timeout, Retry (exponential backoff), CircuitBreaker",
+                "Headers/Auth injection از SecurityProfile",
+                "Structured logging: correlationId, methodId, latency"
+            ],
+            "acceptance": [
+                "کال ناموفق → retry طبق policy",
+                "Circuit در خطای پی‌درپی فعال و لاگ می‌شود"
+            ],
+            "priority": "critical"
+        },
+        {
+            "id": "API-LOG-003",
+            "title": "Call Logging",
+            "changes": [
+                "ذخیره WebServiceCallLog در هر invoke (با cap سایز dumps)",
+                "Feature flag برای ذخیره ResponseDump (masking برای داده حساس)"
+            ],
+            "acceptance": [
+                "پس از چند تست، لاگ‌ها در DB (MethodId/Status/Latency) قابل query باشند"
+            ],
+            "priority": "high"
+        },
+        {
+            "id": "API-ADMIN-004",
+            "title": "Admin CRUD & Test Runner APIs",
+            "changes": [
+                "Controllerهای CRUD برای WebService/Method/Param/SecurityProfile",
+                "Endpoint Test Runner: اجرای invoke و نمایش پاسخ",
+                "ACL: [HasPermission('APIMANAGER','MANAGE')]"
+            ],
+            "acceptance": [
+                "CRUD کامل، Test Runner با نمونه متد کار می‌کند",
+                "401/403 برای کاربران بدون مجوز"
+            ],
+            "priority": "high"
+        },
+        {
+            "id": "PRICE-ADPT-005",
+            "title": "PriceProvider via ApiManager",
+            "changes": [
+                "کلاس PriceProviderViaApiManager پیاده‌سازی IPriceProvider",
+                "Config: methodIds برای Quote و Lock در appsettings",
+                "Mapping ورودی/خروجی (DTO ↔ provider JSON)"
+            ],
+            "acceptance": [
+                "QuoteAsync و LockAsync با یک سرویس واقعی یا Mock قابل‌ اجرا باشد",
+                "خطاها با سیاست‌های Proxy کنترل شوند"
+            ],
+            "priority": "critical"
+        },
+        {
+            "id": "PO-INTEG-006",
+            "title": "Wire ProductOrder to Real PriceProvider",
+            "changes": [
+                "DI: جایگزینی Stub با PriceProviderViaApiManager در profile=integration",
+                "OrderPlacedHandler → call Quote/Lock → انتشار PriceLocked.v1 (Outbox) یا فراخوانی WorkflowStub برای انتشار آن",
+                "Handler PriceLocked موجود، Order را آپدیت کند (بدون تغییر)"
+            ],
+            "acceptance": [
+                "Place → Quote/Lock واقعی → PriceLocked → Order.Status=PriceLocked",
+                "Outbox/Logs قابل مشاهده"
+            ],
+            "priority": "critical"
+        },
+        {
+            "id": "OBS-007",
+            "title": "Observability & Security Hardening",
+            "changes": [
+                "Serilog+Seq: enrich با correlationId, tenantId, userId",
+                "Rate limiting برای Test Runner",
+                "Secret handling: dev از appsettings؛ hook برای Secret Manager در prod"
+            ],
+            "acceptance": [
+                "داشبورد Seq متریک‌های latency و نرخ خطا را نشان دهد",
+                "کال‌های Test Runner محدود می‌شوند (429 در abuse)"
+            ],
+            "priority": "medium"
+        },
+        {
+            "id": "TEST-008",
+            "title": "Unit/Integration Tests",
+            "changes": [
+                "Unit: mapping/param injection, policy behaviors",
+                "Integration: fake http server برای Quote/Lock → Proxy → PriceProvider → Order flow",
+                "Smoke: Admin CRUD + Test Runner"
+            ],
+            "acceptance": [
+                "CI سبز، پوشش پایه از مسیرهای بحرانی"
+            ],
+            "priority": "high"
+        },
+        {
+            "id": "DOC-009",
+            "title": "Documentation & Samples",
+            "changes": [
+                "Module_README (ERD، سیاست‌ها، مثال‌ها، ریسک‌ها)",
+                "نمونه cURL برای Test Runner و نحوه اتصال PriceProvider",
+                "Runbook خطا (timeouts, 5xx, circuit open)"
+            ],
+            "acceptance": [
+                "با خواندن README، Dev می‌تواند یک WebService تعریف و تست کند و PriceProvider را وصل کند"
+            ],
+            "priority": "medium"
+        }
+    ],
+    "smokeTest": [
+        "1) تعریف یک WebService و دو Method (Quote/Lock) با SecurityProfile.",
+        "2) Test Runner: متد Quote را با پارامتر نمونه صدا بزنید (200 با body منطقی).",
+        "3) Place Order در ProductOrder → هندلر OrderPlaced → PriceProvider.Quote+Lock → انتشار PriceLocked.",
+        "4) GET /api/orders/{id} → Status=PriceLocked, LockedPrice, ExpiresAt.",
+        "5)故 simulate خطای 5xx در provider → retry طبق policy + ثبت لاگ و Circuit در صورت تکرار."
+    ],
+    "risks": [
+        "Rate limit یا ban سمت provider → نیاز به throttling/caching.",
+        "تفاوت‌های schema بین providerها → لایه mapping شفاف.",
+        "Security: نشت token در لاگ‌ها → masking در CallLog."
+    ],
+    "doneDefinition": [
+        "Quote/Lock واقعی از مسیر ApiManager کار می‌کند.",
+        "Order flow بدون Stub قیمت، به PriceLocked می‌رسد.",
+        "Admin می‌تواند WebService/Method/Param را بسازد و تست کند.",
+        "تست‌های Unit/Integration سبز؛ لاگ‌های ساختاری و CallLog قابل تحلیل."
+    ]
+}

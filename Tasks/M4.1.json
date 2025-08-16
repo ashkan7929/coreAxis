@@ -1,0 +1,89 @@
+{
+    "milestone": "M4 - Finalize ApiManager + Real Price Provider",
+    "tasks": [
+        {
+            "id": "APIM-ACL-001",
+            "title": "افزودن ACL/Authorize به ApiManager",
+            "changes": [
+                "روی WebServicesController و SecurityProfilesController: [Authorize] و [HasPermission(\"APIMANAGER\",\"MANAGE\")]",
+                "افزودن Seed پرمیشن‌های APIMANAGER در Auth/ACL"
+            ],
+            "acceptance": [
+                "کاربر بدون مجوز: 403",
+                "ادمین: دسترسی کامل"
+            ],
+            "priority": "critical"
+        },
+        {
+            "id": "APIM-MIG-002",
+            "title": "ایجاد Migration و Health برای ApiManager",
+            "changes": [
+                "ایجاد InitialCreate برای ApiManager.Infrastructure",
+                "HealthCheck ساده: /api/apim/health (یا به Host اضافه کن با tag \"apim\")"
+            ],
+            "acceptance": [
+                "DB جداول ApiManager ساخته شوند",
+                "health=200"
+            ],
+            "priority": "high"
+        },
+        {
+            "id": "APIM-APP-003",
+            "title": "تمیزسازی معماری کنترلرها",
+            "changes": [
+                "حذف استفاده مستقیم از DbContext در Presentation",
+                "انتقال منطق به Application (Queries/Commands via MediatR)"
+            ],
+            "acceptance": [
+                "کنترلرها فقط Mediator/Services را صدا بزنند"
+            ],
+            "priority": "medium"
+        },
+        {
+            "id": "PRICE-WIRE-004",
+            "title": "اتصال Quote/Lock واقعی به جریان سفارش",
+            "option": "A) در Workflow واقعی، B) Adapter در ProductOrder",
+            "changes": [
+                "A) Workflow Engine: Stepهای CallApi (Quote) و Lock با استفاده از ApiManager و سپس Publish PriceLocked",
+                "B) اگر فعلاً WF نداریم: در OrderPlacedIntegrationEventHandler آداپتور PriceProviderViaApiManager را صدا بزن و بعد PriceLocked را Publish کن"
+            ],
+            "acceptance": [
+                "Place → Quote/Lock واقعی → PriceLocked → Order.Status=PriceLocked",
+                "Log و CallLog ثبت شود"
+            ],
+            "priority": "critical"
+        },
+        {
+            "id": "APIM-LOG-005",
+            "title": "تقویت لاگ و ماسکینگ",
+            "changes": [
+                "Mask کردن اسرار در WebServiceCallLog",
+                "Enricher: correlationId, tenantId, userId در Serilog"
+            ],
+            "acceptance": [
+                "تو لاگ‌ها توکن‌ها دیده نشوند",
+                "Latency/Status در Seq قابل مشاهده باشد"
+            ],
+            "priority": "medium"
+        },
+        {
+            "id": "APIM-TEST-006",
+            "title": "تست‌های Unit/Integration",
+            "changes": [
+                "Unit: Policy رفتارها (Timeout/Retry/CB)، Mapping پارامترها",
+                "Integration: Fake HTTP server → ApiProxy → invoke (200/5xx/timeout)",
+                "Smoke: invoke از طریق POST methods/{id}/invoke با ACL"
+            ],
+            "acceptance": [
+                "CI سبز، سناریوهای خطا پوشش داده شوند"
+            ],
+            "priority": "high"
+        }
+    ],
+    "doneDefinition": [
+        "ApiManager با ACL و Migration عملیاتی است",
+        "Quote/Lock واقعی وارد جریان سفارش می‌شود (بدون Stub)",
+        "CallLog و Observability کامل",
+        "تست‌ها سبز"
+    ]
+}
