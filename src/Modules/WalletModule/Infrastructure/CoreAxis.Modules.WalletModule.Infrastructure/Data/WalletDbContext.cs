@@ -1,6 +1,7 @@
 using CoreAxis.Modules.WalletModule.Domain.Entities;
 using CoreAxis.SharedKernel;
 using CoreAxis.SharedKernel.DomainEvents;
+using CoreAxis.SharedKernel.Outbox;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
@@ -18,6 +19,7 @@ public class WalletDbContext : DbContext
     public DbSet<TransactionType> TransactionTypes { get; set; }
     public DbSet<WalletProvider> WalletProviders { get; set; }
     public DbSet<WalletContract> WalletContracts { get; set; }
+    public DbSet<OutboxMessage> OutboxMessages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -31,6 +33,28 @@ public class WalletDbContext : DbContext
 
         // Configure schema
         modelBuilder.HasDefaultSchema("wallet");
+
+        // Configure OutboxMessage entity
+        modelBuilder.Entity<OutboxMessage>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Type).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Content).IsRequired();
+            entity.Property(e => e.OccurredOn).IsRequired();
+            entity.Property(e => e.ProcessedOn);
+            entity.Property(e => e.Error).HasMaxLength(1000);
+            entity.Property(e => e.RetryCount).HasDefaultValue(0);
+            entity.Property(e => e.MaxRetries).HasDefaultValue(3);
+            entity.Property(e => e.NextRetryAt);
+            entity.Property(e => e.CorrelationId).IsRequired();
+            entity.Property(e => e.CausationId);
+            entity.Property(e => e.TenantId).IsRequired().HasMaxLength(100).HasDefaultValue("default");
+            
+            entity.HasIndex(e => new { e.ProcessedOn, e.NextRetryAt })
+                  .HasDatabaseName("IX_OutboxMessages_Processing");
+            entity.HasIndex(e => e.CorrelationId)
+                  .HasDatabaseName("IX_OutboxMessages_CorrelationId");
+        });
 
         // Configure base entity properties for all entities
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())

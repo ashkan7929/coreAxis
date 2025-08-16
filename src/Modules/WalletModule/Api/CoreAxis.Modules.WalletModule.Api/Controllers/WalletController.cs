@@ -2,6 +2,7 @@ using CoreAxis.Modules.WalletModule.Application.Commands;
 using CoreAxis.Modules.WalletModule.Application.DTOs;
 using CoreAxis.Modules.WalletModule.Application.Queries;
 using CoreAxis.Modules.WalletModule.Domain.Entities;
+using CoreAxis.Modules.AuthModule.API.Authz;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -42,6 +43,7 @@ public class WalletController : ControllerBase
     /// Get wallet by ID
     /// </summary>
     [HttpGet("{id}")]
+    [HasPermission("WALLET", "READ")]
     public async Task<ActionResult<WalletDto>> GetWallet(Guid id)
     {
         var query = new GetWalletByIdQuery { WalletId = id };
@@ -57,6 +59,7 @@ public class WalletController : ControllerBase
     /// Get wallets for a user
     /// </summary>
     [HttpGet("user/{userId}")]
+    [HasPermission("WALLET", "READ")]
     public async Task<ActionResult<IEnumerable<WalletDto>>> GetUserWallets(Guid userId)
     {
         var query = new GetUserWalletsQuery { UserId = userId };
@@ -68,6 +71,7 @@ public class WalletController : ControllerBase
     /// Get wallet balance
     /// </summary>
     [HttpGet("{id}/balance")]
+    [HasPermission("WALLET", "READ")]
     public async Task<ActionResult<WalletBalanceDto>> GetWalletBalance(Guid id)
     {
         var query = new GetWalletBalanceQuery { WalletId = id };
@@ -83,14 +87,20 @@ public class WalletController : ControllerBase
     /// Deposit money to wallet
     /// </summary>
     [HttpPost("{id}/deposit")]
+    [HasPermission("WALLET", "DEPOSIT")]
     public async Task<ActionResult<TransactionResultDto>> Deposit(Guid id, [FromBody] DepositRequestDto request)
     {
+        var idempotencyKey = Request.Headers["Idempotency-Key"].FirstOrDefault();
+        var correlationId = Request.Headers["X-Correlation-ID"].FirstOrDefault();
+        
         var command = new DepositCommand
         {
             WalletId = id,
             Amount = request.Amount,
             Description = request.Description,
-            Reference = request.Reference
+            Reference = request.Reference,
+            IdempotencyKey = idempotencyKey,
+            CorrelationId = correlationId
         };
 
         var result = await _mediator.Send(command);
@@ -101,14 +111,20 @@ public class WalletController : ControllerBase
     /// Withdraw money from wallet
     /// </summary>
     [HttpPost("{id}/withdraw")]
+    [HasPermission("WALLET", "WITHDRAW")]
     public async Task<ActionResult<TransactionResultDto>> Withdraw(Guid id, [FromBody] WithdrawRequestDto request)
     {
+        var idempotencyKey = Request.Headers["Idempotency-Key"].FirstOrDefault();
+        var correlationId = Request.Headers["X-Correlation-ID"].FirstOrDefault();
+        
         var command = new WithdrawCommand
         {
             WalletId = id,
             Amount = request.Amount,
             Description = request.Description,
-            Reference = request.Reference
+            Reference = request.Reference,
+            IdempotencyKey = idempotencyKey,
+            CorrelationId = correlationId
         };
 
         var result = await _mediator.Send(command);
@@ -119,9 +135,13 @@ public class WalletController : ControllerBase
     /// Transfer money between wallets
     /// </summary>
     [HttpPost("{id}/transfer")]
+    [HasPermission("WALLET", "TRANSFER")]
     public async Task<ActionResult<TransactionResultDto>> Transfer(Guid id, [FromBody] TransferRequestDto request)
     {
         var userId = GetUserId();
+        var idempotencyKey = Request.Headers["Idempotency-Key"].FirstOrDefault();
+        var correlationId = Request.Headers["X-Correlation-ID"].FirstOrDefault();
+        
         var command = new TransferCommand
         {
             FromWalletId = id,
@@ -130,7 +150,9 @@ public class WalletController : ControllerBase
             Description = request.Description,
             Reference = request.Reference,
             Metadata = request.Metadata,
-            UserId = userId
+            UserId = userId,
+            IdempotencyKey = idempotencyKey,
+            CorrelationId = correlationId
         };
 
         var result = await _mediator.Send(command);
@@ -141,6 +163,7 @@ public class WalletController : ControllerBase
     /// Get wallet transactions
     /// </summary>
     [HttpGet("{id}/transactions")]
+    [HasPermission("WALLET", "READ")]
     public async Task<ActionResult<IEnumerable<TransactionDto>>> GetTransactions(
         Guid id,
         [FromQuery] DateTime? startDate = null,

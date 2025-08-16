@@ -1,0 +1,36 @@
+{
+    "phase": "Wallet MVP - Finalize",
+    "tasks": [
+        {
+            "id": "ACL-001",
+            "title": "Apply HasPermission on Wallet/Transaction APIs",
+            "changes": [
+                "Add [HasPermission(\"WALLET\",\"READ\")] on GETs",
+                "Add [HasPermission(\"WALLET\",\"DEPOSIT\")] on deposit",
+                "Add [HasPermission(\"WALLET\",\"WITHDRAW\")] on withdraw",
+                "Add [HasPermission(\"WALLET\",\"TRANSFER\")] on transfer"
+            ],
+            "doneWhen": "Endpoints without permission return 403; with correct permission return 200"
+        },
+        {
+            "id": "OUTBOX-002",
+            "title": "Persist TransactionCreated to Outbox",
+            "changes": [
+                "Add Outbox EF mapping/DbSet in WalletDbContext or shared context",
+                "On successful deposit/withdraw/transfer, create OutboxMessage(Type=TransactionCreated.v1, Content=eventJson, CorrelationId)",
+                "Commit Outbox within same DB transaction",
+                "Ensure OutboxPublisher picks it up and logs Publish"
+            ],
+            "doneWhen": "New transactions produce outbox rows; publisher dispatches them (logs confirm)"
+        },
+        {
+            "id": "API-003",
+            "title": "Support Idempotency-Key header",
+            "changes": [
+                "Read 'Idempotency-Key' header in API; if not set, accept from body for backward-compat",
+                "Pass it down to command/service"
+            ],
+            "doneWhen": "Calling same request twice with same header returns same result, no duplicate transaction"
+        }
+    ]
+}

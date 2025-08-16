@@ -1,6 +1,7 @@
 using CoreAxis.Modules.WalletModule.Application.DTOs;
 using CoreAxis.Modules.WalletModule.Application.Queries;
 using CoreAxis.Modules.WalletModule.Domain.Entities;
+using CoreAxis.Modules.AuthModule.API.Authz;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,6 +25,7 @@ public class TransactionController : ControllerBase
     /// Get transaction by ID
     /// </summary>
     [HttpGet("{id}")]
+    [HasPermission("WALLET", "READ")]
     public async Task<ActionResult<TransactionDto>> GetTransaction(Guid id)
     {
         var query = new GetTransactionByIdQuery { TransactionId = id };
@@ -39,6 +41,7 @@ public class TransactionController : ControllerBase
     /// Get transactions with filters
     /// </summary>
     [HttpGet]
+    [HasPermission("WALLET", "READ")]
     public async Task<ActionResult<IEnumerable<TransactionDto>>> GetTransactions(
         [FromQuery] Guid? walletId = null,
         [FromQuery] Guid? userId = null,
@@ -68,6 +71,7 @@ public class TransactionController : ControllerBase
     /// Get user transactions
     /// </summary>
     [HttpGet("user/{userId}")]
+    [HasPermission("WALLET", "READ")]
     public async Task<ActionResult<IEnumerable<TransactionDto>>> GetTransactions(
         [FromQuery] Guid? userId = null,
         [FromQuery] DateTime? startDate = null,
