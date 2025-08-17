@@ -1,4 +1,5 @@
 using CoreAxis.Modules.DynamicForm.Application.Services;
+using CoreAxis.Modules.DynamicForm.Application.Services.Handlers;
 using CoreAxis.Modules.DynamicForm.Domain.Interfaces;
 using FluentValidation;
 using MediatR;
@@ -23,6 +24,10 @@ public static class DependencyInjection
         services.AddScoped<IDependencyGraph, DependencyGraph>();
         services.AddScoped<IIncrementalRecalculationEngine, IncrementalRecalculationEngine>();
         services.AddScoped<IValidationEngine, ValidationEngine>();
+        
+        // Add Form Event Services
+        services.AddSingleton<IFormEventManager, FormEventManager>();
+        services.AddScoped<IFormEventHandler, DefaultFormEventHandler>();
 
         return services;
     }
