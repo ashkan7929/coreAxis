@@ -1,0 +1,319 @@
+{
+    "milestone": "M6 - Dynamic Form + Formula Engine (v1)",
+    "goal": "فرم‌ساز داینامیک JSON-driven با استپر و اکشن‌های رویدادی + موتور فرمول نسخه‌دار و امن (DSL). پشتیبانی از گزینه‌های پویا، ارزیابی وکتورایز، گراف وابستگی، آدیت کامل و یکپارچه با Workflow/Product/ApiManager.",
+    "decisions": {
+        "precision": "decimal(18,6) در کل سیستم (اگر 18,8 لازم است، مستند و یکسان‌سازی شود)",
+        "id_header": "Idempotency-Key",
+        "tenant_header": "X-Tenant-Id",
+        "correlation_header": "X-Correlation-Id",
+        "formula_ref": "id@semver (e.g., risk.score@1.1.0)",
+        "dsl_limits": {
+            "timeoutMs": 250,
+            "maxNodes": 2000,
+            "maxDepth": 32
+        }
+    },
+    "schemaContracts": {
+        "formDefinition": "FormDefinition + FormVersion (SchemaJson immutable)",
+        "formSubmission": "Idempotency, Status: Draft|Submitted|Validated|Rejected",
+        "formulaDefinition": "FormulaDefinition + FormulaVersion {expression, inputs, output, tests}",
+        "tableComputed": "اختیاری: DataTable schema با computed columns (server-side eval API)"
+    },
+    "tasks": [
+        {
+            "id": "DF-DOM-001",
+            "title": "EF Models & Migrations (Forms)",
+            "description": "FormDefinition, FormVersion, FormSubmission, FormAccessPolicy, FormAuditLog + FluentConfig",
+            "acceptance": [
+                "Unique: FormDefinition.Code",
+                "Unique: FormSubmission.IdempotencyKey",
+                "Indexes: FormSubmission(FormCode, Status, CreatedAt)",
+                "Migration اولیه ایجاد شود"
+            ],
+            "priority": "critical",
+            "estimate_hours": 8
+        },
+        {
+            "id": "DF-SCHEMA-002",
+            "title": "Form Schema Validator",
+            "description": "ولیدیشن SchemaJson (fields/layout/steps/validations/expressions/events) با JSON Schema یا ولیداتور داخلی",
+            "acceptance": [
+                "Schema نامعتبر → 400 با پیام دقیق",
+                "Schema معتبر ذخیره و آماده publish"
+            ],
+            "priority": "high",
+            "estimate_hours": 6
+        },
+        {
+            "id": "DF-EXPR-003",
+            "title": "ExpressionEngine (Sandboxed)",
+            "description": "DSL ایمن برای expressions فرم (visibility/readonly/default/validation).",
+            "changes": [
+                "توابع پایه: if, and, or, not, ==, !=, >, <, >=, <=, in, clamp, round, ceil, floor, sum, min, max",
+                "تاریخ/زمان: now, addDays, diffDays",
+                "متنی: contains, startsWith, endsWith, length",
+                "امنیت: بدون IO/Reflection، timeout، memory cap، constant folding + precompile cache"
+            ],
+            "acceptance": [
+                "تایم‌اوت اعمال می‌شود",
+                "unit tests برای edge cases و injection"
+            ],
+            "priority": "critical",
+            "estimate_hours": 12
+        },
+        {
+            "id": "DF-DDEP-004",
+            "title": "Dependency Graph & Incremental Recalc",
+            "description": "استخراج گراف وابستگی از fields.dependencies و formulas[].recalcOn برای محاسبه‌ی حداقلی.",
+            "acceptance": [
+                "تغییر یک فیلد فقط فیلدهای وابسته را دوباره محاسبه کند",
+                "Cycle detection و پیام خطای مناسب"
+            ],
+            "priority": "critical",
+            "estimate_hours": 8,
+            "depends_on": [
+                "DF-EXPR-003"
+            ]
+        },
+        {
+            "id": "DF-DOPT-005",
+            "title": "DynamicOptions Manager",
+            "description": "data.mode: static | expression | apiManager.methodId + کش کوتاه‌مدت و rate-limit",
+            "acceptance": [
+                "فراخوانی ApiManager با پارامترهای binding شده",
+                "کش 30-120 ثانیه قابل‌پیکربندی",
+                "خطا → fallback پیام مناسب"
+            ],
+            "priority": "high",
+            "estimate_hours": 6,
+            "depends_on": [
+                "DF-EXPR-003"
+            ]
+        },
+        {
+            "id": "DF-VALID-006",
+            "title": "Validation Engine",
+            "description": "required/min/max/regex/custom via expressions + پیام خطای i18n",
+            "acceptance": [
+                "گزارش خطای فیلد-به-فیلد",
+                "Status: Draft→Submitted→Validated/Rejected"
+            ],
+            "priority": "critical",
+            "estimate_hours": 8,
+            "depends_on": [
+                "DF-EXPR-003"
+            ]
+        },
+        {
+            "id": "DF-STEP-007",
+            "title": "Multi-step (Stepper) Support",
+            "description": "layout.steps + rules برای ورود به مرحله بعد (expressions)",
+            "acceptance": [
+                "عدم امکان عبور به قدم بعد بدون پاس‌کردن شرایط",
+                "state استپر در Submission ذخیره شود"
+            ],
+            "priority": "medium",
+            "estimate_hours": 6
+        },
+        {
+            "id": "DF-EVT-008",
+            "title": "Form Events (onInit/onChange/beforeSubmit/afterSubmit)",
+            "description": "پیمانه‌ی event runner با اکشن‌های whitelisted: compute/setValue/setVisibility/setReadOnly/(optional callApi)",
+            "acceptance": [
+                "ترتیب اجرا: onInit → onChange (debounced) → beforeSubmit → afterSubmit",
+                "Re-entrancy کنترل شود"
+            ],
+            "priority": "high",
+            "estimate_hours": 6,
+            "depends_on": [
+                "DF-DDEP-004"
+            ]
+        },
+        {
+            "id": "DF-API-009",
+            "title": "Forms API (CRUD + Submissions + Validate)",
+            "description": "v1 endpoints با JWT + [HasPermission]; Idempotency-Key روی submissions",
+            "acceptance": [
+                "CRUD FormDefinition/Version + publish",
+                "POST /forms/{code}/submissions (idempotent)",
+                "POST /forms/{code}/submissions/{id}/validate"
+            ],
+            "priority": "critical",
+            "estimate_hours": 10,
+            "depends_on": [
+                "DF-VALID-006",
+                "DF-STEP-007",
+                "DF-EVT-008"
+            ]
+        },
+        {
+            "id": "DF-ACL-010",
+            "title": "Access Control & Tenant Scoping",
+            "description": "FormAccessPolicy با scope: Owner|Role|Tenant|Public",
+            "acceptance": [
+                "403 برای کاربر بدون دسترسی",
+                "tenant scoping روی لیست و detail اعمال شود"
+            ],
+            "priority": "high",
+            "estimate_hours": 4
+        },
+        {
+            "id": "DF-AUD-011",
+            "title": "Audit & Replay",
+            "description": "FormAuditLog برای create/update/validate با correlation/tenant/user + ابزار replay برای debug",
+            "acceptance": [
+                "History endpoint تغییرات را به ترتیب زمانی برگرداند",
+                "Replay یک submission ممکن باشد (internal)"
+            ],
+            "priority": "medium",
+            "estimate_hours": 6
+        },
+        {
+            "id": "FM-DOM-012",
+            "title": "EF Models & Migrations (Formula)",
+            "description": "FormulaDefinition, FormulaVersion, FormulaEvaluationLog",
+            "acceptance": [
+                "Unique: FormulaDefinition.Code",
+                "Migration اولیه ساخته شود"
+            ],
+            "priority": "critical",
+            "estimate_hours": 6
+        },
+        {
+            "id": "FM-ENG-013",
+            "title": "Formula Engine (ExprV1) + Tests",
+            "description": "پارسر/اجراگر DSL امن مشترک با ExpressionEngine (reuse) + constant folding + pre-compile cache",
+            "acceptance": [
+                "Evaluate({formulaCode, version?, inputs}) → {value, formulaVersion, meta}",
+                "Built-in tests داخل FormulaVersion قابل اجرا و ذخیره در EvaluationLog"
+            ],
+            "priority": "critical",
+            "estimate_hours": 12,
+            "depends_on": [
+                "FM-DOM-012"
+            ]
+        },
+        {
+            "id": "FM-VEC-014",
+            "title": "Vectorized Evaluation (Batch)",
+            "description": "Endpoint: POST /formula/evaluate-batch با محدودیت اندازه batch و telemetry",
+            "acceptance": [
+                "پردازش N ردیف در یک کال، با خطاهای per-row",
+                "سقف batch و timeout قابل تنظیم"
+            ],
+            "priority": "high",
+            "estimate_hours": 6,
+            "depends_on": [
+                "FM-ENG-013"
+            ]
+        },
+        {
+            "id": "FM-API-015",
+            "title": "Formula API + Governance",
+            "description": "CRUD تعریف/نسخه + publish (immutable) + evaluate/evaluate-batch + نقش‌ها/مالک/approval",
+            "acceptance": [
+                "Publish فقط توسط ادمین/owner",
+                "EvaluationLog حاوی inputs/output/version/correlation"
+            ],
+            "priority": "high",
+            "estimate_hours": 8,
+            "depends_on": [
+                "FM-ENG-013",
+                "FM-VEC-014"
+            ]
+        },
+        {
+            "id": "INT-WF-016",
+            "title": "Integration with Workflow",
+            "description": "IFormulaClient برای Workflow + WaitForEvent(FormSubmitted) + Event FormValidated.v1",
+            "acceptance": [
+                "Workflow بتواند EvaluateFormula را صدا بزند",
+                "پس از validate موفق، FormValidated.v1 در Outbox"
+            ],
+            "priority": "high",
+            "estimate_hours": 6
+        },
+        {
+            "id": "INT-PROD-017",
+            "title": "Integration with Product/Order",
+            "description": "Link فرم به Product/Group + API: GET /products/{id}/form (فعال‌ترین نسخه پابلیش‌شده)",
+            "acceptance": [
+                "OrderFlow بتواند منتظر FormSubmitted باشد",
+                "برگشت FormVersion درست برای محصول"
+            ],
+            "priority": "medium",
+            "estimate_hours": 4
+        },
+        {
+            "id": "OBS-018",
+            "title": "Observability & Security",
+            "description": "Serilog ساختاری (tenant/user/correlation) + ماسکینگ داده حساس + RateLimit روی submissions/validate/evaluate",
+            "acceptance": [
+                "Seq: latency و error rates دیده شود",
+                "secret/data حساس در لاگ ماسک شود"
+            ],
+            "priority": "medium",
+            "estimate_hours": 4
+        },
+        {
+            "id": "TEST-019",
+            "title": "Unit & Integration Tests",
+            "description": "Unit: expr/validation/formula/depGraph. Integration: CRUD/publish/submission/validate/evaluate(+batch)/WF link",
+            "acceptance": [
+                "CI سبز؛ Failure cases (invalid schema, expr timeout, batch overflow) پوشش داده شود",
+                "Idempotency Submissions تست شود"
+            ],
+            "priority": "critical",
+            "estimate_hours": 12
+        },
+        {
+            "id": "DOC-020",
+            "title": "Documentation & Samples",
+            "description": "README با ERD، JSON Schema نمونه (Form/Formula/TableComputed)، DSL reference، مثال end-to-end با Workflow",
+            "acceptance": [
+                "با مطالعه README، Dev بتواند یک فرم و یک فرمول را بسازد/پابلیش کند و در Workflow مصرف کند"
+            ],
+            "priority": "medium",
+            "estimate_hours": 4
+        }
+    ],
+    "apiV1": {
+        "forms": [
+            "POST /api/v1/forms/definitions",
+            "PUT /api/v1/forms/definitions/{code}",
+            "POST /api/v1/forms/definitions/{code}/versions/publish",
+            "GET /api/v1/forms/definitions?code=&name=&page=&pageSize=",
+            "GET /api/v1/forms/definitions/{code}/versions",
+            "GET /api/v1/forms/definitions/{code}/versions/{version}",
+            "POST /api/v1/forms/{code}/submissions",
+            "PUT /api/v1/forms/{code}/submissions/{id}",
+            "POST /api/v1/forms/{code}/submissions/{id}/validate",
+            "GET /api/v1/forms/{code}/submissions?status=&userId=&from=&to=&page=&pageSize=",
+            "GET /api/v1/forms/{code}/submissions/{id}/history"
+        ],
+        "formula": [
+            "POST /api/v1/formula/definitions",
+            "PUT /api/v1/formula/definitions/{code}",
+            "POST /api/v1/formula/definitions/{code}/versions/publish",
+            "GET /api/v1/formula/definitions?code=&page=&pageSize=",
+            "GET /api/v1/formula/definitions/{code}/versions",
+            "POST /api/v1/formula/evaluate",
+            "POST /api/v1/formula/evaluate-batch"
+        ]
+    },
+    "smokeTests": [
+        "Publish FormDefinition+Version با ۲ استپر و یک فیلد وابسته",
+        "POST Submission با Idempotency-Key → 201 و تکرار همان کلید → 200 همان رکورد",
+        "Validate → Status=Validated و رویداد FormValidated.v1 در Outbox",
+        "Publish Formula risk.score@1.1.0 و Evaluate + evaluate-batch با چند ردیف",
+        "Workflow: WaitForEvent(FormSubmitted) → پس از validate رزومه شود"
+    ],
+    "doneDefinition": [
+        "CRUD/Publish فرم و فرمول با نسخه‌گذاری immutable",
+        "ExpressionEngine ایمن + Dependency Graph + Events",
+        "DynamicOptions از ApiManager و expressions",
+        "Formula Engine با evaluate و evaluate-batch + EvaluationLog",
+        "اتصال پایه به Workflow/Product",
+        "تست‌های Unit/Integration سبز؛ Observability و مستندات کامل"
+    ]
+}

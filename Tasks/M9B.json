@@ -1,0 +1,207 @@
+{
+    "milestone": "M9B - Observability, Structured Audit Logging & Forensics",
+    "goal": "لاگ ساختاری کامل برای درخواست‌ها، لاگ جزئیات API Manager (request/response/mapping)، تاریخچهٔ قدم‌به‌قدم Workflow، Correlation/Idempotency ردیابی‌پذیر، ماسک PII، داشبورد و آلارم.",
+    "assumptions": [
+        "Serilog + Seq",
+        "SQL Server/PostgreSQL برای جداول لاگ",
+        "OpenTelemetry (traces/metrics)"
+    ],
+    "logSchemas": [
+        {
+            "name": "RequestLog",
+            "fields": [
+                "Id (guid)",
+                "Timestamp",
+                "CorrelationId",
+                "TenantId",
+                "UserId",
+                "Ip",
+                "UserAgent",
+                "HttpMethod",
+                "Path",
+                "Query",
+                "RequestBodyHash",
+                "RequestBodyRedactedSample",
+                "StatusCode",
+                "LatencyMs",
+                "ResponseBodyHash",
+                "ResponseRedactedSample",
+                "PermissionsSnapshot",
+                "ExceptionType",
+                "ExceptionMessage",
+                "Tags(jsonb)"
+            ]
+        },
+        {
+            "name": "ApiCallLog",
+            "fields": [
+                "Id",
+                "Timestamp",
+                "CorrelationId",
+                "UserId",
+                "ServiceId",
+                "MethodId",
+                "ResolvedUrl",
+                "ReqHeadersRedacted",
+                "ReqBodyHash",
+                "ResStatusCode",
+                "ResHeadersRedacted",
+                "ResBodyHash",
+                "LatencyMs",
+                "RetryCount",
+                "PolicyApplied",
+                "MappingProfileId",
+                "MappingInputSchemaHash",
+                "MappingOutputSchemaHash",
+                "MappingResultSampleRedacted",
+                "Provider",
+                "Outcome",
+                "ErrorCategory"
+            ]
+        },
+        {
+            "name": "WorkflowHistory",
+            "fields": [
+                "Id",
+                "ProcessInstanceId",
+                "Version",
+                "StepId",
+                "StepName",
+                "Type",
+                "StartedAt",
+                "EndedAt",
+                "Status",
+                "Retries",
+                "InputSnapshotHash",
+                "OutputSnapshotHash",
+                "FormulaRef (id@version)",
+                "WebServiceMethodId",
+                "ActorUserId",
+                "ErrorMessage",
+                "Notes"
+            ]
+        },
+        {
+            "name": "SecurityEvent",
+            "fields": [
+                "Id",
+                "Timestamp",
+                "TenantId",
+                "UserId",
+                "Type",
+                "Target",
+                "Result",
+                "Ip",
+                "Extra(jsonb)"
+            ],
+            "examples": [
+                "OTP_FAIL",
+                "OTP_LOCKOUT",
+                "UPLOAD_BLOCKED",
+                "ACL_DENY",
+                "RATE_LIMITED"
+            ]
+        }
+    ],
+    "tasks": [
+        {
+            "id": "OBS-CORE-001",
+            "title": "Correlation & Enrichers",
+            "description": "Middleware تولید/پراپاگیت X-Correlation-Id, X-Tenant-Id، enrichment کاربر/پرمیشن‌ها در Serilog.",
+            "acceptance": [
+                "هر درخواست CorrelationId دارد",
+                "در Seq قابل جستجو است"
+            ],
+            "estimate_hours": 4
+        },
+        {
+            "id": "OBS-REQ-002",
+            "title": "HTTP Request/Response Logger (DB + Seq)",
+            "description": "Middleware برای ثبت RequestLog طبق schema؛ بدنه‌ها redaction با rules (password, token, nationalId, pan).",
+            "acceptance": [
+                "Log در DB و Seq با ماسک PII",
+                "LatencyMs و StatusCode ثبت"
+            ],
+            "estimate_hours": 8
+        },
+        {
+            "id": "OBS-API-003",
+            "title": "API Manager Deep Logging",
+            "description": "Decorator برای caller تا ApiCallLog با mapping‌ها، schema hash، retry policy و outcome را ذخیره کند.",
+            "acceptance": [
+                "برای هر call یک ApiCallLog با correlationId ثبت شود"
+            ],
+            "estimate_hours": 8
+        },
+        {
+            "id": "OBS-WF-004",
+            "title": "Workflow Step Tracing",
+            "description": "افزودن hook قبل/بعد هر Step (Start/End/Status) و ذخیره در WorkflowHistory؛ نگهداری FormulaRef و WebServiceMethodId.",
+            "acceptance": [
+                "Timeline کامل instance و قدم‌ها قابل کوئری است"
+            ],
+            "estimate_hours": 10
+        },
+        {
+            "id": "OBS-PII-005",
+            "title": "PII Redaction Policy",
+            "description": "RegEx/Key-based redaction در همهٔ sinks؛ hash برای payloadهای بزرگ؛ امکان sampling.",
+            "acceptance": [
+                "هیچ PII خام در لاگ‌ها ذخیره نشود"
+            ],
+            "estimate_hours": 4
+        },
+        {
+            "id": "OBS-OTEL-006",
+            "title": "OpenTelemetry Tracing & Metrics",
+            "description": "Spanها برای API/WF/API Manager; متریک‌ها: req/sec, error rate, p95 latency, OTP_fail_count.",
+            "acceptance": [
+                "گراف trace از درخواست تا Step/ApiCall قابل مشاهده است"
+            ],
+            "estimate_hours": 8
+        },
+        {
+            "id": "OBS-ALR-007",
+            "title": "Alerts & Dashboards",
+            "description": "داشبورد Seq/Prometheus: خطاها، OTP brute، upload_blocked، latency؛ آلارم ایمیل/وب‌هوک.",
+            "acceptance": [
+                "آستانه‌ها و اعلان‌ها تست می‌شوند"
+            ],
+            "estimate_hours": 6
+        },
+        {
+            "id": "OBS-DB-008",
+            "title": "DB Indexing & Retention",
+            "description": "ایندکس روی CorrelationId/Timestamp/StatusCode؛ سیاست retention و آرشیو/فشرده‌سازی.",
+            "acceptance": [
+                "کوئری روی ۳۰ روز اخیر < ۱s روی CorrelationId"
+            ],
+            "estimate_hours": 4
+        },
+        {
+            "id": "OBS-TEST-009",
+            "title": "Observability Test Pack",
+            "description": "تست خودکار بررسی تولید لاگ‌ها، redaction، لینک شدن correlation بین RequestLog→ApiCallLog→WorkflowHistory.",
+            "acceptance": [
+                "CI سبز",
+                "Chain کامل در تست end-to-end ثبت می‌شود"
+            ],
+            "estimate_hours": 6
+        },
+        {
+            "id": "OBS-DOC-010",
+            "title": "Runbook & Query Library",
+            "description": "کوئری‌های آماده (یافتن یک درخواست و همهٔ کال‌های داخلی/استپ‌ها)، Runbook forensics و Incident Response.",
+            "acceptance": [
+                "Playbook جستجو/تحلیل ارائه شده"
+            ],
+            "estimate_hours": 4
+        }
+    ],
+    "doneDefinition": [
+        "برای هر درخواست: چه چیزی آمد، چه کردیم، چه برگشتیم—همه با CorrelationId و بدون PII",
+        "API Manager: درخواست/پاسخ/Mapping و Policyها ثبت می‌شود",
+        "Workflow: حرکت قدم‌به‌قدم و خروجی فرمول/کال‌ها trace می‌شود",
+        "داشبورد و آلارم فعال؛ کوئری و Playbook آمادهٔ عملیات"
+    ]
+}

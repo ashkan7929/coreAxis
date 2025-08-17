@@ -1,0 +1,283 @@
+{
+    "milestone": "M7 - MLM Commission (v1)",
+    "goal": "محاسبه و ثبت کمیسیون چندسطحی بر اساس درخت MLM (Materialized Path)، قوانین نسخه‌دار، ایونت‌درايون (PaymentConfirmed → CommissionGenerated → WalletCredit)، با Outbox/Idempotency/Audit و ACL کامل.",
+    "assumptions": [
+        ".NET 8 + EF Core",
+        "Auth & ACL و ApiManager و Wallet و Order در حد MVP آماده‌اند",
+        "EventBus فعلاً Outbox + InProcess/BackgroundPublisher است",
+        "Precision مالی: decimal(18,6) سراسری"
+    ],
+    "domainModel": {
+        "entities": [
+            {
+                "name": "UserReferral",
+                "fields": [
+                    "Id",
+                    "UserId",
+                    "ParentUserId",
+                    "Path",
+                    "Level",
+                    "IsActive",
+                    "CreatedAt"
+                ],
+                "notes": "Materialized Path: Path مثل \"/U-1/U-7/U-42\" برای Query سریع upline"
+            },
+            {
+                "name": "CommissionRuleSet",
+                "fields": [
+                    "Id",
+                    "Code",
+                    "Name",
+                    "LatestVersion",
+                    "IsActive",
+                    "CreatedAt"
+                ],
+                "notes": "Code یکتا؛ مثل PLAN_BASIC"
+            },
+            {
+                "name": "CommissionRuleVersion",
+                "fields": [
+                    "Id",
+                    "RuleSetId",
+                    "Version",
+                    "SchemaJson",
+                    "IsPublished",
+                    "CreatedAt"
+                ],
+                "notes": "SchemaJson شامل level[], percent/fixed, conditions (role/volume/activeDays/tenant)"
+            },
+            {
+                "name": "CommissionTransaction",
+                "fields": [
+                    "Id",
+                    "UserId",
+                    "Amount",
+                    "Level",
+                    "SourcePaymentId",
+                    "ProductId",
+                    "RuleSetCode",
+                    "RuleVersion",
+                    "Status",
+                    "IsSettled",
+                    "WalletTransactionId",
+                    "CreatedAt",
+                    "CorrelationId"
+                ],
+                "notes": "Status: Pending|Approved|Rejected|Paid|Expired"
+            }
+        ]
+    },
+    "apiContracts": [
+        "[GET]  /api/mlm/referrals/my",
+        "[POST] /api/mlm/referrals/link  (admin/ops)",
+        "[GET]  /api/mlm/commission-rules",
+        "[POST] /api/mlm/commission-rules",
+        "[POST] /api/mlm/commission-rules/{code}/versions/publish",
+        "[GET]  /api/mlm/commissions/my?from=&to=&status=&level=&page=&pageSize=",
+        "[GET]  /api/mlm/commissions/{userId}  (admin)",
+        "[POST] /api/mlm/commissions/{id}/approve  (admin)",
+        "[POST] /api/mlm/commissions/{id}/reject   (admin)"
+    ],
+    "events": {
+        "consume": [
+            "PaymentConfirmed.v1"
+        ],
+        "produce": [
+            "CommissionGenerated.v1",
+            "CommissionApproved.v1",
+            "CommissionRejected.v1",
+            "CommissionPaid.v1",
+            "CommissionExpired.v1"
+        ]
+    },
+    "tasks": [
+        {
+            "id": "MLM-DOM-001",
+            "title": "EF Models + Config + Migrations",
+            "description": "تعریف Entityها و Fluent API (ایندکس: UserReferral(Path), CommissionTransaction(SourcePaymentId, UserId, Status)). ساخت Migration اولیه.",
+            "acceptance": [
+                "جداول ایجاد شوند",
+                "ایندکس‌ها اعمال شوند"
+            ],
+            "priority": "critical",
+            "estimate_hours": 8
+        },
+        {
+            "id": "MLM-REPO-002",
+            "title": "Repository Implementations",
+            "description": "پیاده‌سازی IUserReferralRepository / ICommissionTransactionRepository / ICommissionRuleSetRepository با کوئری‌های Path.",
+            "acceptance": [
+                "Query upline ≤ N سطوح زیر 50ms در دیتای تست",
+                "Unit tests repo"
+            ],
+            "priority": "high",
+            "estimate_hours": 8,
+            "depends_on": [
+                "MLM-DOM-001"
+            ]
+        },
+        {
+            "id": "MLM-RULE-003",
+            "title": "RuleSet Versioning + Validator",
+            "description": "CRUD RuleSet + Publish Version (immutable) با SchemaJson ولید (levels, rate/amount, conditions).",
+            "acceptance": [
+                "Publish فقط توسط ادمین",
+                "نسخه پابلیش‌شده immutable"
+            ],
+            "priority": "critical",
+            "estimate_hours": 6
+        },
+        {
+            "id": "MLM-CALC-004",
+            "title": "CommissionCalculationService",
+            "description": "پردازش PaymentConfirmed: استخراج upline با Materialized Path، اعمال RuleVersion، تولید CommissionTransaction‌ها.",
+            "acceptance": [
+                "ورودی PaymentConfirmed → تولید n تراکنش مطابق Rule",
+                "محدودیت عمق/شرط فعال‌بودن upline رعایت شود"
+            ],
+            "priority": "critical",
+            "estimate_hours": 12,
+            "depends_on": [
+                "MLM-REPO-002",
+                "MLM-RULE-003"
+            ]
+        },
+        {
+            "id": "MLM-OUTBOX-005",
+            "title": "Outbox + Idempotency",
+            "description": "ثبت CommissionGenerated.v1 در Outbox در همان تراکنش ایجاد تراکنش‌ها؛ Idempotency بر اساس SourcePaymentId.",
+            "acceptance": [
+                "تکرار PaymentConfirmed با همان Correlation/SourcePaymentId کمیسیون دوباره نسازد",
+                "Outbox پیام‌ها را درست منتشر کند"
+            ],
+            "priority": "critical",
+            "estimate_hours": 6,
+            "depends_on": [
+                "MLM-CALC-004"
+            ]
+        },
+        {
+            "id": "MLM-WALLET-006",
+            "title": "Integration to Wallet (credit)",
+            "description": "پس از Approved، ارسال CommissionApproved.v1 یا کال سرویس Wallet برای واریز (credit)؛ ذخیره WalletTransactionId.",
+            "acceptance": [
+                "Approved → WalletCredit → status=Paid",
+                "Failure → retry با backoff و ثبت خطا"
+            ],
+            "priority": "high",
+            "estimate_hours": 8,
+            "depends_on": [
+                "MLM-OUTBOX-005"
+            ]
+        },
+        {
+            "id": "MLM-EXPIRE-007",
+            "title": "Expiry & Compensation",
+            "description": "Job برای Expire کردن کمیسیون‌های Pending بعد از TTL؛ در صورت Refund سفارش → Rejection/Compensation.",
+            "acceptance": [
+                "Expired → CommissionExpired.v1",
+                "RefundDetected → Reject و (درصورت پرداخت) Reverse"
+            ],
+            "priority": "medium",
+            "estimate_hours": 6
+        },
+        {
+            "id": "MLM-ACL-008",
+            "title": "API + ACL + HasPermission",
+            "description": "روی همه Controllerها: [Authorize] + [HasPermission(\"MLM.*\")]. مسیرهای Admin جدا.",
+            "acceptance": [
+                "کاربر عادی فقط /my را ببیند",
+                "ادمین دسترسی کامل"
+            ],
+            "priority": "critical",
+            "estimate_hours": 4
+        },
+        {
+            "id": "MLM-API-009",
+            "title": "Endpoints & Contracts",
+            "description": "پیاده‌سازی اندپوینت‌های لیست‌شده با Pagination/Filtering و مدل خطای یکنواخت.",
+            "acceptance": [
+                "Swagger با مثال‌ها",
+                "Status codeها استاندارد (201 Created برای ایجاد)"
+            ],
+            "priority": "high",
+            "estimate_hours": 8
+        },
+        {
+            "id": "MLM-HAND-010",
+            "title": "Event Handlers Wiring",
+            "description": "Consumer برای PaymentConfirmed.v1 → CommissionCalculationService. Publisher برای رویدادهای MLM.*",
+            "acceptance": [
+                "Trace کامل در لاگ با CorrelationId",
+                "دوباره‌پردازی امن (idempotent)"
+            ],
+            "priority": "critical",
+            "estimate_hours": 6
+        },
+        {
+            "id": "MLM-OBS-011",
+            "title": "Observability & Audit",
+            "description": "Serilog ساختاری + CommissionAuditLog (input payment, upline, ruleVersion, outputs).",
+            "acceptance": [
+                "در Seq بتوان مراحل محاسبه را دنبال کرد",
+                "CommissionAuditLog برای هر Payment ثبت شود"
+            ],
+            "priority": "medium",
+            "estimate_hours": 4
+        },
+        {
+            "id": "MLM-PERF-012",
+            "title": "Performance: Path & Batching",
+            "description": "ایندکس/normalize برای Path؛ batch compute برای تعداد زیاد کمیسیون در یک payment (vectorized).",
+            "acceptance": [
+                "۱۰ سطح upline با ۵۰۰ پرداخت/دقیقه پایدار",
+                "پروفایلینگ: GC/Alloc پایین"
+            ],
+            "priority": "medium",
+            "estimate_hours": 6
+        },
+        {
+            "id": "MLM-TEST-013",
+            "title": "Unit & Integration Tests",
+            "description": "Unit: درخت MLM، Rule application، Idempotency. Integration: PaymentConfirmed→Generated→Approved→WalletPaid.",
+            "acceptance": [
+                "CI سبز؛ سناریو upline غیرفعال، override محصول، refund پوشش داده شود"
+            ],
+            "priority": "critical",
+            "estimate_hours": 12
+        },
+        {
+            "id": "MLM-DOC-014",
+            "title": "README + Event Contracts",
+            "description": "اسناد RuleSet JSON schema، نمونه سطوح، flow نموداری، قراردادهای رویداد و Runbook خطا/Retry.",
+            "acceptance": [
+                "Dev با مطالعه README بتواند Rule بسازد و جریان را end-to-end تست کند"
+            ],
+            "priority": "medium",
+            "estimate_hours": 4
+        }
+    ],
+    "security": {
+        "permissions": [
+            "MLM.REFERRAL.READ",
+            "MLM.REFERRAL.MANAGE",
+            "MLM.RULES.READ",
+            "MLM.RULES.MANAGE",
+            "MLM.COMMISSION.READ",
+            "MLM.COMMISSION.APPROVE",
+            "MLM.COMMISSION.REJECT"
+        ],
+        "headers": {
+            "idempotency": "Idempotency-Key",
+            "tenant": "X-Tenant-Id",
+            "correlation": "X-Correlation-Id"
+        }
+    },
+    "doneDefinition": [
+        "PaymentConfirmed → CommissionTransactionهای Pending ایجاد و CommissionGenerated.v1 در Outbox",
+        "Approval flow → Wallet credit → CommissionPaid",
+        "Idempotency برای PaymentConfirmed رعایت شده",
+        "ACL کامل، Swagger با مثال‌ها، Testهای Unit/Integration سبز",
+        "Audit/Observability کامل (input/rules/version/output) و مستندات"
+    ]
+}

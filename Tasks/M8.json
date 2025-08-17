@@ -1,0 +1,481 @@
+{
+    "milestone": "M8 - Advanced Commerce: Inventory, Discounts/Coupons, Subscriptions, Split Payment & Refund/Reconciliation",
+    "goal": "تکمیل قابلیت‌های تجاری پیشرفته: جلوگیری از oversell با رزرو موجودی، مدیریت تخفیف/کوپن، محصولات اشتراکی و تمدید دوره‌ای، تقسیم پرداخت (Split) بین تامین‌کننده/کمیسیون/هزینه‌ها، بازپرداخت و آشتی بانکی (Reconciliation). یکپارچه با Workflow/Wallet/MLM/API Manager و رعایت Idempotency/Outbox/ACL.",
+    "assumptions": [
+        ".NET 8 + EF Core",
+        "Product & Order پایه عملیاتی است",
+        "Workflow v1 فعال است (Phase 5)",
+        "Wallet/Transaction و MLM Commission آماده‌اند",
+        "ApiManager برای درگاه‌های پرداخت/سرویس‌های قیمت و استعلام قابل استفاده است",
+        "Precision پولی: decimal(18,6) یکسان در کل سیستم"
+    ],
+    "domainModel": {
+        "entities": [
+            {
+                "name": "InventoryItem",
+                "fields": [
+                    "Id",
+                    "ProductId",
+                    "Sku",
+                    "LocationId?",
+                    "OnHand",
+                    "Reserved",
+                    "ReorderThreshold",
+                    "IsTracked",
+                    "CreatedAt",
+                    "UpdatedAt"
+                ],
+                "indexes": [
+                    "ProductId",
+                    "Sku",
+                    "LocationId"
+                ]
+            },
+            {
+                "name": "InventoryReservation",
+                "fields": [
+                    "Id",
+                    "OrderId",
+                    "UserId",
+                    "ItemsJson",
+                    "Status",
+                    "ExpiresAt",
+                    "CreatedAt",
+                    "CorrelationId",
+                    "IdempotencyKey"
+                ],
+                "notes": "Status: Pending|Committed|Released|Expired"
+            },
+            {
+                "name": "InventoryLedger",
+                "fields": [
+                    "Id",
+                    "ProductId",
+                    "Sku",
+                    "Delta",
+                    "Reason",
+                    "OrderId?",
+                    "ReservationId?",
+                    "CreatedAt"
+                ],
+                "notes": "Reason: Reserve|Commit|Release|Adjust"
+            },
+            {
+                "name": "DiscountRule",
+                "fields": [
+                    "Id",
+                    "Code",
+                    "Name",
+                    "Scope",
+                    "Type",
+                    "Value",
+                    "ConditionsJson",
+                    "MaxUses",
+                    "PerUserLimit",
+                    "ValidFrom",
+                    "ValidTo",
+                    "IsActive",
+                    "CreatedAt"
+                ],
+                "notes": "Scope: Product|Category|Cart ; Type: Percent|Fixed"
+            },
+            {
+                "name": "CouponRedemption",
+                "fields": [
+                    "Id",
+                    "DiscountCode",
+                    "UserId",
+                    "OrderId?",
+                    "UsedAt",
+                    "Count"
+                ],
+                "indexes": [
+                    "DiscountCode",
+                    "UserId"
+                ]
+            },
+            {
+                "name": "SubscriptionPlan",
+                "fields": [
+                    "Id",
+                    "ProductId",
+                    "Code",
+                    "Name",
+                    "Period",
+                    "Price",
+                    "TrialDays?",
+                    "GraceDays?",
+                    "RenewalPolicyJson",
+                    "CancelPolicyJson",
+                    "IsActive",
+                    "CreatedAt"
+                ]
+            },
+            {
+                "name": "Subscription",
+                "fields": [
+                    "Id",
+                    "UserId",
+                    "ProductId",
+                    "PlanCode",
+                    "Status",
+                    "CurrentPeriodStart",
+                    "CurrentPeriodEnd",
+                    "NextBillingDate",
+                    "PaymentMethod",
+                    "LastInvoiceId?",
+                    "CreatedAt",
+                    "UpdatedAt"
+                ],
+                "notes": "Status: Active|PastDue|Canceled|Expired"
+            },
+            {
+                "name": "SubscriptionInvoice",
+                "fields": [
+                    "Id",
+                    "SubscriptionId",
+                    "PeriodStart",
+                    "PeriodEnd",
+                    "Amount",
+                    "Status",
+                    "PaymentId?",
+                    "CreatedAt"
+                ],
+                "notes": "Status: Pending|Paid|Failed|Refunded"
+            },
+            {
+                "name": "SplitPaymentRuleSet",
+                "fields": [
+                    "Id",
+                    "Code",
+                    "SchemaJson",
+                    "IsActive",
+                    "CreatedAt"
+                ],
+                "notes": "SchemaJson: سهم‌ها (provider/seller/commission/fees) با درصد/مقدار و شرایط"
+            },
+            {
+                "name": "PaymentAllocation",
+                "fields": [
+                    "Id",
+                    "OrderId",
+                    "Component",
+                    "Amount",
+                    "TargetWalletId?",
+                    "ProviderId?",
+                    "CorrelationId"
+                ],
+                "notes": "Component: Provider|Seller|Commission|Fee"
+            },
+            {
+                "name": "ReconciliationRecord",
+                "fields": [
+                    "Id",
+                    "Provider",
+                    "ExternalRef",
+                    "Amount",
+                    "Currency",
+                    "Status",
+                    "MatchedOrderId?",
+                    "DeltaReason?",
+                    "StatementDate",
+                    "CreatedAt"
+                ],
+                "notes": "Status: Imported|Matched|Mismatched|Resolved"
+            },
+            {
+                "name": "RefundRequest",
+                "fields": [
+                    "Id",
+                    "OrderId",
+                    "PaymentId",
+                    "Amount",
+                    "Reason",
+                    "Status",
+                    "CreatedAt",
+                    "ProcessedAt?",
+                    "CorrelationId",
+                    "IdempotencyKey"
+                ],
+                "notes": "Status: Pending|Approved|Rejected|Processed|Failed"
+            }
+        ]
+    },
+    "events": {
+        "produce": [
+            "InventoryReserved.v1",
+            "InventoryReleased.v1",
+            "InventoryCommitted.v1",
+            "DiscountApplied.v1",
+            "SubscriptionCreated.v1",
+            "SubscriptionRenewed.v1",
+            "PaymentSplitCreated.v1",
+            "RefundProcessed.v1",
+            "ReconciliationMatched.v1"
+        ],
+        "consume": [
+            "OrderPlaced.v1",
+            "PriceLocked.v1",
+            "PaymentConfirmed.v1",
+            "OrderCanceled.v1",
+            "CommissionCalculated.v1"
+        ]
+    },
+    "apiContracts": [
+        "[POST] /api/inventory/reservations  (body: orderId, items[], expiresAt)  {Idempotency-Key}",
+        "[POST] /api/inventory/reservations/{id}/commit",
+        "[POST] /api/inventory/reservations/{id}/release",
+        "[POST] /api/inventory/adjustments  (admin)  (productId, sku, delta, reason)",
+        "[GET]  /api/inventory/availability?productId=&sku=",
+        "[POST] /api/discounts  (admin)  + [GET]/[PUT]/[DELETE] /api/discounts/{code}",
+        "[POST] /api/discounts/{code}/validate  (order snapshot → discountResult)",
+        "[POST] /api/subscriptions  (from order/product)",
+        "[GET]  /api/subscriptions/my?status=&page=&pageSize=",
+        "[POST] /api/subscriptions/{id}/cancel",
+        "[POST] /api/subscriptions/{id}/renew  (admin/manual trigger)",
+        "[GET]  /api/subscriptions/{id}/invoices",
+        "[POST] /api/payments/split  (orderId → allocations)  (admin/ops)",
+        "[POST] /api/payments/refunds  (orderId/paymentId/amount)  {Idempotency-Key}",
+        "[POST] /api/reconciliation/import  (provider, file/uploadRef)",
+        "[POST] /api/reconciliation/match  (recordId, orderId)",
+        "[GET]  /api/reconciliation?provider=&status=&from=&to=&page=&pageSize="
+    ],
+    "tasks": [
+        {
+            "id": "INV-DOM-001",
+            "title": "EF Models & Migrations (Inventory)",
+            "description": "تعریف InventoryItem/InventoryReservation/InventoryLedger با ایندکس‌ها و migration اولیه.",
+            "acceptance": [
+                "جداول ساخته شود",
+                "ایندکس ProductId,Sku روی InventoryItem",
+                "FKها صحیح"
+            ],
+            "priority": "critical",
+            "estimate_hours": 8
+        },
+        {
+            "id": "INV-SRV-002",
+            "title": "ReservationService (Oversell Prevention)",
+            "description": "رزرو اتمیک با تراکنش EF و قفل خوش‌بینانه (RowVersion) + TTL و تمدید.",
+            "acceptance": [
+                "تست همزمانی: oversell رخ ندهد",
+                "Release اتومات بعد از Expire"
+            ],
+            "priority": "critical",
+            "estimate_hours": 10,
+            "depends_on": [
+                "INV-DOM-001"
+            ]
+        },
+        {
+            "id": "INV-API-003",
+            "title": "Inventory API (reserve/commit/release/adjust/availability)",
+            "description": "پیاده‌سازی اندپوینت‌ها با ACL و Idempotency-Key روی رزرو/کمیت/ریلیز.",
+            "acceptance": [
+                "201 برای ایجاد رزرو",
+                "تکرار همان Idempotency-Key → نتیجه تکراری"
+            ],
+            "priority": "high",
+            "estimate_hours": 8,
+            "depends_on": [
+                "INV-SRV-002"
+            ]
+        },
+        {
+            "id": "ORD-WF-004",
+            "title": "Checkout Workflow wiring (Inventory)",
+            "description": "در Workflow: Step ReserveInventory قبل از پرداخت؛ PaymentFailed/Timeout → Release؛ PaymentConfirmed → Commit.",
+            "acceptance": [
+                "سناریو کامل place→reserve→pay→commit/ release پاس شود",
+                "آدیت و ایونت‌ها ثبت شوند"
+            ],
+            "priority": "critical",
+            "estimate_hours": 8,
+            "depends_on": [
+                "INV-API-003"
+            ]
+        },
+        {
+            "id": "DSC-DOM-005",
+            "title": "Discount/Coupon Models + Validator",
+            "description": "DiscountRule + CouponRedemption با conditions (role/qty/amount/tenant/time/product/category).",
+            "acceptance": [
+                "ولیدیشن کد تخفیف بر اساس شرایط و محدودیت‌ها",
+                "per-user limit رعایت شود"
+            ],
+            "priority": "high",
+            "estimate_hours": 6
+        },
+        {
+            "id": "DSC-SRV-006",
+            "title": "PricingService.ApplyDiscounts",
+            "description": "اعمال تخفیف روی snapshot سفارش (line-level & cart-level) + خروجی breakdown.",
+            "acceptance": [
+                "محاسبه دقیق و سازگار با Precision",
+                "برگرداندن breakdown برای فاکتور"
+            ],
+            "priority": "high",
+            "estimate_hours": 8,
+            "depends_on": [
+                "DSC-DOM-005"
+            ]
+        },
+        {
+            "id": "DSC-API-007",
+            "title": "Discount API (CRUD + validate/apply)",
+            "description": "CRUD ادمینی + validate/apply برای checkout. رویداد DiscountApplied.v1.",
+            "acceptance": [
+                "Swagger مثال‌ها دارد",
+                "403 برای کاربر بدون مجوز"
+            ],
+            "priority": "medium",
+            "estimate_hours": 6
+        },
+        {
+            "id": "SUB-DOM-008",
+            "title": "Subscription Models (Plan/Subscription/Invoice)",
+            "description": "EF entities + migration و ایندکس‌ها.",
+            "acceptance": [
+                "Unique Plan.Code",
+                "ایندکس روی Subscription(UserId,Status)"
+            ],
+            "priority": "critical",
+            "estimate_hours": 6
+        },
+        {
+            "id": "SUB-SCH-009",
+            "title": "Subscription Scheduler (BackgroundService)",
+            "description": "زمان‌بند برای ایجاد اینوویس دوره بعد، تلاش پرداخت (Wallet/Provider)، Grace/Retry، رویداد SubscriptionRenewed.v1.",
+            "acceptance": [
+                "Renewal موفق → Invoice.Paid",
+                "Failed → PastDue/Retry Policy"
+            ],
+            "priority": "critical",
+            "estimate_hours": 10,
+            "depends_on": [
+                "SUB-DOM-008"
+            ]
+        },
+        {
+            "id": "SUB-API-010",
+            "title": "Subscription API (create/cancel/renew/list)",
+            "description": "اندپوینت‌ها با ACL و اتصال به Workflow برای ایجاد از روی Order.",
+            "acceptance": [
+                "Cancel مطابق سیاست‌ها",
+                "لیست /my صفحه‌بندی"
+            ],
+            "priority": "high",
+            "estimate_hours": 6
+        },
+        {
+            "id": "SPL-DOM-011",
+            "title": "SplitPayment Rules + Allocation",
+            "description": "تعریف RuleSet و محاسبه‌ی توزیع مبلغ بین Provider/Seller/Commission/Fees.",
+            "acceptance": [
+                "Allocation جمعاً = مبلغ پرداخت",
+                "رویداد PaymentSplitCreated.v1"
+            ],
+            "priority": "high",
+            "estimate_hours": 8
+        },
+        {
+            "id": "SPL-INT-012",
+            "title": "Integrate Split with Wallet/MLM",
+            "description": "بعد از PaymentConfirmed، Allocation ایجاد؛ بخش Commission به MLM (در صورت orchestration) یا فقط ثبت برای گزارش.",
+            "acceptance": [
+                "WalletCredit برای Seller/Fee (در صورت نیاز)",
+                "هم‌خوانی با کمیسیون‌ها"
+            ],
+            "priority": "high",
+            "estimate_hours": 6,
+            "depends_on": [
+                "SPL-DOM-011"
+            ]
+        },
+        {
+            "id": "RFD-DOM-013",
+            "title": "RefundRequest + Flow",
+            "description": "مدل Refund، Idempotency، اتصال به Provider/Wallet و Compensation در Workflow.",
+            "acceptance": [
+                "RefundProcessed.v1 در Outbox",
+                "تکرار درخواست با همان کلید → idempotent"
+            ],
+            "priority": "critical",
+            "estimate_hours": 8
+        },
+        {
+            "id": "REC-SRV-014",
+            "title": "Reconciliation Service",
+            "description": "ورود صورت‌حساب درگاه (import)، matching با Payments/Orders، وضعیت Mismatched/Resolved.",
+            "acceptance": [
+                "Match خودکار ≥ 95% روی دیتای تست",
+                "API گزارش وضعیت‌ها"
+            ],
+            "priority": "medium",
+            "estimate_hours": 8
+        },
+        {
+            "id": "ADM-ACL-015",
+            "title": "ACL & Permissions (Phase 8)",
+            "description": "پرمیشن‌ها: INVENTORY.*, DISCOUNT.*, SUBSCRIPTION.*, SPLITPAYMENT.*, REFUND.*, RECONCILIATION.*",
+            "acceptance": [
+                "403 برای کاربران بدون مجوز",
+                "ادمین دسترسی کامل"
+            ],
+            "priority": "critical",
+            "estimate_hours": 4
+        },
+        {
+            "id": "OBS-AUD-016",
+            "title": "Observability & Audit",
+            "description": "Serilog ساختاری + Audit برای رزرو/کمیت/ریلیز، اعمال تخفیف، تمدید اشتراک، تقسیم/بازپرداخت.",
+            "acceptance": [
+                "Trace کامل با CorrelationId",
+                "داشبورد Seq برای خطا/لاتنسی"
+            ],
+            "priority": "medium",
+            "estimate_hours": 4
+        },
+        {
+            "id": "TEST-INT-017",
+            "title": "Integration & Unit Tests",
+            "description": "Unit: Reservation concurrency, Discount conditions, Split calc. Integration: place→reserve→pay→commit, refund, reconcile.",
+            "acceptance": [
+                "CI سبز",
+                "Oversell=0 در تست‌های همزمانی"
+            ],
+            "priority": "critical",
+            "estimate_hours": 12
+        },
+        {
+            "id": "DOC-018",
+            "title": "Documentation",
+            "description": "README با ERDها، فلوهای Checkout/Reserve/Commit/Refund/Renewal، نمونه API‌ها و Runbooks.",
+            "acceptance": [
+                "Dev جدید بتواند سناریوها را end-to-end اجرا کند"
+            ],
+            "priority": "medium",
+            "estimate_hours": 4
+        }
+    ],
+    "workflowWiring": [
+        "Checkout: Validate→Quote→Lock→ReserveInventory→InitiatePayment→(ok) CommitInventory & Split→Complete; (fail) Release/Refund",
+        "SubscriptionRenewal: GenerateInvoice→Charge→OnSuccess emit SubscriptionRenewed→OnFail retry→Grace→Cancel",
+        "Refund: Request→Provider/Wallet→OnSuccess RefundProcessed→Compensation steps"
+    ],
+    "security": {
+        "headers": {
+            "idempotency": "Idempotency-Key",
+            "tenant": "X-Tenant-Id",
+            "correlation": "X-Correlation-Id"
+        }
+    },
+    "doneDefinition": [
+        "Oversell با رزرو اتمیک کنترل می‌شود؛ سناریوی place→reserve→pay→commit/ release کامل و تست‌شده",
+        "Discount/Coupon با شرایط و محدودیت‌ها عملیاتی و در checkout اعمال می‌شود",
+        "Subscription با Scheduler تمدید و Flowهای موفق/ناموفق مدیریت می‌شود",
+        "Split Payment محاسبه و با Wallet/MLM یکپارچه می‌شود",
+        "Refund idempotent و Reconciliation برای درگاه‌ها فعال است",
+        "ACL، آدیت، تست‌ها و مستندات کامل"
+    ]
+}

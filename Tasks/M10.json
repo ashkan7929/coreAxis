@@ -1,0 +1,292 @@
+{
+    "milestone": "M10 - Final Integration, Release Readiness, Docs & Test Hardening",
+    "goal": "وصل‌کردن همه ماژول‌ها به‌صورت End-to-End پایدار، فریز قراردادها (API/Event v1)، تکمیل تست‌ها و مستندات، آماده‌سازی محیط اجرا و CI/CD برای تحویل قابل‌نمایش و قابل‌ممیزی (امنیت/افتاً/دانش‌بنیان).",
+    "assumptions": [
+        ".NET 8 + EF Core",
+        "ماژول‌ها جداگانه کار می‌کنند اما اتصال بین‌ماژولی کامل نیست",
+        "فاز 9A/B انجام شده (Security/Observability پایه)",
+        "DB: SQL Server/PostgreSQL؛ Messaging: Outbox + BackgroundPublisher",
+        "Swagger برای هر ماژول موجود است"
+    ],
+    "integration_contracts_v1": {
+        "events": [
+            "OrderPlaced.v1",
+            "PriceLocked.v1",
+            "PaymentConfirmed.v1",
+            "OrderCompleted.v1",
+            "CommissionGenerated.v1",
+            "CommissionApproved.v1",
+            "CommissionPaid.v1",
+            "InventoryReserved.v1",
+            "InventoryCommitted.v1",
+            "InventoryReleased.v1",
+            "FormValidated.v1",
+            "RefundProcessed.v1",
+            "SubscriptionRenewed.v1"
+        ],
+        "headers": {
+            "correlation": "X-Correlation-Id",
+            "tenant": "X-Tenant-Id",
+            "idempotency": "Idempotency-Key"
+        },
+        "freeze": "No breaking changes after M10 except via v2*. Backward compatibility guaranteed."
+    },
+    "deliverables": [
+        "End-to-End ‘happy path’ و ‘sad path’ برای خرید (Quote→Lock→Reserve→Pay→Split/Commission→Complete)",
+        "Freeze API/Event v1 + Registry",
+        "Test Suite کامل (Unit/Integration/E2E/Security/Load/Chaos-lite)",
+        "Docs کامل (Dev Guide, Ops Runbooks, API/Events, Migration Guide)",
+        "CI/CD پایدار با گیت تریگر، سونار/کیفیت، اسکریپت Seed/Fixture و Smoke",
+        "Release Notes و Checklists"
+    ],
+    "tasks": [
+        {
+            "id": "INT-ORD-WF-001",
+            "title": "Wire: Order ↔ Workflow (final)",
+            "description": "ثبت OrderPlaced.v1، شروع OrderFlow، مصرف PriceLocked/PaymentConfirmed، انتشار OrderCompleted.",
+            "acceptance": [
+                "Place → Start(OrderFlow) → PriceLocked → PaymentConfirmed → OrderCompleted",
+                "همه Transition ها در WorkflowHistory ثبت می‌شوند"
+            ],
+            "priority": "critical",
+            "estimate_hours": 6
+        },
+        {
+            "id": "INT-WF-API-002",
+            "title": "Wire: Workflow ↔ API Manager (Quote/Lock/External Validations)",
+            "description": "CallApi steps با policy و Deep Logging (ApiCallLog).",
+            "acceptance": [
+                "Quote/Lock با policy (Timeout/Retry/CB) کار می‌کند",
+                "هر Call یک ApiCallLog با CorrelationId دارد"
+            ],
+            "priority": "critical",
+            "estimate_hours": 6
+        },
+        {
+            "id": "INT-WF-WAL-003",
+            "title": "Wire: Workflow ↔ Wallet (Initiate/Credit/Refund)",
+            "description": "برداشت/واریز/بازپرداخت با Idempotency؛ Compensation در شکست.",
+            "acceptance": [
+                "Withdraw idempotent",
+                "RefundProcessed.v1 پس از موفقیت ثبت می‌شود"
+            ],
+            "priority": "critical",
+            "estimate_hours": 6
+        },
+        {
+            "id": "INT-MLM-004",
+            "title": "Wire: PaymentConfirmed → MLM Commission",
+            "description": "مصرف PaymentConfirmed.v1 و تولید CommissionTransactionها + رویدادهای MLM.*",
+            "acceptance": [
+                "CommissionGenerated برای هر upline معتبر",
+                "Approved → WalletCredit → CommissionPaid.v1"
+            ],
+            "priority": "high",
+            "estimate_hours": 6
+        },
+        {
+            "id": "INT-PROD-FORM-005",
+            "title": "Wire: Product ↔ Dynamic Forms",
+            "description": "برگرداندن FormVersion پابلیش‌شده برای محصول/گروه و WaitForEvent(FormSubmitted) در Workflow.",
+            "acceptance": [
+                "GET /products/{id}/form فعال‌ترین نسخه را می‌دهد",
+                "FormValidated.v1 باعث Resume در Workflow می‌شود"
+            ],
+            "priority": "high",
+            "estimate_hours": 4
+        },
+        {
+            "id": "INT-INV-006",
+            "title": "Wire: Inventory Reserve/Commit/Release در Checkout",
+            "description": "قبل از پرداخت Reserve، روی PaymentConfirmed Commit، در Failure Release.",
+            "acceptance": [
+                "Oversell=0 در تست همزمانی",
+                "Ledger ثبت Reserve/Commit/Release"
+            ],
+            "priority": "high",
+            "estimate_hours": 6
+        },
+        {
+            "id": "INT-DSC-007",
+            "title": "Wire: Discounts/Coupons در Pricing Snapshot",
+            "description": "اعمال قوانین تخفیف (خط/سبد) و نمایش breakdown.",
+            "acceptance": [
+                "کوپن نامعتبر → پیام دقیق",
+                "Breakdown در فاکتور/رسید موجود"
+            ],
+            "priority": "medium",
+            "estimate_hours": 4
+        },
+        {
+            "id": "INT-SUB-008",
+            "title": "Wire: Subscriptions (Create/Renew/Cancel)",
+            "description": "ایجاد subscription از Order، زمان‌بند Renewal و مدیریت شکست.",
+            "acceptance": [
+                "Renewal موفق → Invoice.Paid و SubscriptionRenewed.v1",
+                "PastDue/Grace سناریوها ثبت و لاگ می‌شوند"
+            ],
+            "priority": "medium",
+            "estimate_hours": 6
+        },
+        {
+            "id": "REG-FREEZE-009",
+            "title": "Contract Freeze & Registry",
+            "description": "ثبت رسمی API/Event v1 (OpenAPI + JSON Schema برای Events) و قفل‌شدن.",
+            "acceptance": [
+                "Swagger تجمعی و Event Schema Registry منتشر می‌شود",
+                "PR با برچسب breaking-change رد می‌شود"
+            ],
+            "priority": "critical",
+            "estimate_hours": 4
+        },
+        {
+            "id": "DATA-SEED-010",
+            "title": "Data Seeder & Fixtures",
+            "description": "Seed استاندارد برای Dev/Test/UAT (users/roles/products/forms/rules) + Fixture builder.",
+            "acceptance": [
+                "Run یک‌مرحله‌ای: محیط قابل دموی کامل",
+                "Seed idempotent (تکرار پذیر)"
+            ],
+            "priority": "high",
+            "estimate_hours": 4
+        },
+        {
+            "id": "MIG-GUIDE-011",
+            "title": "DB Migration Orchestration & Rollback",
+            "description": "اسکریپت orchestrator برای اجرای همه Migrationها به‌ترتیب ماژول و راهنمای rollback.",
+            "acceptance": [
+                "Migration از صفر تا آماده‌به‌کار بدون خطا",
+                "Rollback مستند و تست‌شده"
+            ],
+            "priority": "high",
+            "estimate_hours": 4
+        },
+        {
+            "id": "TEST-E2E-012",
+            "title": "End-to-End Test Matrix",
+            "description": "سناریوهای کامل: Basic Buy, Discounted Buy, Insufficient Balance, Payment Fail→Compensation, Refund, SubscriptionRenew.",
+            "acceptance": [
+                "E2E ها در CI اجرا شوند",
+                "گزارش پوشش مسیرهای بحرانی ≥ 90%"
+            ],
+            "priority": "critical",
+            "estimate_hours": 12
+        },
+        {
+            "id": "TEST-QA-013",
+            "title": "Test Hardening (Unit/Integration/Security Regression)",
+            "description": "کامل‌کردن تست‌های ناقص؛ رگرسیون امنیتی فاز9 به CI اضافه شود.",
+            "acceptance": [
+                "CI سبز؛ آستانه پوشش Unit ≥ 70%",
+                "Security pack بدون شکست"
+            ],
+            "priority": "critical",
+            "estimate_hours": 10
+        },
+        {
+            "id": "TEST-PERF-014",
+            "title": "Performance & Scalability (k6/NB)",
+            "description": "پروفایل مسیرهای Quote/Lock/Pay و Workflow. هدف p95 < 400ms برای API‌های کلیدی.",
+            "acceptance": [
+                "گزارش p50/p95/p99 و CPU/GC",
+                "بودجه عملکردی تعریف و پاس شود"
+            ],
+            "priority": "high",
+            "estimate_hours": 10
+        },
+        {
+            "id": "TEST-CHAOS-015",
+            "title": "Chaos-lite & Failure Drills",
+            "description": "قطع موقت API Provider، افت DB ثانیه‌ای، بررسی Compensation و Retry.",
+            "acceptance": [
+                "عدم از دست رفتن پول/دوبار برداشت",
+                "Compensation/Retry طبق طراحی عمل می‌کند"
+            ],
+            "priority": "medium",
+            "estimate_hours": 6
+        },
+        {
+            "id": "DOC-DEV-016",
+            "title": "Developer Guide (per-module)",
+            "description": "به‌روزرسانی README هر ماژول + HowTo-run, contracts, samples, troubleshooting.",
+            "acceptance": [
+                "Dev جدید < 2h محیط را بالا می‌آورد",
+                "نمونه cURL/Postman برای همه APIهای v1"
+            ],
+            "priority": "high",
+            "estimate_hours": 6
+        },
+        {
+            "id": "DOC-OPS-017",
+            "title": "Ops Runbooks & SLOs",
+            "description": "Runbook Incident, On-call Playbook, SLO/SLA (availability/latency/error-budget) + داشبوردها.",
+            "acceptance": [
+                "SLOها مستند و در داشبورد دیده می‌شوند",
+                "Runbook‌ها سناریو محور (payment stuck, commission mismatch, refund) دارند"
+            ],
+            "priority": "high",
+            "estimate_hours": 6
+        },
+        {
+            "id": "DOC-REL-018",
+            "title": "Release Notes & Checklists",
+            "description": "چک‌لیست انتشار، Known Issues، Feature flags، Feature toggle plan.",
+            "acceptance": [
+                "Release checklist کامل و قابل اجرا",
+                "Feature flags برای مسیرهای پرریسک فعال"
+            ],
+            "priority": "medium",
+            "estimate_hours": 4
+        },
+        {
+            "id": "CI-CD-019",
+            "title": "CI/CD Pipeline (Quality Gates)",
+            "description": "Build/test/lint/SCA/SAST/DAST (basic)/SBOM، گیت کیفیت (Sonar)، Smoke بعد از Deploy، Blue-Green/Canary اختیاری.",
+            "acceptance": [
+                "Pipeline شکست می‌دهد اگر گیت‌ها پاس نشوند",
+                "Smoke پس از دیپلوی الزامی است"
+            ],
+            "priority": "critical",
+            "estimate_hours": 12
+        },
+        {
+            "id": "PKG-RUN-020",
+            "title": "Packaging & Local Orchestration",
+            "description": "Dockerfiles ماژولار + docker-compose برای Dev/UAT (DB/Seq/MessagePump). Health/Readiness endpoints.",
+            "acceptance": [
+                "compose up → همه سرویس‌ها بالا بیایند",
+                "Health/Ready=200 برای ماژول‌ها"
+            ],
+            "priority": "high",
+            "estimate_hours": 6
+        },
+        {
+            "id": "Q-GAP-021",
+            "title": "Gap-Closing Sprint (رفع موارد زیر 85 امتیاز)",
+            "description": "بازبینی کیفیت کد (SOLID/Clean/Boundaries)، رفع بوی کد و تکمیل بخش‌های ضعیف گزارش مرحله قبل.",
+            "acceptance": [
+                "امتیاز بازبینی ≥ 85",
+                "بدون TODO بحرانی باقی‌مانده"
+            ],
+            "priority": "critical",
+            "estimate_hours": 10
+        }
+    ],
+    "smoke_e2e_suite": [
+        "E2E-01: Buy (no discount) → Quote/Lock → Reserve → Pay → Split/Commission → Complete",
+        "E2E-02: Buy (coupon) → ApplyDiscount → Pay → Complete",
+        "E2E-03: Payment fail → Release/Compensation → OrderCanceled",
+        "E2E-04: Refund → RefundProcessed → Commission adjust (if any)",
+        "E2E-05: Subscription create → Renewal success/fail paths",
+        "E2E-06: Form required in flow → Validate → Resume",
+        "E2E-07: API Provider down (chaos) → Retry → Fallback"
+    ],
+    "doneDefinition": [
+        "مسیرهای کلیدی End-to-End پایدار و لاگ‌پذیر با CorrelationId",
+        "API/Event v1 فریز و رجیستری منتشر شده",
+        "تست‌ها (Unit/Integration/E2E/Security/Perf/Chaos-lite) سبز",
+        "Docs کامل (Dev/Ops/Release/Migration) و Seed آماده",
+        "CI/CD با Quality Gates و Smoke بعد از دیپلوی فعال",
+        "امتیاز کیفیت ≥ 85 (ریویو نهایی)"
+    ]
+}

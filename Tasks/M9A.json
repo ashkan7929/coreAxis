@@ -1,0 +1,192 @@
+{
+    "milestone": "M9A - Security Hardening & PenTest Readiness",
+    "goal": "پوشش چک‌لیست OWASP WSTG و الزامات افتا، بستن گپ‌های امنیتی پرتکرار (OTP brute-force، XSS، upload، ACL، TLS/Headers، dependency hygiene)، آماده برای تست نفوذ.",
+    "references": {
+        "owasp_wstg": [
+            "AUTHN-03",
+            "AUTHN-04",
+            "AUTHZ-02",
+            "AUTHZ-03",
+            "INPVAL-01",
+            "INPVAL-02",
+            "BUSLOGIC-08",
+            "CONF-07"
+        ],
+        "afta_checklist": "VTR Main",
+        "pt_report_findings": [
+            "Brute Force OTP",
+            "Outdated CKEditor4→XSS",
+            "Improper Access Control (upload/view)",
+            "Unrestricted Upload",
+            "Missing CSP/HSTS"
+        ]
+    },
+    "assumptions": [
+        ".NET 8, EF Core, Serilog",
+        "JWT + Refresh Tokens",
+        "Reverse proxy/NGINX/Windows Srv قابل پیکربندی"
+    ],
+    "tasks": [
+        {
+            "id": "SEC-AUTH-001",
+            "title": "OTP Brute-force Protection (Lockout/RateLimit/Captcha Server-side)",
+            "description": "حداکثر تلاش ناموفق در بازه، قفل موقت/تصاعدی، Rate Limiting per-IP/tenant، رکورد SecurityEvent.",
+            "controls_map": [
+                "WSTG-AUTHN-03"
+            ],
+            "acceptance": [
+                "بیش از N تلاش ظرف M دقیقه → 429/423",
+                "لاگ SecurityEvent با correlationId"
+            ],
+            "estimate_hours": 6
+        },
+        {
+            "id": "SEC-AUTH-002",
+            "title": "Auth Bypass & Privilege Escalation Guards",
+            "description": "بازبینی Attributeها و Middleware: [Authorize] + [HasPermission] همهٔ اکشن‌های حساس؛ تست دسترسی افقی/عمودی.",
+            "controls_map": [
+                "WSTG-AUTHN-04",
+                "WSTG-AUTHZ-02",
+                "WSTG-AUTHZ-03"
+            ],
+            "acceptance": [
+                "مسیرهای آپلود/دانلود و هر API حساس بدون توکن → 401",
+                "دسترسی کاربر به رکورد دیگران → 403"
+            ],
+            "estimate_hours": 6
+        },
+        {
+            "id": "SEC-UPL-003",
+            "title": "Secure File Upload Pipeline",
+            "description": "Whitelist پسوند/محتوا (magic number)، Anti-Malware scan، تغییر نام/مسیر خارج از web-root، ممنوعیت SVG/ASP/EXE، Image re-encode، محدودیت حجم/تعداد/سرعت، امضای فایل و URLهای expiring.",
+            "controls_map": [
+                "WSTG-BUSLOGIC-08"
+            ],
+            "acceptance": [
+                "آپلود نوع خطرناک → 415/400",
+                "URL مستقیم بدون توکن/claim → 401/403"
+            ],
+            "estimate_hours": 10
+        },
+        {
+            "id": "SEC-XSS-004",
+            "title": "XSS Mitigation + CSP",
+            "description": "Sanitize ورودی‌های HTML، مهاجرت از CKEditor4 به CKEditor5 یا sanitize سختگیرانه، فعال‌سازی CSP (default-src 'self'), X-Frame-Options, X-Content-Type-Options, Referrer-Policy.",
+            "controls_map": [
+                "WSTG-INPVAL-01",
+                "WSTG-INPVAL-02",
+                "WSTG-CONF-07"
+            ],
+            "acceptance": [
+                "CSP Enforced",
+                "Stored/Reflected XSS در تست واحد/یکپارچه شکست می‌خورند"
+            ],
+            "estimate_hours": 8
+        },
+        {
+            "id": "SEC-HEADERS-005",
+            "title": "TLS/Headers Hardening",
+            "description": "غیرفعال TLS 1.1 و cipherهای ضعیف، فعال‌سازی HSTS، تصحیح Security Headers مطابق استاندارد.",
+            "controls_map": [
+                "WSTG-CONF-07"
+            ],
+            "acceptance": [
+                "TLS1.1/Weak ciphers غیرفعال",
+                "HSTS present; CSP enforced"
+            ],
+            "estimate_hours": 4
+        },
+        {
+            "id": "SEC-SESS-006",
+            "title": "Token Storage & Session Hygiene",
+            "description": "انتقال توکن حساس به HttpOnly/SameSite=Strict/Secure cookie، دوران (rotation) Refresh Token، Device/Session revocation.",
+            "controls_map": [
+                "WSTG-SESS-*"
+            ],
+            "acceptance": [
+                "توکن در localStorage وجود ندارد",
+                "Rotation و Revoke تست می‌شوند"
+            ],
+            "estimate_hours": 8
+        },
+        {
+            "id": "SEC-DEP-007",
+            "title": "Dependency Hygiene",
+            "description": "قفل نسخه‌ها، SCA (OWASP Dependency-Check/Snyk), Renovate bot, SBOM تولید با CycloneDX.",
+            "controls_map": [
+                "CWE-1104"
+            ],
+            "acceptance": [
+                "۰ Critical/High در SCA",
+                "SBOM در CI artifact"
+            ],
+            "estimate_hours": 6
+        },
+        {
+            "id": "SEC-INPUT-008",
+            "title": "Input Validation & Output Encoding",
+            "description": "FluentValidation در API, AntiXSS encoder برای HTML، normalization، MaxLength، allowlist برای enumها.",
+            "controls_map": [
+                "WSTG-INPVAL-*"
+            ],
+            "acceptance": [
+                "تست تزریق/پلیوشن پاس می‌شود"
+            ],
+            "estimate_hours": 5
+        },
+        {
+            "id": "SEC-SECRETS-009",
+            "title": "Secrets Management & Key Rotation",
+            "description": "ذخیره secrets در Vault/KeyVault، rotation دوره‌ای، منع چاپ در لاگ.",
+            "controls_map": [
+                "AFTA-Secrets"
+            ],
+            "acceptance": [
+                "هیچ secret در repo/config",
+                "rotation مستند و تست‌شده"
+            ],
+            "estimate_hours": 5
+        },
+        {
+            "id": "SEC-RATE-010",
+            "title": "Global Rate Limiting & IP Throttling",
+            "description": "RateLimiter .NET per-endpoint/IP/Tenant + Sliding window + blocklist/allowlist.",
+            "controls_map": [
+                "WSTG-BUSLOGIC-07"
+            ],
+            "acceptance": [
+                "پروفایل تهاجمی → 429 و SecurityEvent"
+            ],
+            "estimate_hours": 4
+        },
+        {
+            "id": "SEC-TEST-011",
+            "title": "Security Test Pack (Unit/Integration)",
+            "description": "تست‌های خودکار برای: OTP lockout، XSS payloads، upload خطرناک، مسیرهای بدون توکن، CSP/HSTS presence.",
+            "controls_map": [
+                "WSTG-*"
+            ],
+            "acceptance": [
+                "CI سبز، رگرسیون امنیتی پوشش داده شود"
+            ],
+            "estimate_hours": 10
+        },
+        {
+            "id": "SEC-DOC-012",
+            "title": "PenTest Playbook & Evidence",
+            "description": "چک‌لیست WSTG/AFTA با مدارک، نحوهٔ بازتولید کنترل‌ها، جدول Mapping کنترل→آیتم چک‌لیست.",
+            "controls_map": [
+                "WSTG Index"
+            ],
+            "acceptance": [
+                "Playbook آماده تحویل به تیم تست نفوذ"
+            ],
+            "estimate_hours": 4
+        }
+    ],
+    "doneDefinition": [
+        "مسیرهای حساس بدون توکن مسدود؛ آپلود امن؛ XSS مسدود؛ OTP brute-force مهار",
+        "CSP/HSTS و TLS سخت‌گیرانه فعال؛ وابستگی‌ها ایمن",
+        "تست‌های امنیتی خودکار عبور کرده و Playbook آماده است"
+    ]
+}
