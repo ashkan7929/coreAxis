@@ -16,6 +16,8 @@ public class DynamicFormDbContext : DbContext
     public DbSet<Form> Forms { get; set; }
     public DbSet<FormField> FormFields { get; set; }
     public DbSet<FormSubmission> FormSubmissions { get; set; }
+    public DbSet<FormStep> FormSteps { get; set; }
+    public DbSet<FormStepSubmission> FormStepSubmissions { get; set; }
     public DbSet<FormulaDefinition> FormulaDefinitions { get; set; }
     public DbSet<FormulaVersion> FormulaVersions { get; set; }
     public DbSet<FormulaEvaluationLog> FormulaEvaluationLogs { get; set; }
@@ -49,15 +51,10 @@ public class DynamicFormDbContext : DbContext
             entity.Property(e => e.RetryCount).HasDefaultValue(0);
             entity.Property(e => e.MaxRetries).HasDefaultValue(3);
             entity.Property(e => e.NextRetryAt);
-            entity.Property(e => e.CorrelationId).IsRequired();
-            entity.Property(e => e.CausationId);
-            entity.Property(e => e.UserId);
-            entity.Property(e => e.TenantId).HasMaxLength(100);
 
             entity.HasIndex(e => e.OccurredOn);
             entity.HasIndex(e => e.ProcessedOn);
             entity.HasIndex(e => e.Type);
-            entity.HasIndex(e => e.TenantId);
         });
     }
 
@@ -81,17 +78,17 @@ public class DynamicFormDbContext : DbContext
     private async Task PublishDomainEventAsync(DomainEvent domainEvent)
     {
         // Add domain event to outbox for reliable processing
-        var outboxMessage = new OutboxMessage
-        {
-            Id = Guid.NewGuid(),
-            Type = domainEvent.GetType().Name,
-            Content = System.Text.Json.JsonSerializer.Serialize(domainEvent, domainEvent.GetType()),
-            OccurredOn = domainEvent.OccurredOn,
-            CorrelationId = domainEvent.CorrelationId ?? Guid.NewGuid().ToString(),
-            CausationId = domainEvent.CausationId,
-            UserId = domainEvent.UserId,
-            TenantId = domainEvent.TenantId
-        };
+        var correlationId = Guid.NewGuid();
+        Guid? causationId = null;
+        
+        var outboxMessage = new OutboxMessage(
+            type: domainEvent.GetType().Name,
+            content: System.Text.Json.JsonSerializer.Serialize(domainEvent, domainEvent.GetType()),
+            correlationId: correlationId,
+            causationId: causationId,
+            tenantId: "default",
+            maxRetries: 3
+        );
 
         OutboxMessages.Add(outboxMessage);
         await SaveChangesAsync();

@@ -87,8 +87,7 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
                 .IsRequired()
                 .HasDefaultValue(true);
 
-            builder.Property(fap => fap.RowVersion)
-                .IsRowVersion();
+
 
             // Indexes
             builder.HasIndex(fap => fap.FormId)
@@ -123,7 +122,7 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
 
             // Relationships
             builder.HasOne(fap => fap.Form)
-                .WithMany(f => f.AccessPolicies)
+                .WithMany()
                 .HasForeignKey(fap => fap.FormId)
                 .OnDelete(DeleteBehavior.Cascade);
 

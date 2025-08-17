@@ -15,6 +15,7 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Entities
     {
         private readonly List<FormField> _fields = new List<FormField>();
         private readonly List<FormSubmission> _submissions = new List<FormSubmission>();
+        private readonly List<FormStep> _steps = new List<FormStep>();
 
         /// <summary>
         /// Gets or sets the name of the form.
@@ -66,6 +67,21 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Entities
         /// Gets the collection of form submissions.
         /// </summary>
         public virtual IReadOnlyCollection<FormSubmission> Submissions => _submissions.AsReadOnly();
+
+        /// <summary>
+        /// Gets the collection of form steps for multi-step forms.
+        /// </summary>
+        public virtual IReadOnlyCollection<FormStep> Steps => _steps.AsReadOnly();
+
+        /// <summary>
+        /// Gets or sets the collection of form versions.
+        /// </summary>
+        public virtual ICollection<FormVersion> Versions { get; set; } = new List<FormVersion>();
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this form is a multi-step form.
+        /// </summary>
+        public bool IsMultiStep { get; set; } = false;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Form"/> class.
@@ -201,6 +217,70 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Entities
                 throw new InvalidOperationException("Cannot submit to an unpublished form.");
 
             _submissions.Add(submission);
+        }
+
+        /// <summary>
+        /// Adds a step to the form.
+        /// </summary>
+        /// <param name="step">The step to add.</param>
+        /// <param name="addedBy">The user who added the step.</param>
+        public void AddStep(FormStep step, string addedBy)
+        {
+            if (step == null)
+                throw new ArgumentNullException(nameof(step));
+
+            if (_steps.Any(s => s.StepNumber == step.StepNumber))
+                throw new InvalidOperationException($"A step with number {step.StepNumber} already exists.");
+
+            _steps.Add(step);
+            IsMultiStep = _steps.Count > 1;
+            LastModifiedBy = addedBy;
+            LastModifiedOn = DateTime.UtcNow;
+
+            AddDomainEvent(new FormStepCreatedEvent(step.Id, Id, step.StepNumber, step.Title, addedBy));
+        }
+
+        /// <summary>
+        /// Removes a step from the form.
+        /// </summary>
+        /// <param name="stepNumber">The step number to remove.</param>
+        /// <param name="removedBy">The user who removed the step.</param>
+        public void RemoveStep(int stepNumber, string removedBy)
+        {
+            var step = _steps.FirstOrDefault(s => s.StepNumber == stepNumber);
+            if (step == null)
+                throw new InvalidOperationException($"Step with number {stepNumber} not found.");
+
+            _steps.Remove(step);
+            IsMultiStep = _steps.Count > 1;
+            LastModifiedBy = removedBy;
+            LastModifiedOn = DateTime.UtcNow;
+
+            // Reorder remaining steps
+            var stepsToReorder = _steps.Where(s => s.StepNumber > stepNumber).OrderBy(s => s.StepNumber).ToList();
+            foreach (var stepToReorder in stepsToReorder)
+            {
+                stepToReorder.Reorder(stepToReorder.StepNumber - 1, removedBy);
+            }
+        }
+
+        /// <summary>
+        /// Gets a step by its number.
+        /// </summary>
+        /// <param name="stepNumber">The step number.</param>
+        /// <returns>The form step if found, otherwise null.</returns>
+        public FormStep GetStep(int stepNumber)
+        {
+            return _steps.FirstOrDefault(s => s.StepNumber == stepNumber);
+        }
+
+        /// <summary>
+        /// Gets all steps ordered by step number.
+        /// </summary>
+        /// <returns>The ordered collection of form steps.</returns>
+        public IEnumerable<FormStep> GetOrderedSteps()
+        {
+            return _steps.OrderBy(s => s.StepNumber);
         }
     }
 

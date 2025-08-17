@@ -138,6 +138,37 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Entities
         public virtual FormulaVersion? FormulaVersion { get; set; }
 
         /// <summary>
+        /// Gets or sets the form identifier (optional).
+        /// </summary>
+        public Guid? FormId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the form submission identifier (optional).
+        /// </summary>
+        public Guid? FormSubmissionId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the navigation property to the form submission.
+        /// </summary>
+        public virtual FormSubmission? FormSubmission { get; set; }
+
+        /// <summary>
+        /// Gets or sets the evaluation context information.
+        /// </summary>
+        [MaxLength(500)]
+        public string EvaluationContext { get; set; }
+
+        /// <summary>
+        /// Gets or sets the correlation identifier for tracking related operations.
+        /// </summary>
+        public Guid? CorrelationId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the form navigation property (optional).
+        /// </summary>
+        public virtual Form? Form { get; set; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="FormulaEvaluationLog"/> class.
         /// </summary>
         protected FormulaEvaluationLog()

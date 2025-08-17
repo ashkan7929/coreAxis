@@ -112,9 +112,9 @@ public class FormulaVersionRepository : Repository<FormulaVersion>, IFormulaVers
         return await _context.Set<FormulaVersion>()
             .Include(v => v.FormulaDefinition)
             .Where(v => v.TenantId == tenantId && 
-                       v.CreatedAt >= startDate && 
-                       v.CreatedAt <= endDate)
-            .OrderByDescending(v => v.CreatedAt)
+                       v.CreatedOn >= startDate && 
+                       v.CreatedOn <= endDate)
+            .OrderByDescending(v => v.CreatedOn)
             .ToListAsync(cancellationToken);
     }
 

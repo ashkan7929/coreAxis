@@ -1,6 +1,8 @@
 using CoreAxis.Modules.DynamicForm.Application.Interfaces;
 using CoreAxis.Modules.DynamicForm.Application.Services;
 using CoreAxis.Modules.DynamicForm.Domain.Interfaces;
+using CoreAxis.Modules.DynamicForm.Domain.Repositories;
+using CoreAxis.Modules.DynamicForm.Infrastructure.Data;
 using CoreAxis.Modules.DynamicForm.Infrastructure.Persistence;
 using CoreAxis.Modules.DynamicForm.Infrastructure.Repositories;
 using CoreAxis.Modules.DynamicForm.Infrastructure.Services;
@@ -25,6 +27,8 @@ public static class DependencyInjection
         // Add Repositories
         services.AddScoped<IFormRepository, FormRepository>();
         services.AddScoped<IFormSubmissionRepository, FormSubmissionRepository>();
+        services.AddScoped<IFormStepRepository, FormStepRepository>();
+        services.AddScoped<IFormStepSubmissionRepository, FormStepSubmissionRepository>();
         services.AddScoped<IFormVersionRepository, FormVersionRepository>();
         services.AddScoped<IFormAccessPolicyRepository, FormAccessPolicyRepository>();
         services.AddScoped<IFormAuditLogRepository, FormAuditLogRepository>();

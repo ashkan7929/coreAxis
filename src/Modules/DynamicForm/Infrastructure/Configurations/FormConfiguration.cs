@@ -33,27 +33,17 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
             builder.Property(f => f.Description)
                 .HasMaxLength(1000);
 
-            builder.Property(f => f.Category)
-                .IsRequired()
-                .HasMaxLength(100);
 
-            builder.Property(f => f.SchemaJson)
-                .IsRequired()
-                .HasColumnType("nvarchar(max)");
 
-            builder.Property(f => f.UiSchemaJson)
-                .HasColumnType("nvarchar(max)");
 
-            builder.Property(f => f.ValidationRules)
-                .HasColumnType("nvarchar(max)");
 
-            builder.Property(f => f.BusinessRules)
-                .HasColumnType("nvarchar(max)");
 
-            builder.Property(f => f.Status)
-                .IsRequired()
-                .HasMaxLength(20)
-                .HasDefaultValue("Draft");
+
+
+
+
+
+
 
             builder.Property(f => f.Version)
                 .IsRequired()
@@ -64,17 +54,13 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
                 .IsRequired()
                 .HasDefaultValue(false);
 
-            builder.Property(f => f.PublishedAt)
-                .IsRequired(false);
 
-            builder.Property(f => f.PublishedBy)
-                .HasMaxLength(100);
 
-            builder.Property(f => f.Settings)
-                .HasColumnType("nvarchar(max)");
 
-            builder.Property(f => f.Tags)
-                .HasMaxLength(500);
+
+
+
+
 
             builder.Property(f => f.Metadata)
                 .HasColumnType("nvarchar(max)");
@@ -95,8 +81,7 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
                 .IsRequired()
                 .HasDefaultValue(true);
 
-            builder.Property(f => f.RowVersion)
-                .IsRowVersion();
+
 
             // Indexes
             builder.HasIndex(f => f.TenantId)
@@ -105,11 +90,9 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
             builder.HasIndex(f => f.Name)
                 .HasDatabaseName("IX_Forms_Name");
 
-            builder.HasIndex(f => f.Category)
-                .HasDatabaseName("IX_Forms_Category");
 
-            builder.HasIndex(f => f.Status)
-                .HasDatabaseName("IX_Forms_Status");
+
+
 
             builder.HasIndex(f => f.IsPublished)
                 .HasDatabaseName("IX_Forms_IsPublished");
@@ -137,15 +120,9 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
                 .HasForeignKey(fv => fv.FormId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.HasMany(f => f.AccessPolicies)
-                .WithOne(fap => fap.Form)
-                .HasForeignKey(fap => fap.FormId)
-                .OnDelete(DeleteBehavior.Cascade);
 
-            builder.HasMany(f => f.AuditLogs)
-                .WithOne(fal => fal.Form)
-                .HasForeignKey(fal => fal.FormId)
-                .OnDelete(DeleteBehavior.SetNull);
+
+
 
             // Ignore domain events
             builder.Ignore(f => f.DomainEvents);

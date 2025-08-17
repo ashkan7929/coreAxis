@@ -33,16 +33,13 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
                 .IsRequired()
                 .HasMaxLength(300);
 
-            builder.Property(ff => ff.Description)
-                .HasMaxLength(1000);
+
 
             builder.Property(ff => ff.FieldType)
                 .IsRequired()
                 .HasMaxLength(50);
 
-            builder.Property(ff => ff.DataType)
-                .IsRequired()
-                .HasMaxLength(50);
+
 
             builder.Property(ff => ff.IsRequired)
                 .IsRequired()
@@ -52,9 +49,7 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
                 .IsRequired()
                 .HasDefaultValue(false);
 
-            builder.Property(ff => ff.IsVisible)
-                .IsRequired()
-                .HasDefaultValue(true);
+
 
             builder.Property(ff => ff.Order)
                 .IsRequired()
@@ -63,8 +58,7 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
             builder.Property(ff => ff.DefaultValue)
                 .HasMaxLength(1000);
 
-            builder.Property(ff => ff.PlaceholderText)
-                .HasMaxLength(200);
+
 
             builder.Property(ff => ff.HelpText)
                 .HasMaxLength(500);
@@ -78,23 +72,18 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
             builder.Property(ff => ff.ConditionalLogic)
                 .HasColumnType("nvarchar(max)");
 
-            builder.Property(ff => ff.CalculationFormula)
-                .HasColumnType("nvarchar(max)");
 
-            builder.Property(ff => ff.DependsOn)
-                .HasMaxLength(1000);
 
-            builder.Property(ff => ff.CssClass)
-                .HasMaxLength(200);
 
-            builder.Property(ff => ff.Style)
-                .HasColumnType("nvarchar(max)");
+
+
+
+
 
             builder.Property(ff => ff.Attributes)
                 .HasColumnType("nvarchar(max)");
 
-            builder.Property(ff => ff.Metadata)
-                .HasColumnType("nvarchar(max)");
+
 
             builder.Property(ff => ff.CreatedBy)
                 .IsRequired()
@@ -112,8 +101,7 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
                 .IsRequired()
                 .HasDefaultValue(true);
 
-            builder.Property(ff => ff.RowVersion)
-                .IsRowVersion();
+
 
             // Indexes
             builder.HasIndex(ff => ff.FormId)

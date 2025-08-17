@@ -126,4 +126,67 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Events
             AddedBy = addedBy;
         }
     }
+
+    /// <summary>
+    /// Event raised when a form step is created.
+    /// </summary>
+    public class FormStepCreatedEvent : DomainEvent
+    {
+        public Guid StepId { get; }
+        public Guid FormId { get; }
+        public int StepNumber { get; }
+        public string Title { get; }
+        public string CreatedBy { get; }
+
+        public FormStepCreatedEvent(Guid stepId, Guid formId, int stepNumber, string title, string createdBy)
+        {
+            StepId = stepId;
+            FormId = formId;
+            StepNumber = stepNumber;
+            Title = title;
+            CreatedBy = createdBy;
+        }
+    }
+
+    /// <summary>
+    /// Event raised when a form step is updated.
+    /// </summary>
+    public class FormStepUpdatedEvent : DomainEvent
+    {
+        public Guid StepId { get; }
+        public Guid FormId { get; }
+        public int StepNumber { get; }
+        public string Title { get; }
+        public string UpdatedBy { get; }
+
+        public FormStepUpdatedEvent(Guid stepId, Guid formId, int stepNumber, string title, string updatedBy)
+        {
+            StepId = stepId;
+            FormId = formId;
+            StepNumber = stepNumber;
+            Title = title;
+            UpdatedBy = updatedBy;
+        }
+    }
+
+    /// <summary>
+    /// Event raised when a form step is reordered.
+    /// </summary>
+    public class FormStepReorderedEvent : DomainEvent
+    {
+        public Guid StepId { get; }
+        public Guid FormId { get; }
+        public int OldStepNumber { get; }
+        public int NewStepNumber { get; }
+        public string ReorderedBy { get; }
+
+        public FormStepReorderedEvent(Guid stepId, Guid formId, int oldStepNumber, int newStepNumber, string reorderedBy)
+        {
+            StepId = stepId;
+            FormId = formId;
+            OldStepNumber = oldStepNumber;
+            NewStepNumber = newStepNumber;
+            ReorderedBy = reorderedBy;
+        }
+    }
 }

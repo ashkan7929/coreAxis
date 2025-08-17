@@ -2,7 +2,9 @@ using CoreAxis.Modules.DynamicForm.Domain.Events;
 using CoreAxis.SharedKernel;
 using CoreAxis.SharedKernel.DomainEvents;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Linq;
 
 namespace CoreAxis.Modules.DynamicForm.Domain.Entities
 {
@@ -11,6 +13,7 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Entities
     /// </summary>
     public class FormSubmission : EntityBase
     {
+        private readonly List<FormStepSubmission> _stepSubmissions = new List<FormStepSubmission>();
         /// <summary>
         /// Gets or sets the form identifier that this submission belongs to.
         /// </summary>
@@ -108,6 +111,21 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Entities
         /// Gets or sets the navigation property to the parent form.
         /// </summary>
         public virtual Form Form { get; set; }
+
+        /// <summary>
+        /// Gets the collection of step submissions for multi-step forms.
+        /// </summary>
+        public virtual IReadOnlyCollection<FormStepSubmission> StepSubmissions => _stepSubmissions.AsReadOnly();
+
+        /// <summary>
+        /// Gets or sets the current step number for multi-step forms.
+        /// </summary>
+        public int? CurrentStepNumber { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this is a multi-step submission.
+        /// </summary>
+        public bool IsMultiStep { get; set; } = false;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FormSubmission"/> class.
@@ -258,6 +276,78 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Entities
             LastModifiedBy = modifiedBy;
             LastModifiedOn = DateTime.UtcNow;
         }
+
+        /// <summary>
+        /// Adds a step submission to this form submission.
+        /// </summary>
+        /// <param name="stepSubmission">The step submission to add.</param>
+        public void AddStepSubmission(FormStepSubmission stepSubmission)
+        {
+            if (stepSubmission == null)
+                throw new ArgumentNullException(nameof(stepSubmission));
+
+            if (_stepSubmissions.Any(s => s.StepNumber == stepSubmission.StepNumber))
+                throw new InvalidOperationException($"A step submission for step {stepSubmission.StepNumber} already exists.");
+
+            _stepSubmissions.Add(stepSubmission);
+            IsMultiStep = true;
+        }
+
+        /// <summary>
+        /// Gets a step submission by step number.
+        /// </summary>
+        /// <param name="stepNumber">The step number.</param>
+        /// <returns>The step submission if found, otherwise null.</returns>
+        public FormStepSubmission GetStepSubmission(int stepNumber)
+        {
+            return _stepSubmissions.FirstOrDefault(s => s.StepNumber == stepNumber);
+        }
+
+        /// <summary>
+        /// Gets all step submissions ordered by step number.
+        /// </summary>
+        /// <returns>The ordered collection of step submissions.</returns>
+        public IEnumerable<FormStepSubmission> GetOrderedStepSubmissions()
+        {
+            return _stepSubmissions.OrderBy(s => s.StepNumber);
+        }
+
+        /// <summary>
+        /// Moves to the next step in a multi-step form.
+        /// </summary>
+        /// <param name="nextStepNumber">The next step number.</param>
+        /// <param name="modifiedBy">The user who moved to the next step.</param>
+        public void MoveToNextStep(int nextStepNumber, string modifiedBy)
+        {
+            if (!IsMultiStep)
+                throw new InvalidOperationException("Cannot move to next step in a single-step form.");
+
+            CurrentStepNumber = nextStepNumber;
+            LastModifiedBy = modifiedBy;
+            LastModifiedOn = DateTime.UtcNow;
+        }
+
+        /// <summary>
+        /// Completes the multi-step form submission.
+        /// </summary>
+        /// <param name="completedBy">The user who completed the submission.</param>
+        public void CompleteMultiStepSubmission(string completedBy)
+        {
+            if (!IsMultiStep)
+                throw new InvalidOperationException("Cannot complete multi-step submission for a single-step form.");
+
+            var incompleteSteps = _stepSubmissions.Where(s => s.Status != StepSubmissionStatus.Completed && !s.IsSkipped).ToList();
+            if (incompleteSteps.Any())
+                throw new InvalidOperationException($"Cannot complete submission. Steps {string.Join(", ", incompleteSteps.Select(s => s.StepNumber))} are not completed.");
+
+            Status = SubmissionStatus.Submitted;
+            SubmittedAt = DateTime.UtcNow;
+            CurrentStepNumber = null;
+            LastModifiedBy = completedBy;
+            LastModifiedOn = DateTime.UtcNow;
+
+            AddDomainEvent(new FormSubmissionSubmittedEvent(Id, FormId, TenantId, UserId, SubmittedAt.Value, string.Empty, string.Empty, completedBy));
+        }
     }
 
     /// <summary>
@@ -270,6 +360,18 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Entities
         public const string Approved = "Approved";
         public const string Rejected = "Rejected";
         public const string Processing = "Processing";
+    }
+
+    /// <summary>
+    /// Constants for step submission status values.
+    /// </summary>
+    public static class StepSubmissionStatus
+    {
+        public const string NotStarted = "NotStarted";
+        public const string InProgress = "InProgress";
+        public const string Completed = "Completed";
+        public const string Skipped = "Skipped";
+        public const string Failed = "Failed";
     }
 
 

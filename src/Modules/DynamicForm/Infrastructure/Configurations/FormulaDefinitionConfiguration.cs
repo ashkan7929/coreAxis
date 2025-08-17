@@ -57,29 +57,19 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
                 .IsRequired()
                 .HasDefaultValue(false);
 
-            builder.Property(fd => fd.IsCurrent)
-                .IsRequired()
-                .HasDefaultValue(false);
 
-            builder.Property(fd => fd.PublishedAt)
-                .IsRequired(false);
 
-            builder.Property(fd => fd.PublishedBy)
-                .HasMaxLength(100);
 
-            builder.Property(fd => fd.CompiledExpression)
-                .HasColumnType("nvarchar(max)");
 
-            builder.Property(fd => fd.CompiledAt)
-                .IsRequired(false);
 
-            builder.Property(fd => fd.CompilationStatus)
-                .IsRequired()
-                .HasMaxLength(20)
-                .HasDefaultValue("NotCompiled");
 
-            builder.Property(fd => fd.CompilationError)
-                .HasColumnType("nvarchar(max)");
+
+
+
+
+
+
+
 
             builder.Property(fd => fd.Dependencies)
                 .HasMaxLength(1000);
@@ -87,12 +77,9 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
             builder.Property(fd => fd.Tags)
                 .HasMaxLength(500);
 
-            builder.Property(fd => fd.UsageCount)
-                .IsRequired()
-                .HasDefaultValue(0);
 
-            builder.Property(fd => fd.LastUsedAt)
-                .IsRequired(false);
+
+
 
             builder.Property(fd => fd.Metadata)
                 .HasColumnType("nvarchar(max)");
@@ -113,8 +100,7 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
                 .IsRequired()
                 .HasDefaultValue(true);
 
-            builder.Property(fd => fd.RowVersion)
-                .IsRowVersion();
+
 
             // Indexes
             builder.HasIndex(fd => fd.TenantId)
@@ -135,17 +121,7 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
             builder.HasIndex(fd => fd.IsPublished)
                 .HasDatabaseName("IX_FormulaDefinitions_IsPublished");
 
-            builder.HasIndex(fd => fd.IsCurrent)
-                .HasDatabaseName("IX_FormulaDefinitions_IsCurrent");
 
-            builder.HasIndex(fd => fd.CompilationStatus)
-                .HasDatabaseName("IX_FormulaDefinitions_CompilationStatus");
-
-            builder.HasIndex(fd => fd.UsageCount)
-                .HasDatabaseName("IX_FormulaDefinitions_UsageCount");
-
-            builder.HasIndex(fd => fd.LastUsedAt)
-                .HasDatabaseName("IX_FormulaDefinitions_LastUsedAt");
 
             builder.HasIndex(fd => new { fd.TenantId, fd.Name })
                 .IsUnique()
@@ -154,9 +130,7 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
             builder.HasIndex(fd => new { fd.TenantId, fd.Category, fd.IsPublished })
                 .HasDatabaseName("IX_FormulaDefinitions_TenantId_Category_IsPublished");
 
-            builder.HasIndex(fd => new { fd.TenantId, fd.IsCurrent })
-                .HasDatabaseName("IX_FormulaDefinitions_TenantId_IsCurrent")
-                .HasFilter("[IsCurrent] = 1");
+
 
             // Relationships
             builder.HasMany(fd => fd.EvaluationLogs)

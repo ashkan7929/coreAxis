@@ -73,19 +73,15 @@ public class FormulaVersionConfiguration : IEntityTypeConfiguration<FormulaVersi
             .IsRequired(false);
 
         // Base Entity Properties
-        builder.Property(x => x.CreatedAt)
-            .IsRequired()
-            .HasDefaultValueSql("GETUTCDATE()");
 
-        builder.Property(x => x.UpdatedAt)
-            .IsRequired(false);
+
+
 
         builder.Property(x => x.CreatedBy)
             .IsRequired()
             .HasMaxLength(256);
 
-        builder.Property(x => x.UpdatedBy)
-            .HasMaxLength(256);
+
 
         builder.Property(x => x.TenantId)
             .IsRequired()
@@ -127,8 +123,7 @@ public class FormulaVersionConfiguration : IEntityTypeConfiguration<FormulaVersi
         builder.HasIndex(x => x.TenantId)
             .HasDatabaseName("IX_FormulaVersions_TenantId");
 
-        builder.HasIndex(x => x.CreatedAt)
-            .HasDatabaseName("IX_FormulaVersions_CreatedAt");
+
 
         // Composite Indexes for Performance
         builder.HasIndex(x => new { x.TenantId, x.FormulaDefinitionId, x.IsActive })

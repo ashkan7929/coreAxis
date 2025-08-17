@@ -73,6 +73,11 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Entities
         public virtual Form Form { get; set; }
 
         /// <summary>
+        /// Gets or sets the row version for optimistic concurrency control.
+        /// </summary>
+        public byte[] RowVersion { get; set; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="FormVersion"/> class.
         /// </summary>
         protected FormVersion()

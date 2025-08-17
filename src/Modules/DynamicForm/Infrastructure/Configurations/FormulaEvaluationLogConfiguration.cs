@@ -42,14 +42,12 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
                 .IsRequired()
                 .HasMaxLength(100);
 
-            builder.Property(fel => fel.InputValues)
-                .HasColumnType("nvarchar(max)");
+
 
             builder.Property(fel => fel.Result)
                 .HasColumnType("nvarchar(max)");
 
-            builder.Property(fel => fel.ResultType)
-                .HasMaxLength(50);
+            // ResultType property removed as it doesn't exist
 
             builder.Property(fel => fel.Status)
                 .IsRequired()
@@ -81,17 +79,11 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
             builder.Property(fel => fel.CorrelationId)
                 .HasMaxLength(100);
 
-            builder.Property(fel => fel.EvaluationSteps)
-                .HasColumnType("nvarchar(max)");
-
             builder.Property(fel => fel.MemoryUsageBytes)
                 .IsRequired()
                 .HasDefaultValue(0);
 
-            builder.Property(fel => fel.CpuUsagePercent)
-                .IsRequired()
-                .HasDefaultValue(0.0)
-                .HasPrecision(5, 2);
+            // EvaluationSteps and CpuUsagePercent properties removed as they don't exist
 
             builder.Property(fel => fel.Metadata)
                 .HasColumnType("nvarchar(max)");
@@ -112,8 +104,7 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
                 .IsRequired()
                 .HasDefaultValue(true);
 
-            builder.Property(fel => fel.RowVersion)
-                .IsRowVersion();
+            // RowVersion property removed as it doesn't exist
 
             // Indexes
             builder.HasIndex(fel => fel.FormulaDefinitionId)

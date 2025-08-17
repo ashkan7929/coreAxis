@@ -110,8 +110,7 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
                 .IsRequired()
                 .HasDefaultValue(true);
 
-            builder.Property(fal => fal.RowVersion)
-                .IsRowVersion();
+
 
             // Indexes
             builder.HasIndex(fal => fal.FormId)
@@ -161,12 +160,12 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
 
             // Relationships
             builder.HasOne(fal => fal.Form)
-                .WithMany(f => f.AuditLogs)
+                .WithMany()
                 .HasForeignKey(fal => fal.FormId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             builder.HasOne(fal => fal.FormSubmission)
-                .WithMany(fs => fs.AuditLogs)
+                .WithMany()
                 .HasForeignKey(fal => fal.FormSubmissionId)
                 .OnDelete(DeleteBehavior.SetNull);
 

@@ -23,6 +23,7 @@ public class FormulaVersion : EntityBase
     public double? AverageExecutionTime { get; private set; }
     public string? LastError { get; private set; }
     public DateTime? LastErrorAt { get; private set; }
+    public string TenantId { get; private set; } = string.Empty;
 
     // Navigation Properties
     public virtual FormulaDefinition FormulaDefinition { get; private set; } = null!;
@@ -34,12 +35,14 @@ public class FormulaVersion : EntityBase
         Guid formulaDefinitionId,
         int versionNumber,
         string expression,
+        string tenantId,
         string? description = null,
         string? changeLog = null)
     {
         FormulaDefinitionId = formulaDefinitionId;
         VersionNumber = versionNumber;
         Expression = expression ?? throw new ArgumentNullException(nameof(expression));
+        TenantId = tenantId ?? throw new ArgumentNullException(nameof(tenantId));
         Description = description;
         ChangeLog = changeLog;
         IsActive = false;
