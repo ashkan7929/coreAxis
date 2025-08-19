@@ -4,6 +4,7 @@ using CoreAxis.Modules.MLMModule.Application.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using CoreAxis.SharedKernel.Authorization;
 using System.Security.Claims;
 
 namespace CoreAxis.Modules.MLMModule.API.Controllers;
@@ -24,6 +25,7 @@ public class CommissionRuleController : ControllerBase
     /// Create a new commission rule set
     /// </summary>
     [HttpPost]
+    [RequirePermission("CommissionRules", "Create")]
     public async Task<ActionResult<CommissionRuleSetDto>> CreateCommissionRuleSet([FromBody] CreateCommissionRuleSetDto request)
     {
         var command = new CreateCommissionRuleSetCommand
@@ -44,6 +46,7 @@ public class CommissionRuleController : ControllerBase
     /// Get commission rule set by ID
     /// </summary>
     [HttpGet("{id}")]
+    [RequirePermission("CommissionRules", "Read")]
     public async Task<ActionResult<CommissionRuleSetDto>> GetCommissionRuleSet(Guid id)
     {
         var query = new GetCommissionRuleSetByIdQuery { RuleSetId = id };
@@ -59,6 +62,7 @@ public class CommissionRuleController : ControllerBase
     /// Get default commission rule set
     /// </summary>
     [HttpGet("default")]
+    [RequirePermission("CommissionRules", "Read")]
     public async Task<ActionResult<CommissionRuleSetDto>> GetDefaultCommissionRuleSet()
     {
         var query = new GetDefaultCommissionRuleSetQuery();
@@ -74,6 +78,7 @@ public class CommissionRuleController : ControllerBase
     /// Get commission rule set by product
     /// </summary>
     [HttpGet("product/{productId}")]
+    [RequirePermission("CommissionRules", "Read")]
     public async Task<ActionResult<CommissionRuleSetDto>> GetCommissionRuleSetByProduct(Guid productId)
     {
         var query = new GetCommissionRuleSetByProductQuery { ProductId = productId };
@@ -89,6 +94,7 @@ public class CommissionRuleController : ControllerBase
     /// Get active commission rule sets
     /// </summary>
     [HttpGet("active")]
+    [RequirePermission("CommissionRules", "Read")]
     public async Task<ActionResult<IEnumerable<CommissionRuleSetDto>>> GetActiveCommissionRuleSets()
     {
         var query = new GetActiveCommissionRuleSetsQuery();
@@ -100,6 +106,7 @@ public class CommissionRuleController : ControllerBase
     /// Get all commission rule sets
     /// </summary>
     [HttpGet]
+    [RequirePermission("CommissionRules", "Read")]
     public async Task<ActionResult<IEnumerable<CommissionRuleSetDto>>> GetAllCommissionRuleSets()
     {
         var query = new GetAllCommissionRuleSetsQuery();
@@ -111,6 +118,7 @@ public class CommissionRuleController : ControllerBase
     /// Get product rule bindings
     /// </summary>
     [HttpGet("product-bindings")]
+    [RequirePermission("CommissionRules", "Read")]
     public async Task<ActionResult<IEnumerable<ProductRuleBindingDto>>> GetProductRuleBindings()
     {
         var query = new GetProductRuleBindingsQuery();
@@ -122,6 +130,7 @@ public class CommissionRuleController : ControllerBase
     /// Get product rule bindings by product
     /// </summary>
     [HttpGet("product-bindings/product/{productId}")]
+    [RequirePermission("CommissionRules", "Read")]
     public async Task<ActionResult<IEnumerable<ProductRuleBindingDto>>> GetProductRuleBindingsByProduct(Guid productId)
     {
         var query = new GetProductRuleBindingsByProductQuery { ProductId = productId };
@@ -133,6 +142,7 @@ public class CommissionRuleController : ControllerBase
     /// Update commission rule set
     /// </summary>
     [HttpPut("{id}")]
+    [RequirePermission("CommissionRules", "Update")]
     public async Task<ActionResult<CommissionRuleSetDto>> UpdateCommissionRuleSet(Guid id, [FromBody] UpdateCommissionRuleSetDto request)
     {
         var command = new UpdateCommissionRuleSetCommand
@@ -155,6 +165,7 @@ public class CommissionRuleController : ControllerBase
     /// Activate commission rule set
     /// </summary>
     [HttpPost("{id}/activate")]
+    [RequirePermission("CommissionRules", "Update")]
     public async Task<ActionResult<CommissionRuleSetDto>> ActivateCommissionRuleSet(Guid id)
     {
         var command = new ActivateCommissionRuleSetCommand { RuleSetId = id };
@@ -166,6 +177,7 @@ public class CommissionRuleController : ControllerBase
     /// Deactivate commission rule set
     /// </summary>
     [HttpPost("{id}/deactivate")]
+    [RequirePermission("CommissionRules", "Update")]
     public async Task<ActionResult<CommissionRuleSetDto>> DeactivateCommissionRuleSet(Guid id)
     {
         var command = new DeactivateCommissionRuleSetCommand { RuleSetId = id };
@@ -177,6 +189,7 @@ public class CommissionRuleController : ControllerBase
     /// Set default commission rule set
     /// </summary>
     [HttpPost("{id}/set-default")]
+    [RequirePermission("CommissionRules", "Update")]
     public async Task<ActionResult<CommissionRuleSetDto>> SetDefaultCommissionRuleSet(Guid id)
     {
         var command = new SetDefaultCommissionRuleSetCommand 
@@ -191,6 +204,7 @@ public class CommissionRuleController : ControllerBase
     /// Delete commission rule set
     /// </summary>
     [HttpDelete("{id}")]
+    [RequirePermission("CommissionRules", "Delete")]
     public async Task<ActionResult> DeleteCommissionRuleSet(Guid id)
     {
         var command = new DeleteCommissionRuleSetCommand { RuleSetId = id };
@@ -202,6 +216,7 @@ public class CommissionRuleController : ControllerBase
     /// Add product rule binding
     /// </summary>
     [HttpPost("product-bindings")]
+    [RequirePermission("CommissionRules", "Create")]
     public async Task<ActionResult<ProductRuleBindingDto>> AddProductRuleBinding([FromBody] CreateProductRuleBindingDto request)
     {
         var command = new AddProductRuleBindingCommand

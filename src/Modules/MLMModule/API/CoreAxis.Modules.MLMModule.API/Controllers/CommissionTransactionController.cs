@@ -5,6 +5,7 @@ using CoreAxis.Modules.MLMModule.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using CoreAxis.SharedKernel.Authorization;
 using System.Security.Claims;
 
 namespace CoreAxis.Modules.MLMModule.API.Controllers;
@@ -25,6 +26,7 @@ public class CommissionTransactionController : ControllerBase
     /// Get commission by ID
     /// </summary>
     [HttpGet("{id}")]
+    [RequirePermission("Commissions", "Read")]
     public async Task<ActionResult<CommissionTransactionDto>> GetCommission(Guid id)
     {
         var query = new GetCommissionByIdQuery { CommissionId = id };
@@ -40,6 +42,7 @@ public class CommissionTransactionController : ControllerBase
     /// Get user commissions
     /// </summary>
     [HttpGet("user/{userId}")]
+    [RequirePermission("Commissions", "Read")]
     public async Task<ActionResult<IEnumerable<CommissionTransactionDto>>> GetUserCommissions(
         Guid userId, 
         [FromQuery] int page = 1, 
@@ -58,6 +61,7 @@ public class CommissionTransactionController : ControllerBase
     /// Get commissions by status
     /// </summary>
     [HttpGet("status/{status}")]
+    [RequirePermission("Commissions", "Read")]
     public async Task<ActionResult<IEnumerable<CommissionTransactionDto>>> GetCommissionsByStatus(
         CommissionStatus status, 
         [FromQuery] int page = 1, 
@@ -77,6 +81,7 @@ public class CommissionTransactionController : ControllerBase
     /// Get commissions by source payment
     /// </summary>
     [HttpGet("source-payment/{sourcePaymentId}")]
+    [RequirePermission("Commissions", "Read")]
     public async Task<ActionResult<IEnumerable<CommissionTransactionDto>>> GetCommissionsBySourcePayment(Guid sourcePaymentId)
     {
         var query = new GetCommissionsBySourcePaymentQuery { SourcePaymentId = sourcePaymentId };
@@ -88,6 +93,7 @@ public class CommissionTransactionController : ControllerBase
     /// Get commission summary for user
     /// </summary>
     [HttpGet("user/{userId}/summary")]
+    [RequirePermission("Commissions", "Read")]
     public async Task<ActionResult<CommissionSummaryDto>> GetCommissionSummary(
         Guid userId, 
         [FromQuery] DateTime? startDate = null, 
@@ -107,6 +113,7 @@ public class CommissionTransactionController : ControllerBase
     /// Get pending commissions for approval
     /// </summary>
     [HttpGet("pending-approval")]
+    [RequirePermission("Commissions", "Read")]
     public async Task<ActionResult<IEnumerable<CommissionTransactionDto>>> GetPendingCommissionsForApproval(
         [FromQuery] int page = 1, 
         [FromQuery] int pageSize = 10)
@@ -124,6 +131,7 @@ public class CommissionTransactionController : ControllerBase
     /// Get commissions by date range
     /// </summary>
     [HttpGet("date-range")]
+    [RequirePermission("Commissions", "Read")]
     public async Task<ActionResult<IEnumerable<CommissionTransactionDto>>> GetCommissionsByDateRange(
         [FromQuery] DateTime startDate, 
         [FromQuery] DateTime endDate, 
@@ -143,6 +151,7 @@ public class CommissionTransactionController : ControllerBase
     /// Approve commission
     /// </summary>
     [HttpPost("{id}/approve")]
+    [RequirePermission("Commissions", "Approve")]
     public async Task<ActionResult<CommissionTransactionDto>> ApproveCommission(Guid id, [FromBody] ApproveCommissionDto request)
     {
         var command = new ApproveCommissionCommand
@@ -160,6 +169,7 @@ public class CommissionTransactionController : ControllerBase
     /// Reject commission
     /// </summary>
     [HttpPost("{id}/reject")]
+    [RequirePermission("Commissions", "Reject")]
     public async Task<ActionResult<CommissionTransactionDto>> RejectCommission(Guid id, [FromBody] RejectCommissionDto request)
     {
         var command = new RejectCommissionCommand
@@ -177,6 +187,7 @@ public class CommissionTransactionController : ControllerBase
     /// Mark commission as paid
     /// </summary>
     [HttpPost("{id}/mark-paid")]
+    [RequirePermission("Commissions", "MarkPaid")]
     public async Task<ActionResult<CommissionTransactionDto>> MarkCommissionAsPaid(Guid id, [FromBody] MarkCommissionAsPaidDto request)
     {
         var command = new MarkCommissionAsPaidCommand
@@ -195,6 +206,7 @@ public class CommissionTransactionController : ControllerBase
     /// Process pending commissions
     /// </summary>
     [HttpPost("process-pending")]
+    [RequirePermission("Commissions", "Process")]
     public async Task<ActionResult<ProcessPendingCommissionsResultDto>> ProcessPendingCommissions([FromBody] ProcessPendingCommissionsDto request)
     {
         var command = new ProcessPendingCommissionsCommand
@@ -216,6 +228,7 @@ public class CommissionTransactionController : ControllerBase
     /// Update commission notes
     /// </summary>
     [HttpPut("{id}/notes")]
+    [RequirePermission("Commissions", "Update")]
     public async Task<ActionResult<CommissionTransactionDto>> UpdateCommissionNotes(Guid id, [FromBody] UpdateCommissionNotesDto request)
     {
         var command = new UpdateCommissionNotesCommand
@@ -232,6 +245,7 @@ public class CommissionTransactionController : ControllerBase
     /// Expire commission
     /// </summary>
     [HttpPost("{id}/expire")]
+    [RequirePermission("Commissions", "Expire")]
     public async Task<ActionResult<CommissionTransactionDto>> ExpireCommission(Guid id, [FromBody] ExpireCommissionDto request)
     {
         var command = new ExpireCommissionCommand

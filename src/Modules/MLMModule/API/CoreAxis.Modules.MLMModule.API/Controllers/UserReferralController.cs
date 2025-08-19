@@ -4,6 +4,7 @@ using CoreAxis.Modules.MLMModule.Application.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using CoreAxis.SharedKernel.Authorization;
 using System.Security.Claims;
 
 namespace CoreAxis.Modules.MLMModule.API.Controllers;
@@ -24,6 +25,7 @@ public class UserReferralController : ControllerBase
     /// Create a new user referral
     /// </summary>
     [HttpPost]
+    [RequirePermission("UserReferrals", "Create")]
     public async Task<ActionResult<UserReferralDto>> CreateUserReferral([FromBody] CreateUserReferralDto request)
     {
         var command = new CreateUserReferralCommand
@@ -40,6 +42,7 @@ public class UserReferralController : ControllerBase
     /// Get user referral by ID
     /// </summary>
     [HttpGet("{id}")]
+    [RequirePermission("UserReferrals", "Read")]
     public async Task<ActionResult<UserReferralDto>> GetUserReferral(Guid id)
     {
         var query = new GetUserReferralByIdQuery { UserReferralId = id };
@@ -55,6 +58,7 @@ public class UserReferralController : ControllerBase
     /// Get user referral by user ID
     /// </summary>
     [HttpGet("user/{userId}")]
+    [RequirePermission("UserReferrals", "Read")]
     public async Task<ActionResult<UserReferralDto>> GetUserReferralByUserId(Guid userId)
     {
         var query = new GetUserReferralByUserIdQuery { UserId = userId };
@@ -70,6 +74,7 @@ public class UserReferralController : ControllerBase
     /// Get user referral children
     /// </summary>
     [HttpGet("{userId}/children")]
+    [RequirePermission("UserReferrals", "Read")]
     public async Task<ActionResult<IEnumerable<UserReferralDto>>> GetUserReferralChildren(Guid userId)
     {
         var query = new GetUserReferralChildrenQuery { UserId = userId };
@@ -81,6 +86,7 @@ public class UserReferralController : ControllerBase
     /// Get user upline
     /// </summary>
     [HttpGet("{userId}/upline")]
+    [RequirePermission("UserReferrals", "Read")]
     public async Task<ActionResult<IEnumerable<UserReferralDto>>> GetUserUpline(Guid userId, [FromQuery] int? levels = null)
     {
         var query = new GetUserUplineQuery { UserId = userId, MaxLevels = levels };
@@ -92,6 +98,7 @@ public class UserReferralController : ControllerBase
     /// Get user downline
     /// </summary>
     [HttpGet("{userId}/downline")]
+    [RequirePermission("UserReferrals", "Read")]
     public async Task<ActionResult<IEnumerable<UserReferralDto>>> GetUserDownline(Guid userId, [FromQuery] int? levels = null)
     {
         var query = new GetUserDownlineQuery { UserId = userId, MaxLevels = levels };
@@ -103,6 +110,7 @@ public class UserReferralController : ControllerBase
     /// Get MLM network statistics
     /// </summary>
     [HttpGet("{userId}/network-stats")]
+    [RequirePermission("UserReferrals", "Read")]
     public async Task<ActionResult<MLMNetworkStatsDto>> GetMLMNetworkStats(Guid userId)
     {
         var query = new GetMLMNetworkStatsQuery { UserId = userId };
@@ -114,6 +122,7 @@ public class UserReferralController : ControllerBase
     /// Get network tree
     /// </summary>
     [HttpGet("{userId}/network-tree")]
+    [RequirePermission("UserReferrals", "Read")]
     public async Task<ActionResult<NetworkTreeDto>> GetNetworkTree(Guid userId, [FromQuery] int? maxDepth = null)
     {
         var query = new GetNetworkTreeQuery 
@@ -129,6 +138,7 @@ public class UserReferralController : ControllerBase
     /// Update user referral
     /// </summary>
     [HttpPut("{id}")]
+    [RequirePermission("UserReferrals", "Update")]
     public async Task<ActionResult<UserReferralDto>> UpdateUserReferral(Guid id, [FromBody] UpdateUserReferralDto request)
     {
         var command = new UpdateUserReferralCommand
@@ -145,6 +155,7 @@ public class UserReferralController : ControllerBase
     /// Activate user referral
     /// </summary>
     [HttpPost("{userId}/activate")]
+    [RequirePermission("UserReferrals", "Activate")]
     public async Task<ActionResult<bool>> ActivateUserReferral(Guid userId)
     {
         var command = new ActivateUserReferralCommand { UserId = userId };
@@ -156,6 +167,7 @@ public class UserReferralController : ControllerBase
     /// Deactivate user referral
     /// </summary>
     [HttpPost("{userId}/deactivate")]
+    [RequirePermission("UserReferrals", "Deactivate")]
     public async Task<ActionResult<bool>> DeactivateUserReferral(Guid userId)
     {
         var command = new DeactivateUserReferralCommand { UserId = userId };
@@ -167,6 +179,7 @@ public class UserReferralController : ControllerBase
     /// Delete user referral
     /// </summary>
     [HttpDelete("{id}")]
+    [RequirePermission("UserReferrals", "Delete")]
     public async Task<ActionResult> DeleteUserReferral(Guid id)
     {
         var command = new DeleteUserReferralCommand { Id = id };
