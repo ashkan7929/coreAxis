@@ -72,3 +72,27 @@ public class CreateProductRuleBindingDto
     public DateTime? ValidFrom { get; set; }
     public DateTime? ValidTo { get; set; }
 }
+
+public class CommissionRuleVersionDto
+{
+    public Guid Id { get; set; }
+    public Guid RuleSetId { get; set; }
+    public int Version { get; set; }
+    public string SchemaJson { get; set; } = string.Empty;
+    public bool IsPublished { get; set; }
+    public DateTime? PublishedAt { get; set; }
+    public string? PublishedBy { get; set; }
+    public DateTime CreatedOn { get; set; }
+}
+
+public class CreateCommissionRuleVersionDto
+{
+    public Guid RuleSetId { get; set; }
+    public string SchemaJson { get; set; } = string.Empty;
+    public string PublishedBy { get; set; } = string.Empty;
+}
+
+// Alias for backward compatibility
+public class CommissionRuleDto : CommissionRuleSetDto
+{
+}

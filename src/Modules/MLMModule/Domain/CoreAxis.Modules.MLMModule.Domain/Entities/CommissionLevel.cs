@@ -28,6 +28,27 @@ public class CommissionLevel : EntityBase
         ValidateLevel();
     }
     
+    public CommissionLevel(Guid commissionRuleSetId, int level, decimal percentage, decimal? fixedAmount, decimal? maxAmount, decimal? minAmount)
+    {
+        CommissionRuleSetId = commissionRuleSetId;
+        Level = level;
+        Percentage = percentage;
+        FixedAmount = fixedAmount;
+        MaxAmount = maxAmount;
+        MinAmount = minAmount;
+        CreatedOn = DateTime.UtcNow;
+        
+        ValidatePercentage();
+        ValidateLevel();
+        
+        if (fixedAmount.HasValue && fixedAmount.Value < 0)
+            throw new ArgumentException("Fixed amount cannot be negative", nameof(fixedAmount));
+        if (maxAmount.HasValue && maxAmount.Value < 0)
+            throw new ArgumentException("Max amount cannot be negative", nameof(maxAmount));
+        if (minAmount.HasValue && minAmount.Value < 0)
+            throw new ArgumentException("Min amount cannot be negative", nameof(minAmount));
+    }
+    
     public void UpdatePercentage(decimal percentage)
     {
         Percentage = percentage;

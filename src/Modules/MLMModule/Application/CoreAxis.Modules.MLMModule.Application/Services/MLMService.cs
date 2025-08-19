@@ -40,13 +40,13 @@ public class MLMService : IMLMService
 
         // Get commission rule set for the product
         var ruleSet = await _ruleSetRepository.GetByProductIdAsync(productId);
-        if (ruleSet == null)
+        if (ruleSet is null)
         {
             // Fall back to default rule set
             ruleSet = await _ruleSetRepository.GetDefaultAsync();
         }
 
-        if (ruleSet == null || !ruleSet.IsActive)
+        if (ruleSet is null || !ruleSet.IsActive)
         {
             _logger.LogWarning("No active commission rule set found for product {ProductId}", 
                 productId);
@@ -99,10 +99,13 @@ public class MLMService : IMLMService
                 uplineUser.UserId,
                 sourcePaymentId,
                 ruleSet.Id,
+                ruleSet.Code,
+                ruleSet.LatestVersion,
                 level.Level,
                 commissionAmount,
                 amount,
                 level.Percentage,
+                Guid.NewGuid().ToString(),
                 productId);
 
             commissions.Add(commission);
@@ -128,12 +131,12 @@ public class MLMService : IMLMService
     {
         // Get commission rule set for the product
         var ruleSet = await _ruleSetRepository.GetByProductIdAsync(productId);
-        if (ruleSet == null)
+        if (ruleSet is null)
         {
             ruleSet = await _ruleSetRepository.GetDefaultAsync();
         }
 
-        if (ruleSet == null || !ruleSet.IsActive)
+        if (ruleSet is null || !ruleSet.IsActive)
         {
             return Enumerable.Empty<CommissionCalculationDto>();
         }
@@ -179,7 +182,7 @@ public class MLMService : IMLMService
         int maxDepth = 10)
     {
         var userReferral = await _userReferralRepository.GetByUserIdAsync(userId);
-        if (userReferral == null)
+        if (userReferral is null)
         {
             throw new InvalidOperationException($"User referral not found for user {userId}");
         }
@@ -190,7 +193,7 @@ public class MLMService : IMLMService
     public async Task<MLMNetworkStatsDto> GetNetworkStatsAsync(Guid userId)
     {
         var userReferral = await _userReferralRepository.GetByUserIdAsync(userId);
-        if (userReferral == null)
+        if (userReferral is null)
         {
             return new MLMNetworkStatsDto
             {
@@ -239,14 +242,14 @@ public class MLMService : IMLMService
 
         // Check if child already has a parent
         var existingChild = await _userReferralRepository.GetByUserIdAsync(childUserId);
-        if (existingChild != null)
+        if (existingChild is not null)
         {
             return false;
         }
 
         // Check if parent exists and is active
         var parent = await _userReferralRepository.GetByUserIdAsync(parentUserId);
-        if (parent == null || !parent.IsActive)
+        if (parent is null || !parent.IsActive)
         {
             return false;
         }
@@ -278,7 +281,7 @@ public class MLMService : IMLMService
             }
 
             var parentReferral = await _userReferralRepository.GetByUserIdAsync(userReferral.ParentUserId.Value);
-            if (parentReferral == null)
+            if (parentReferral is null)
             {
                 break;
             }

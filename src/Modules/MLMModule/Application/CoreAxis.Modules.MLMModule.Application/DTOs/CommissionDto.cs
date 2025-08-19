@@ -86,3 +86,14 @@ public class RejectCommissionDto
     public string RejectionReason { get; set; } = string.Empty;
     public string? RejectionNotes { get; set; }
 }
+
+public class CommissionCalculationDto
+{
+    public Guid UserId { get; set; }
+    public int Level { get; set; }
+    public decimal Amount { get; set; }
+    public decimal Percentage { get; set; }
+    public decimal SourceAmount { get; set; }
+    public string UserName { get; set; } = string.Empty;
+    public string UserEmail { get; set; } = string.Empty;
+}

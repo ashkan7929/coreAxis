@@ -23,6 +23,7 @@ public class CreateCommissionRuleSetCommandHandler : IRequestHandler<CreateCommi
     public async Task<CommissionRuleSetDto> Handle(CreateCommissionRuleSetCommand request, CancellationToken cancellationToken)
     {
         var ruleSet = new CommissionRuleSet(
+            Guid.NewGuid().ToString(),
             request.Name,
             request.Description,
             request.MaxLevels);
@@ -312,5 +313,139 @@ public class AddProductRuleBindingCommandHandler : IRequestHandler<AddProductRul
             ValidFrom = binding.ValidFrom,
             ValidTo = binding.ValidTo
         };
+    }
+}
+
+public class RemoveProductRuleBindingCommandHandler : IRequestHandler<RemoveProductRuleBindingCommand, bool>
+{
+    private readonly ICommissionRuleSetRepository _ruleSetRepository;
+    private readonly IDomainEventDispatcher _eventDispatcher;
+
+    public RemoveProductRuleBindingCommandHandler(
+        ICommissionRuleSetRepository ruleSetRepository,
+        IDomainEventDispatcher eventDispatcher)
+    {
+        _ruleSetRepository = ruleSetRepository;
+        _eventDispatcher = eventDispatcher;
+    }
+
+    public async Task<bool> Handle(RemoveProductRuleBindingCommand request, CancellationToken cancellationToken)
+    {
+        var ruleSet = await _ruleSetRepository.GetByIdAsync(request.CommissionRuleSetId);
+        if (ruleSet == null)
+        {
+            return false;
+        }
+
+        ruleSet.RemoveProductBinding(request.ProductId);
+        await _ruleSetRepository.UpdateAsync(ruleSet);
+        await _eventDispatcher.DispatchAsync(ruleSet.DomainEvents);
+
+        return true;
+    }
+}
+
+public class PublishCommissionRuleVersionCommandHandler : IRequestHandler<PublishCommissionRuleVersionCommand, CommissionRuleVersionDto>
+{
+    private readonly ICommissionRuleSetRepository _ruleSetRepository;
+    private readonly IDomainEventDispatcher _eventDispatcher;
+
+    public PublishCommissionRuleVersionCommandHandler(
+        ICommissionRuleSetRepository ruleSetRepository,
+        IDomainEventDispatcher eventDispatcher)
+    {
+        _ruleSetRepository = ruleSetRepository;
+        _eventDispatcher = eventDispatcher;
+    }
+
+    public async Task<CommissionRuleVersionDto> Handle(PublishCommissionRuleVersionCommand request, CancellationToken cancellationToken)
+    {
+        var ruleSet = await _ruleSetRepository.GetByIdAsync(request.RuleSetId);
+        if (ruleSet == null)
+        {
+            throw new InvalidOperationException("Commission rule set not found.");
+        }
+
+        // Validate schema JSON
+        if (string.IsNullOrWhiteSpace(request.SchemaJson))
+        {
+            throw new ArgumentException("Schema JSON cannot be empty.");
+        }
+
+        try
+        {
+            System.Text.Json.JsonDocument.Parse(request.SchemaJson);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            throw new ArgumentException("Invalid JSON format in schema.");
+        }
+
+        var version = ruleSet.PublishVersion(request.SchemaJson, request.PublishedBy);
+        await _ruleSetRepository.UpdateAsync(ruleSet);
+        await _eventDispatcher.DispatchAsync(ruleSet.DomainEvents);
+
+        return new CommissionRuleVersionDto
+        {
+            Id = version.Id,
+            RuleSetId = version.RuleSetId,
+            Version = version.Version,
+            SchemaJson = version.SchemaJson,
+            IsPublished = version.IsPublished,
+            PublishedAt = version.PublishedAt,
+            PublishedBy = version.PublishedBy,
+            CreatedOn = version.CreatedOn
+        };
+    }
+}
+
+public class ValidateCommissionRuleSchemaCommandHandler : IRequestHandler<ValidateCommissionRuleSchemaCommand, bool>
+{
+    public async Task<bool> Handle(ValidateCommissionRuleSchemaCommand request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.SchemaJson))
+        {
+            return false;
+        }
+
+        try
+        {
+            // Basic JSON validation
+            using var document = System.Text.Json.JsonDocument.Parse(request.SchemaJson);
+            var root = document.RootElement;
+
+            // Validate required properties
+            if (!root.TryGetProperty("name", out _) ||
+                !root.TryGetProperty("version", out _) ||
+                !root.TryGetProperty("rules", out var rulesElement) ||
+                rulesElement.ValueKind != System.Text.Json.JsonValueKind.Array)
+            {
+                return false;
+            }
+
+            // Validate rules array
+            foreach (var rule in rulesElement.EnumerateArray())
+            {
+                if (!rule.TryGetProperty("level", out var levelElement) ||
+                    levelElement.ValueKind != System.Text.Json.JsonValueKind.Number ||
+                    !rule.TryGetProperty("percentage", out var percentageElement) ||
+                    percentageElement.ValueKind != System.Text.Json.JsonValueKind.Number)
+                {
+                    return false;
+                }
+
+                var percentage = percentageElement.GetDecimal();
+                if (percentage < 0 || percentage > 100)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

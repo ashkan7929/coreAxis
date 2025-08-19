@@ -52,3 +52,21 @@ public class AddProductRuleBindingCommand : IRequest<ProductRuleBindingDto>
     public DateTime? ValidFrom { get; set; }
     public DateTime? ValidTo { get; set; }
 }
+
+public class RemoveProductRuleBindingCommand : IRequest<bool>
+{
+    public Guid CommissionRuleSetId { get; set; }
+    public Guid ProductId { get; set; }
+}
+
+public class PublishCommissionRuleVersionCommand : IRequest<CommissionRuleVersionDto>
+{
+    public Guid RuleSetId { get; set; }
+    public string SchemaJson { get; set; } = string.Empty;
+    public string PublishedBy { get; set; } = string.Empty;
+}
+
+public class ValidateCommissionRuleSchemaCommand : IRequest<bool>
+{
+    public string SchemaJson { get; set; } = string.Empty;
+}

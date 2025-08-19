@@ -1,5 +1,11 @@
 using CoreAxis.BuildingBlocks;
+using CoreAxis.EventBus;
+using CoreAxis.Modules.MLMModule.Application.Services;
+using CoreAxis.Modules.MLMModule.Infrastructure;
+using CoreAxis.Modules.MLMModule.Infrastructure.EventHandlers;
+using CoreAxis.SharedKernel.Contracts.Events;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CoreAxis.Modules.MLMModule.API
@@ -25,9 +31,20 @@ namespace CoreAxis.Modules.MLMModule.API
         /// <param name="services">The service collection to register services with.</param>
         public void RegisterServices(IServiceCollection services)
         {
+            // Get configuration from the service provider
+            var serviceProvider = services.BuildServiceProvider();
+            var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+            
             // Add controllers from this module
             services.AddControllers()
                 .AddApplicationPart(typeof(MLMModule).Assembly);
+
+            // Register infrastructure services
+            services.AddMLMModuleInfrastructure(configuration);
+
+            // Register application services
+            services.AddScoped<IMLMService, MLMService>();
+            services.AddScoped<ICommissionCalculationService, CommissionCalculationService>();
         }
 
         /// <summary>
@@ -36,6 +53,13 @@ namespace CoreAxis.Modules.MLMModule.API
         /// <param name="app">The application builder to configure middleware with.</param>
         public void ConfigureApplication(IApplicationBuilder app)
         {
+            // Get the event bus from the service provider
+            var serviceProvider = app.ApplicationServices;
+            var eventBus = serviceProvider.GetRequiredService<IEventBus>();
+
+            // Subscribe to PaymentConfirmed.v1 event
+            eventBus.Subscribe<PaymentConfirmed, PaymentConfirmedEventHandler>();
+
             // Configure any module-specific middleware here if needed
             // For now, the MLMModule doesn't require specific middleware configuration
         }

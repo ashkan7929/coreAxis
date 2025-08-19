@@ -1,6 +1,8 @@
 using CoreAxis.Modules.MLMModule.Application.DTOs;
 using CoreAxis.Modules.MLMModule.Application.Queries;
+using CoreAxis.Modules.MLMModule.Domain.Entities;
 using CoreAxis.Modules.MLMModule.Domain.Repositories;
+using CoreAxis.SharedKernel.Exceptions;
 using MediatR;
 
 namespace CoreAxis.Modules.MLMModule.Application.Handlers;
@@ -295,5 +297,124 @@ public class GetProductRuleBindingsByProductQueryHandler : IRequestHandler<GetPr
         }
         
         return productBindings;
+    }
+}
+
+public class GetCommissionRuleVersionsQueryHandler : IRequestHandler<GetCommissionRuleVersionsQuery, IEnumerable<CommissionRuleVersionDto>>
+{
+    private readonly ICommissionRuleSetRepository _repository;
+
+    public GetCommissionRuleVersionsQueryHandler(ICommissionRuleSetRepository repository)
+    {
+        _repository = repository;
+    }
+
+    public async Task<IEnumerable<CommissionRuleVersionDto>> Handle(GetCommissionRuleVersionsQuery query, CancellationToken cancellationToken)
+    {
+        var ruleSet = await _repository.GetByIdAsync(query.RuleSetId);
+        if (ruleSet == null)
+        {
+            throw new EntityNotFoundException("CommissionRuleSet", query.RuleSetId);
+        }
+
+        return ruleSet.Versions.Select(MapToVersionDto).ToList();
+    }
+
+    private static CommissionRuleVersionDto MapToVersionDto(CommissionRuleVersion version)
+    {
+        return new CommissionRuleVersionDto
+        {
+            Id = version.Id,
+            RuleSetId = version.RuleSetId,
+            Version = version.Version,
+            SchemaJson = version.SchemaJson,
+            IsPublished = version.IsPublished,
+            PublishedAt = version.PublishedAt,
+            PublishedBy = version.PublishedBy,
+            CreatedOn = version.CreatedOn
+        };
+    }
+}
+
+public class GetCommissionRuleVersionByIdQueryHandler : IRequestHandler<GetCommissionRuleVersionByIdQuery, CommissionRuleVersionDto?>
+{
+    private readonly ICommissionRuleSetRepository _repository;
+
+    public GetCommissionRuleVersionByIdQueryHandler(ICommissionRuleSetRepository repository)
+    {
+        _repository = repository;
+    }
+
+    public async Task<CommissionRuleVersionDto?> Handle(GetCommissionRuleVersionByIdQuery query, CancellationToken cancellationToken)
+    {
+        // First, we need to find the version by its ID across all rule sets
+        // We'll get all rule sets in batches to find the version
+        var allRuleSets = await _repository.GetAllAsync(0, 1000, cancellationToken);
+        
+        CommissionRuleVersion? version = null;
+        foreach (var ruleSet in allRuleSets)
+        {
+            version = ruleSet.Versions.FirstOrDefault(v => v.Id == query.VersionId);
+            if (version != null)
+                break;
+        }
+
+        if (version == null)
+        {
+            throw new EntityNotFoundException("CommissionRuleVersion", query.VersionId);
+        }
+
+        return new CommissionRuleVersionDto
+        {
+            Id = version.Id,
+            RuleSetId = version.RuleSetId,
+            Version = version.Version,
+            SchemaJson = version.SchemaJson,
+            IsPublished = version.IsPublished,
+            PublishedAt = version.PublishedAt,
+            PublishedBy = version.PublishedBy,
+            CreatedOn = version.CreatedOn
+        };
+    }
+}
+
+public class GetLatestCommissionRuleVersionQueryHandler : IRequestHandler<GetLatestCommissionRuleVersionQuery, CommissionRuleVersionDto?>
+{
+    private readonly ICommissionRuleSetRepository _repository;
+
+    public GetLatestCommissionRuleVersionQueryHandler(ICommissionRuleSetRepository repository)
+    {
+        _repository = repository;
+    }
+
+    public async Task<CommissionRuleVersionDto?> Handle(GetLatestCommissionRuleVersionQuery query, CancellationToken cancellationToken)
+    {
+        var ruleSet = await _repository.GetByIdAsync(query.RuleSetId);
+        if (ruleSet == null)
+        {
+            throw new EntityNotFoundException("CommissionRuleSet", query.RuleSetId);
+        }
+
+        var latestVersion = ruleSet.Versions
+            .Where(v => v.IsActive)
+            .OrderByDescending(v => v.Version)
+            .FirstOrDefault();
+
+        if (latestVersion == null)
+        {
+            throw new EntityNotFoundException("CommissionRuleVersion", $"No active version for RuleSet {query.RuleSetId}");
+        }
+
+        return new CommissionRuleVersionDto
+        {
+            Id = latestVersion.Id,
+            RuleSetId = latestVersion.RuleSetId,
+            Version = latestVersion.Version,
+            SchemaJson = latestVersion.SchemaJson,
+            IsPublished = latestVersion.IsPublished,
+            PublishedAt = latestVersion.PublishedAt,
+            PublishedBy = latestVersion.PublishedBy,
+            CreatedOn = latestVersion.CreatedOn
+        };
     }
 }

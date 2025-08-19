@@ -10,6 +10,8 @@ public class CommissionTransaction : EntityBase
     public Guid SourcePaymentId { get; private set; }
     public Guid? ProductId { get; private set; }
     public Guid CommissionRuleSetId { get; private set; }
+    public string RuleSetCode { get; private set; } = string.Empty;
+    public int RuleVersion { get; private set; }
     public int Level { get; private set; }
     public decimal Amount { get; private set; }
     public decimal SourceAmount { get; private set; }
@@ -18,6 +20,7 @@ public class CommissionTransaction : EntityBase
     public bool IsSettled { get; private set; } = false;
     public Guid? WalletTransactionId { get; private set; }
     public string? Notes { get; private set; }
+    public string CorrelationId { get; private set; } = string.Empty;
     public DateTime? ApprovedAt { get; private set; }
     public DateTime? PaidAt { get; private set; }
     public DateTime? RejectedAt { get; private set; }
@@ -33,19 +36,25 @@ public class CommissionTransaction : EntityBase
         Guid userId,
         Guid sourcePaymentId,
         Guid commissionRuleSetId,
+        string ruleSetCode,
+        int ruleVersion,
         int level,
         decimal amount,
         decimal sourceAmount,
         decimal percentage,
+        string correlationId,
         Guid? productId = null)
     {
         UserId = userId;
         SourcePaymentId = sourcePaymentId;
         CommissionRuleSetId = commissionRuleSetId;
+        RuleSetCode = ruleSetCode;
+        RuleVersion = ruleVersion;
         Level = level;
         Amount = amount;
         SourceAmount = sourceAmount;
         Percentage = percentage;
+        CorrelationId = correlationId;
         ProductId = productId;
         CreatedOn = DateTime.UtcNow;
         

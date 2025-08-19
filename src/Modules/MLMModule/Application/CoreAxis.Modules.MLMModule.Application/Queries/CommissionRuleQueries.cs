@@ -38,3 +38,19 @@ public class GetProductRuleBindingsByProductQuery : IRequest<IEnumerable<Product
     public Guid ProductId { get; set; }
     public DateTime? EffectiveDate { get; set; }
 }
+
+public class GetCommissionRuleVersionsQuery : IRequest<IEnumerable<CommissionRuleVersionDto>>
+{
+    public Guid RuleSetId { get; set; }
+    public bool PublishedOnly { get; set; } = true;
+}
+
+public class GetCommissionRuleVersionByIdQuery : IRequest<CommissionRuleVersionDto?>
+{
+    public Guid VersionId { get; set; }
+}
+
+public class GetLatestCommissionRuleVersionQuery : IRequest<CommissionRuleVersionDto?>
+{
+    public Guid RuleSetId { get; set; }
+}

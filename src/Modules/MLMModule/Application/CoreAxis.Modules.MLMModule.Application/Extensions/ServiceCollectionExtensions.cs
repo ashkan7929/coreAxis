@@ -23,6 +23,8 @@ public static class ServiceCollectionExtensions
 
         // Register application services
         services.AddScoped<IMLMService, MLMService>();
+        services.AddScoped<ICommissionCalculationService, CommissionCalculationService>();
+        services.AddScoped<ICommissionRuleSetService, CommissionRuleSetService>();
 
         return services;
     }
