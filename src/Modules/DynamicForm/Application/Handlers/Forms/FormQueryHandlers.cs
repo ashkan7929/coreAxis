@@ -37,7 +37,7 @@ public class GetFormByIdQueryHandler : IRequestHandler<GetFormByIdQuery, Result<
             }
 
             var formDto = MapToDto(form, request.IncludeFields);
-            return Result<FormDto>.Success(formDto);
+        return Result<FormDto>.Success(formDto);
         }
         catch (Exception ex)
         {
@@ -120,7 +120,7 @@ public class GetFormByNameQueryHandler : IRequestHandler<GetFormByNameQuery, Res
             }
 
             var formDto = MapToDto(form, request.IncludeFields);
-            return Result<FormDto>.Success(formDto);
+        return Result<FormDto>.Success(formDto);
         }
         catch (Exception ex)
         {
@@ -239,16 +239,16 @@ public class GetFormsQueryHandler : IRequestHandler<GetFormsQuery, Result<PagedR
 public class GetFormSchemaQueryHandler : IRequestHandler<GetFormSchemaQuery, Result<FormSchemaDto>>
 {
     private readonly IFormRepository _formRepository;
-    private readonly IDependencyGraphService _dependencyGraphService;
+    private readonly IDependencyGraph _dependencyGraph;
     private readonly ILogger<GetFormSchemaQueryHandler> _logger;
 
     public GetFormSchemaQueryHandler(
         IFormRepository formRepository,
-        IDependencyGraphService dependencyGraphService,
+        IDependencyGraph dependencyGraph,
         ILogger<GetFormSchemaQueryHandler> logger)
     {
         _formRepository = formRepository;
-        _dependencyGraphService = dependencyGraphService;
+        _dependencyGraph = dependencyGraph;
         _logger = logger;
     }
 

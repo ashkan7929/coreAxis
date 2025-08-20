@@ -91,6 +91,17 @@ namespace CoreAxis.SharedKernel
         }
 
         /// <summary>
+        /// Creates a successful result with the specified value.
+        /// </summary>
+        /// <typeparam name="T">The type of the result value.</typeparam>
+        /// <param name="value">The result value.</param>
+        /// <returns>A successful result.</returns>
+        public static Result<T> Success<T>(T value)
+        {
+            return Result<T>.Success(value);
+        }
+
+        /// <summary>
         /// Creates a failed result with the specified error message.
         /// </summary>
         /// <param name="errorMessage">The error message.</param>
@@ -103,6 +114,17 @@ namespace CoreAxis.SharedKernel
         }
 
         /// <summary>
+        /// Creates a failed result with the specified error message.
+        /// </summary>
+        /// <typeparam name="T">The type of the result value.</typeparam>
+        /// <param name="errorMessage">The error message.</param>
+        /// <returns>A failed result.</returns>
+        public static Result<T> Failure<T>(string errorMessage)
+        {
+            return Result<T>.Failure(errorMessage);
+        }
+
+        /// <summary>
         /// Creates a failed result with the specified error messages.
         /// </summary>
         /// <param name="errors">The error messages.</param>
@@ -110,6 +132,17 @@ namespace CoreAxis.SharedKernel
         public static Result<bool> Failure(IEnumerable<string> errors)
         {
             return Result<bool>.Failure(errors);
+        }
+
+        /// <summary>
+        /// Creates a failed result with the specified error messages.
+        /// </summary>
+        /// <typeparam name="T">The type of the result value.</typeparam>
+        /// <param name="errors">The error messages.</param>
+        /// <returns>A failed result.</returns>
+        public static Result<T> Failure<T>(IEnumerable<string> errors)
+        {
+            return Result<T>.Failure(errors);
         }
     }
 }

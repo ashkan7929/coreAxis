@@ -1,5 +1,5 @@
 using CoreAxis.Modules.DynamicForm.Domain.ValueObjects;
-using CoreAxis.SharedKernel.Common;
+using CoreAxis.SharedKernel;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -20,9 +20,9 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
         /// <param name="formData">The current form data context.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A result containing the evaluated field options.</returns>
-        Task<Result<List<FieldOption>>> EvaluateDynamicOptionsAsync(
-            string expression, 
-            Dictionary<string, object?> formData, 
+        Task<CoreAxis.SharedKernel.Result<List<FieldOption>>> EvaluateDynamicOptionsAsync(
+            string expression,
+            Dictionary<string, object?> formData,
             CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -32,8 +32,8 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
         /// <param name="formData">The current form data context.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A result containing the evaluated options for each field.</returns>
-        Task<Result<Dictionary<string, List<FieldOption>>>> EvaluateMultipleDynamicOptionsAsync(
-            Dictionary<string, string> fieldExpressions,
+        Task<CoreAxis.SharedKernel.Result<Dictionary<string, List<FieldOption>>>> EvaluateMultipleDynamicOptionsAsync(
+            Dictionary<string, string> expressions,
             Dictionary<string, object?> formData,
             CancellationToken cancellationToken = default);
 
@@ -44,8 +44,8 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
         /// <param name="parameters">Parameters to pass to the API.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A result containing the options from the API.</returns>
-        Task<Result<List<FieldOption>>> GetOptionsFromApiAsync(
-            string apiEndpoint,
+        Task<CoreAxis.SharedKernel.Result<List<FieldOption>>> GetOptionsFromApiAsync(
+            string apiUrl,
             Dictionary<string, object?> parameters,
             CancellationToken cancellationToken = default);
 
@@ -56,7 +56,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
         /// <param name="parameters">Parameters for the query.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A result containing the options from the database.</returns>
-        Task<Result<List<FieldOption>>> GetOptionsFromDatabaseAsync(
+        Task<CoreAxis.SharedKernel.Result<List<FieldOption>>> GetOptionsFromDatabaseAsync(
             string query,
             Dictionary<string, object?> parameters,
             CancellationToken cancellationToken = default);
@@ -65,13 +65,13 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
         /// Filters existing options based on conditions.
         /// </summary>
         /// <param name="options">The original options to filter.</param>
-        /// <param name="filterExpression">The filter expression.</param>
+        /// <param name="filterCondition">The filter condition.</param>
         /// <param name="formData">The current form data context.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A result containing the filtered options.</returns>
-        Task<Result<List<FieldOption>>> FilterOptionsAsync(
+        Task<CoreAxis.SharedKernel.Result<List<FieldOption>>> FilterOptionsAsync(
             List<FieldOption> options,
-            string filterExpression,
+            string filterCondition,
             Dictionary<string, object?> formData,
             CancellationToken cancellationToken = default);
 
@@ -80,13 +80,13 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
         /// </summary>
         /// <param name="expression">The expression to validate.</param>
         /// <returns>A result indicating if the expression is valid.</returns>
-        Result<bool> ValidateDynamicOptionsExpression(string expression);
+        Task<CoreAxis.SharedKernel.Result<bool>> ValidateDynamicOptionsExpression(string expression);
 
         /// <summary>
         /// Gets available functions that can be used in dynamic options expressions.
         /// </summary>
         /// <returns>A list of available function names and their descriptions.</returns>
-        Dictionary<string, string> GetAvailableFunctions();
+        Task<CoreAxis.SharedKernel.Result<Dictionary<string, string>>> GetAvailableFunctions();
     }
 
     /// <summary>

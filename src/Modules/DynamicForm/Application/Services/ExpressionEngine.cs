@@ -105,7 +105,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
 
         public ExpressionValidationResult ValidateExpression(
             string expression,
-            ValidationContext validationContext = null)
+            ValidationContext? validationContext = null)
         {
             var result = new ExpressionValidationResult();
 

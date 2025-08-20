@@ -18,8 +18,8 @@ namespace CoreAxis.Modules.DynamicForm.Application.Handlers.FormStepSubmissions
     /// </summary>
     public class FormStepSubmissionQueryHandlers :
         IRequestHandler<GetFormStepSubmissionByIdQuery, FormStepSubmissionDto>,
-        IRequestHandler<GetFormStepSubmissionsByFormSubmissionIdQuery, List<FormStepSubmissionDto>>,
-        IRequestHandler<GetFormStepSubmissionAnalyticsQuery, FormStepSubmissionAnalyticsDto>
+        IRequestHandler<GetFormStepSubmissionsByFormSubmissionIdQuery, IEnumerable<FormStepSubmissionDto>>,
+        IRequestHandler<GetFormStepSubmissionAnalyticsQuery, IEnumerable<FormStepSubmissionAnalyticsDto>>
     {
         private readonly IFormStepSubmissionRepository _formStepSubmissionRepository;
         private readonly ILogger<FormStepSubmissionQueryHandlers> _logger;
@@ -79,7 +79,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Handlers.FormStepSubmissions
         /// <param name="request">The get form step submissions by form submission ID query.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The list of form step submission DTOs.</returns>
-        public async Task<List<FormStepSubmissionDto>> Handle(GetFormStepSubmissionsByFormSubmissionIdQuery request, CancellationToken cancellationToken)
+        public async Task<IEnumerable<FormStepSubmissionDto>> Handle(GetFormStepSubmissionsByFormSubmissionIdQuery request, CancellationToken cancellationToken)
         {
             try
             {
@@ -146,7 +146,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Handlers.FormStepSubmissions
         /// <param name="request">The get form step submission analytics query.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The form step submission analytics DTO.</returns>
-        public async Task<FormStepSubmissionAnalyticsDto> Handle(GetFormStepSubmissionAnalyticsQuery request, CancellationToken cancellationToken)
+        public async Task<IEnumerable<FormStepSubmissionAnalyticsDto>> Handle(GetFormStepSubmissionAnalyticsQuery request, CancellationToken cancellationToken)
         {
             try
             {
@@ -187,22 +187,12 @@ namespace CoreAxis.Modules.DynamicForm.Application.Handlers.FormStepSubmissions
                     filteredAnalytics = filteredAnalytics.OrderByDescending(a => a.CompletionRate);
                 }
 
-                var result = filteredAnalytics.ToList();
+                var result = filteredAnalytics.Select(MapToStepAnalyticsDto).ToList();
 
                 _logger.LogInformation("Retrieved analytics for {Count} form steps for form {FormId}", 
                     result.Count, request.FormId);
 
-                return new FormStepSubmissionAnalyticsDto
-                {
-                    FormId = request.FormId,
-                    TenantId = request.TenantId,
-                    StartDate = request.StartDate,
-                    EndDate = request.EndDate,
-                    StepAnalytics = result.Select(MapToStepAnalyticsDto).ToList(),
-                    TotalSteps = result.Count,
-                    OverallCompletionRate = result.Any() ? result.Average(a => a.CompletionRate) : 0,
-                    AverageFormCompletionTimeSeconds = result.Any() ? result.Sum(a => a.AverageCompletionTimeSeconds) : 0
-                };
+                return result;
             }
             catch (Exception ex)
             {

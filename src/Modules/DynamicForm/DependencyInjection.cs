@@ -2,6 +2,7 @@ using CoreAxis.Modules.DynamicForm.Application.Interfaces;
 using CoreAxis.Modules.DynamicForm.Application.Services;
 using CoreAxis.Modules.DynamicForm.Domain.Interfaces;
 using CoreAxis.Modules.DynamicForm.Domain.Repositories;
+using CoreAxis.Modules.DynamicForm.Domain.Services;
 using CoreAxis.Modules.DynamicForm.Infrastructure.Data;
 using CoreAxis.Modules.DynamicForm.Infrastructure.Persistence;
 using CoreAxis.Modules.DynamicForm.Infrastructure.Repositories;
@@ -39,7 +40,7 @@ public static class DependencyInjection
         // Add Domain Services
         services.AddScoped<IFormSchemaValidator, FormSchemaValidator>();
         services.AddScoped<IExpressionEngine, ExpressionEngine>();
-        services.AddScoped<IDependencyGraphService, DependencyGraphService>();
+        services.AddScoped<IDependencyGraph, DependencyGraph>();
         services.AddScoped<IValidationEngine, ValidationEngine>();
         services.AddScoped<IDynamicOptionsManager, DynamicOptionsManager>();
 

@@ -1,4 +1,4 @@
-using CoreAxis.SharedKernel.Common;
+using CoreAxis.SharedKernel;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;

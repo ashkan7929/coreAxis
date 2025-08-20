@@ -18,7 +18,7 @@ public record GetFormByNameQuery : IRequest<Result<FormDto>>
     public bool IncludeFields { get; init; } = true;
 }
 
-public record GetFormsQuery : IRequest<Result<IEnumerable<FormDto>>>
+public record GetFormsQuery : IRequest<Result<PagedResult<FormDto>>>
 {
     public string? TenantId { get; init; }
     public string? BusinessId { get; init; }

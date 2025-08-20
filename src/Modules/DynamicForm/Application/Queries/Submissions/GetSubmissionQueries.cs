@@ -10,7 +10,7 @@ public record GetSubmissionByIdQuery : IRequest<Result<FormSubmissionDto>>
     public bool IncludeForm { get; init; } = false;
 }
 
-public record GetSubmissionsQuery : IRequest<Result<IEnumerable<FormSubmissionDto>>>
+public record GetSubmissionsQuery : IRequest<Result<PagedResult<FormSubmissionDto>>>
 {
     public Guid? FormId { get; init; }
     public string? UserId { get; init; }
@@ -21,7 +21,7 @@ public record GetSubmissionsQuery : IRequest<Result<IEnumerable<FormSubmissionDt
     public bool IncludeForm { get; init; } = false;
 }
 
-public record GetSubmissionsByFormQuery : IRequest<Result<IEnumerable<FormSubmissionDto>>>
+public record GetSubmissionsByFormQuery : IRequest<Result<PagedResult<FormSubmissionDto>>>
 {
     public Guid FormId { get; init; }
     public string? UserId { get; init; }

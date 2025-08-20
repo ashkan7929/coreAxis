@@ -1,4 +1,3 @@
-using CoreAxis.SharedKernel.Common;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;

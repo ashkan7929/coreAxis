@@ -14,7 +14,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Domain\CoreAxis.Modules.DynamicForm.Domain.csproj" />
-    <ProjectReference Include="..\..\..\BuildingBlocks\SharedKernel\CoreAxis.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\SharedKernel\CoreAxis.SharedKernel\CoreAxis.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\ApiManager\Application\CoreAxis.Modules.ApiManager.Application\CoreAxis.Modules.ApiManager.Application.csproj" />
   </ItemGroup>
 
 </Project>

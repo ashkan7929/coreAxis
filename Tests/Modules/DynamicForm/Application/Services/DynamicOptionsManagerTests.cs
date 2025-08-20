@@ -259,15 +259,15 @@ namespace CoreAxis.Tests.Modules.DynamicForm.Application.Services
         }
 
         [Fact]
-        public void ValidateDynamicOptionsExpression_WithValidExpression_ReturnsSuccess()
+        public async Task ValidateDynamicOptionsExpression_WithValidExpression_ReturnsSuccess()
         {
             // Arrange
             var expression = "valid_expression";
             _mockExpressionEngine.Setup(x => x.ValidateExpression(expression))
-                .Returns(Result<bool>.Success(true));
+                .Returns(new ExpressionValidationResult { IsValid = true, Errors = new List<string>() });
 
             // Act
-            var result = _dynamicOptionsManager.ValidateDynamicOptionsExpression(expression);
+            var result = await _dynamicOptionsManager.ValidateDynamicOptionsExpression(expression);
 
             // Assert
             Assert.True(result.IsSuccess);
@@ -275,15 +275,15 @@ namespace CoreAxis.Tests.Modules.DynamicForm.Application.Services
         }
 
         [Fact]
-        public void ValidateDynamicOptionsExpression_WithInvalidExpression_ReturnsFailure()
+        public async Task ValidateDynamicOptionsExpression_WithInvalidExpression_ReturnsFailure()
         {
             // Arrange
             var expression = "invalid_expression";
             _mockExpressionEngine.Setup(x => x.ValidateExpression(expression))
-                .Returns(Result<bool>.Failure("Invalid syntax"));
+                .Returns(new ExpressionValidationResult { IsValid = false, Errors = new List<string> { "Invalid syntax" } });
 
             // Act
-            var result = _dynamicOptionsManager.ValidateDynamicOptionsExpression(expression);
+            var result = await _dynamicOptionsManager.ValidateDynamicOptionsExpression(expression);
 
             // Assert
             Assert.True(result.IsFailure);
@@ -291,13 +291,13 @@ namespace CoreAxis.Tests.Modules.DynamicForm.Application.Services
         }
 
         [Fact]
-        public void ValidateDynamicOptionsExpression_WithNullExpression_ReturnsFailure()
+        public async Task ValidateDynamicOptionsExpression_WithNullExpression_ReturnsFailure()
         {
             // Arrange
             string expression = null!;
 
             // Act
-            var result = _dynamicOptionsManager.ValidateDynamicOptionsExpression(expression);
+            var result = await _dynamicOptionsManager.ValidateDynamicOptionsExpression(expression);
 
             // Assert
             Assert.True(result.IsFailure);
@@ -305,23 +305,26 @@ namespace CoreAxis.Tests.Modules.DynamicForm.Application.Services
         }
 
         [Fact]
-        public void GetAvailableFunctions_ReturnsExpectedFunctions()
+        public async Task GetAvailableFunctions_ReturnsExpectedFunctions()
         {
             // Act
-            var functions = _dynamicOptionsManager.GetAvailableFunctions();
+            var result = await _dynamicOptionsManager.GetAvailableFunctions();
 
             // Assert
-            Assert.NotNull(functions);
-            Assert.True(functions.Count > 0);
-            Assert.Contains("api", functions.Keys);
-            Assert.Contains("database", functions.Keys);
-            Assert.Contains("filter", functions.Keys);
-            Assert.Contains("map", functions.Keys);
-            Assert.Contains("sort", functions.Keys);
-            Assert.Contains("group", functions.Keys);
-            Assert.Contains("limit", functions.Keys);
-            Assert.Contains("distinct", functions.Keys);
-            Assert.Contains("conditional", functions.Keys);
+            Assert.True(result.IsSuccess);
+            Assert.NotNull(result.Value);
+            Assert.True(result.Value.Count > 0);
+            Assert.Contains("api", result.Value.Keys);
+            Assert.Contains("database", result.Value.Keys);
+            Assert.Contains("filter", result.Value.Keys);
+            Assert.Contains("map", result.Value.Keys);
+            Assert.Contains("sort", result.Value.Keys);
+            Assert.Contains("group", result.Value.Keys);
+            Assert.Contains("limit", result.Value.Keys);
+            Assert.Contains("distinct", result.Value.Keys);
+            Assert.Contains("conditional", result.Value.Keys);
+            Assert.Contains("static", result.Value.Keys);
+            Assert.Contains("if", result.Value.Keys);
         }
 
         [Fact]
