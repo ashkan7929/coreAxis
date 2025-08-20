@@ -92,6 +92,12 @@ public class CreateCommissionRuleVersionDto
     public string PublishedBy { get; set; } = string.Empty;
 }
 
+public class CreateCommissionRuleVersionRequest
+{
+    public string SchemaJson { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+}
+
 // Alias for backward compatibility
 public class CommissionRuleDto : CommissionRuleSetDto
 {

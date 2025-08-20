@@ -18,10 +18,15 @@ public class CommissionTransactionDto
     public Guid? WalletTransactionId { get; set; }
     public string? Notes { get; set; }
     public DateTime CreatedOn { get; set; }
+    public DateTime? LastModifiedOn { get; set; }
     public DateTime? ApprovedAt { get; set; }
     public DateTime? PaidAt { get; set; }
     public DateTime? RejectedAt { get; set; }
     public string? RejectionReason { get; set; }
+    public string? ApprovedBy { get; set; }
+    public string? ApprovalNotes { get; set; }
+    public string? RejectedBy { get; set; }
+    public string? RejectionNotes { get; set; }
 }
 
 public class CommissionSummaryDto
@@ -85,6 +90,33 @@ public class RejectCommissionDto
 {
     public string RejectionReason { get; set; } = string.Empty;
     public string? RejectionNotes { get; set; }
+}
+
+public class ApproveCommissionRequest
+{
+    public string? Notes { get; set; }
+}
+
+public class RejectCommissionRequest
+{
+    public string Reason { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+}
+
+public class GetCommissionsRequest
+{
+    public Guid? UserId { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+    public string? Status { get; set; }
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
+}
+
+public class CreateCommissionRuleSetRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
 }
 
 public class CommissionCalculationDto

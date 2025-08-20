@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace CoreAxis.Modules.MLMModule.Infrastructure.Data;
 
-public class MLMDbContext : DbContext
+public class MLMModuleDbContext : DbContext
 {
     public DbSet<UserReferral> UserReferrals { get; set; }
     public DbSet<CommissionRuleSet> CommissionRuleSets { get; set; }
@@ -18,7 +18,7 @@ public class MLMDbContext : DbContext
     public DbSet<ProductRuleBinding> ProductRuleBindings { get; set; }
     public DbSet<OutboxMessage> OutboxMessages { get; set; }
     
-    public MLMDbContext(DbContextOptions<MLMDbContext> options) : base(options)
+    public MLMModuleDbContext(DbContextOptions<MLMModuleDbContext> options) : base(options)
     {
     }
     

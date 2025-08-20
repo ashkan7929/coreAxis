@@ -7,9 +7,9 @@ namespace CoreAxis.Modules.MLMModule.Infrastructure.Repositories;
 
 public class CommissionRuleSetRepository : ICommissionRuleSetRepository
 {
-    private readonly MLMDbContext _context;
+    private readonly MLMModuleDbContext _context;
 
-    public CommissionRuleSetRepository(MLMDbContext context)
+    public CommissionRuleSetRepository(MLMModuleDbContext context)
     {
         _context = context;
     }

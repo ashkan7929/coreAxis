@@ -16,13 +16,13 @@ public class PaymentConfirmedEventHandler : IIntegrationEventHandler<PaymentConf
 {
     private readonly ICommissionCalculationService _commissionCalculationService;
     private readonly IIdempotencyService _idempotencyService;
-    private readonly MLMDbContext _context;
+    private readonly MLMModuleDbContext _context;
     private readonly ILogger<PaymentConfirmedEventHandler> _logger;
 
     public PaymentConfirmedEventHandler(
         ICommissionCalculationService commissionCalculationService,
         IIdempotencyService idempotencyService,
-        MLMDbContext context,
+        MLMModuleDbContext context,
         ILogger<PaymentConfirmedEventHandler> logger)
     {
         _commissionCalculationService = commissionCalculationService;

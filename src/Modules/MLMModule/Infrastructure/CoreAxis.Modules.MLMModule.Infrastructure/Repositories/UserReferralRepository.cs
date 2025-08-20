@@ -7,9 +7,9 @@ namespace CoreAxis.Modules.MLMModule.Infrastructure.Repositories;
 
 public class UserReferralRepository : IUserReferralRepository
 {
-    private readonly MLMDbContext _context;
+    private readonly MLMModuleDbContext _context;
 
-    public UserReferralRepository(MLMDbContext context)
+    public UserReferralRepository(MLMModuleDbContext context)
     {
         _context = context;
     }

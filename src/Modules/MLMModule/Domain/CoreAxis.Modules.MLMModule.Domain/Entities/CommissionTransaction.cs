@@ -25,6 +25,10 @@ public class CommissionTransaction : EntityBase
     public DateTime? PaidAt { get; private set; }
     public DateTime? RejectedAt { get; private set; }
     public string? RejectionReason { get; private set; }
+    public string? ApprovedBy { get; private set; }
+    public string? ApprovalNotes { get; private set; }
+    public string? RejectedBy { get; private set; }
+    public string? RejectionNotes { get; private set; }
     
     // Navigation properties
     public virtual UserReferral UserReferral { get; private set; } = null!;
@@ -64,20 +68,21 @@ public class CommissionTransaction : EntityBase
         AddDomainEvent(new CommissionGeneratedEvent(Id, userId, amount, level, sourcePaymentId));
     }
     
-    public void Approve(string? notes = null)
+    public void Approve(string approvedBy, string? approvalNotes = null)
     {
         if (Status != CommissionStatus.Pending)
             throw new InvalidOperationException($"Cannot approve commission in {Status} status");
             
         Status = CommissionStatus.Approved;
         ApprovedAt = DateTime.UtcNow;
-        Notes = notes;
+        ApprovedBy = approvedBy;
+        ApprovalNotes = approvalNotes;
         LastModifiedOn = DateTime.UtcNow;
         
         AddDomainEvent(new CommissionApprovedEvent(Id, UserId, Amount));
     }
     
-    public void Reject(string rejectionReason)
+    public void Reject(string rejectedBy, string rejectionReason, string? rejectionNotes = null)
     {
         if (Status != CommissionStatus.Pending)
             throw new InvalidOperationException($"Cannot reject commission in {Status} status");
@@ -88,6 +93,8 @@ public class CommissionTransaction : EntityBase
         Status = CommissionStatus.Rejected;
         RejectedAt = DateTime.UtcNow;
         RejectionReason = rejectionReason;
+        RejectedBy = rejectedBy;
+        RejectionNotes = rejectionNotes;
         LastModifiedOn = DateTime.UtcNow;
         
         AddDomainEvent(new CommissionRejectedEvent(Id, UserId, Amount, rejectionReason));

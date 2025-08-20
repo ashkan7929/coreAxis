@@ -97,7 +97,7 @@ public class RejectCommissionCommandHandler : IRequestHandler<RejectCommissionCo
             throw new InvalidOperationException("Commission not found");
         }
 
-        commission.Reject(request.RejectionReason);
+        commission.Reject(request.RejectedBy.ToString(), request.RejectionReason, request.Notes);
         await _commissionRepository.UpdateAsync(commission);
         await _unitOfWork.SaveChangesAsync();
 

@@ -6,9 +6,9 @@ namespace CoreAxis.Modules.MLMModule.Infrastructure.Repositories;
 
 public class OutboxRepository : IOutboxRepository
 {
-    private readonly MLMDbContext _context;
+    private readonly MLMModuleDbContext _context;
 
-    public OutboxRepository(MLMDbContext context)
+    public OutboxRepository(MLMModuleDbContext context)
     {
         _context = context;
     }

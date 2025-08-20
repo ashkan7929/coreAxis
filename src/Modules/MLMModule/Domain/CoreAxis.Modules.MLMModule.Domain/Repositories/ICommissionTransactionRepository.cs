@@ -18,4 +18,6 @@ public interface ICommissionTransactionRepository
     Task UpdateAsync(CommissionTransaction commissionTransaction, CancellationToken cancellationToken = default);
     Task DeleteAsync(CommissionTransaction commissionTransaction, CancellationToken cancellationToken = default);
     Task<List<CommissionTransaction>> GetAllAsync(int skip = 0, int take = 50, CancellationToken cancellationToken = default);
+    Task<List<CommissionTransaction>> GetCommissionsAsync(Guid? userId, string? status, DateTime? fromDate, DateTime? toDate, int pageNumber, int pageSize, CancellationToken cancellationToken = default);
+    Task<List<CommissionTransaction>> GetUserCommissionsAsync(Guid userId, string? status, DateTime? fromDate, DateTime? toDate, int pageNumber, int pageSize, CancellationToken cancellationToken = default);
 }

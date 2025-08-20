@@ -8,9 +8,9 @@ namespace CoreAxis.Modules.MLMModule.Infrastructure.Repositories;
 
 public class CommissionTransactionRepository : ICommissionTransactionRepository
 {
-    private readonly MLMDbContext _context;
+    private readonly MLMModuleDbContext _context;
 
-    public CommissionTransactionRepository(MLMDbContext context)
+    public CommissionTransactionRepository(MLMModuleDbContext context)
     {
         _context = context;
     }
@@ -132,6 +132,55 @@ public class CommissionTransactionRepository : ICommissionTransactionRepository
             .OrderByDescending(ct => ct.CreatedOn)
             .Skip(skip)
             .Take(take)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<List<CommissionTransaction>> GetCommissionsAsync(Guid? userId, string? status, DateTime? fromDate, DateTime? toDate, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var query = _context.CommissionTransactions
+            .Include(ct => ct.UserReferral)
+            .Include(ct => ct.CommissionRuleSet)
+            .AsQueryable();
+
+        if (userId.HasValue)
+            query = query.Where(ct => ct.UserId == userId.Value);
+
+        if (!string.IsNullOrEmpty(status) && Enum.TryParse<CommissionStatus>(status, out var statusEnum))
+            query = query.Where(ct => ct.Status == statusEnum);
+
+        if (fromDate.HasValue)
+            query = query.Where(ct => ct.CreatedOn >= fromDate.Value);
+
+        if (toDate.HasValue)
+            query = query.Where(ct => ct.CreatedOn <= toDate.Value);
+
+        return await query
+            .OrderByDescending(ct => ct.CreatedOn)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<List<CommissionTransaction>> GetUserCommissionsAsync(Guid userId, string? status, DateTime? fromDate, DateTime? toDate, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var query = _context.CommissionTransactions
+            .Include(ct => ct.UserReferral)
+            .Include(ct => ct.CommissionRuleSet)
+            .Where(ct => ct.UserId == userId);
+
+        if (!string.IsNullOrEmpty(status) && Enum.TryParse<CommissionStatus>(status, out var statusEnum))
+            query = query.Where(ct => ct.Status == statusEnum);
+
+        if (fromDate.HasValue)
+            query = query.Where(ct => ct.CreatedOn >= fromDate.Value);
+
+        if (toDate.HasValue)
+            query = query.Where(ct => ct.CreatedOn <= toDate.Value);
+
+        return await query
+            .OrderByDescending(ct => ct.CreatedOn)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
     }
 }

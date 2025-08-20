@@ -1,5 +1,6 @@
 using CoreAxis.Modules.MLMModule.Application.DTOs;
 using FluentValidation;
+using System.Text.Json;
 
 namespace CoreAxis.Modules.MLMModule.Application.Validators;
 
@@ -205,6 +206,91 @@ public class CreateCommissionRuleVersionDtoValidator : AbstractValidator<CreateC
         {
             return false;
         }
+    }
+}
+
+public class CreateCommissionRuleVersionRequestValidator : AbstractValidator<CreateCommissionRuleVersionRequest>
+{
+    public CreateCommissionRuleVersionRequestValidator()
+    {
+        RuleFor(x => x.SchemaJson)
+            .NotEmpty().WithMessage("Schema JSON is required")
+            .Must(BeValidJson).WithMessage("Schema JSON must be valid JSON format.");
+
+        RuleFor(x => x.Description)
+            .NotEmpty().WithMessage("Description is required.");
+    }
+
+    private bool BeValidJson(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return false;
+
+        try
+        {
+            System.Text.Json.JsonDocument.Parse(json);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+}
+
+public class ApproveCommissionRequestValidator : AbstractValidator<ApproveCommissionRequest>
+{
+    public ApproveCommissionRequestValidator()
+    {
+        // Notes is optional, no validation needed
+    }
+}
+
+public class RejectCommissionRequestValidator : AbstractValidator<RejectCommissionRequest>
+{
+    public RejectCommissionRequestValidator()
+    {
+        RuleFor(x => x.Reason)
+            .NotEmpty()
+            .WithMessage("Rejection reason is required.");
+    }
+}
+
+public class GetCommissionsRequestValidator : AbstractValidator<GetCommissionsRequest>
+{
+    public GetCommissionsRequestValidator()
+    {
+        RuleFor(x => x.PageNumber)
+            .GreaterThan(0)
+            .WithMessage("Page number must be greater than 0.");
+
+        RuleFor(x => x.PageSize)
+            .GreaterThan(0)
+            .LessThanOrEqualTo(100)
+            .WithMessage("Page size must be between 1 and 100.");
+
+        RuleFor(x => x.FromDate)
+            .LessThanOrEqualTo(x => x.ToDate)
+            .When(x => x.FromDate.HasValue && x.ToDate.HasValue)
+            .WithMessage("From date must be less than or equal to To date.");
+    }
+}
+
+public class CreateCommissionRuleSetRequestValidator : AbstractValidator<CreateCommissionRuleSetRequest>
+{
+    public CreateCommissionRuleSetRequestValidator()
+    {
+        RuleFor(x => x.Name)
+            .NotEmpty()
+            .WithMessage("Name is required.")
+            .MaximumLength(200)
+            .WithMessage("Name cannot exceed 200 characters.");
+
+        RuleFor(x => x.Description)
+            .NotEmpty()
+            .WithMessage("Description is required.")
+            .MaximumLength(1000)
+            .WithMessage("Description cannot exceed 1000 characters.");
     }
 }
 
