@@ -1,4 +1,5 @@
 using CoreAxis.Modules.MLMModule.Application.DTOs;
+using CoreAxis.Modules.MLMModule.Application.Contracts;
 using CoreAxis.Modules.MLMModule.Domain.Entities;
 using CoreAxis.Modules.MLMModule.Domain.Enums;
 using CoreAxis.Modules.MLMModule.Domain.Repositories;
@@ -394,6 +395,60 @@ public class MLMService : IMLMService
         };
     }
 
+    public async Task<IEnumerable<UserReferralDto>> GetDownlineAsync(Guid userId, int maxDepth = 10)
+    {
+        _logger.LogInformation("Getting downline for user {UserId} with max depth {MaxDepth}", userId, maxDepth);
+        
+        var downlineUsers = await _userReferralRepository.GetDownlineAsync(userId, maxDepth);
+        return downlineUsers.Select(MapToDto);
+    }
+
+    public async Task<UserReferralDto?> GetUserReferralInfoAsync(Guid userId)
+    {
+        _logger.LogInformation("Getting referral info for user {UserId}", userId);
+        
+        var userReferral = await _userReferralRepository.GetByUserIdAsync(userId);
+        return userReferral != null ? MapToDto(userReferral) : null;
+    }
+
+    public async Task<IEnumerable<UserReferralDto>> GetDownlineAsync(Guid userId, GetDownlineRequest request)
+    {
+        _logger.LogInformation("Getting paginated downline for user {UserId} with page {PageNumber}, size {PageSize}, depth {MaxDepth}", 
+            userId, request.PageNumber, request.PageSize, request.MaxDepth);
+        
+        var downlineUsers = await _userReferralRepository.GetDownlineAsync(userId, request.MaxDepth);
+        
+        // Apply pagination
+        var pagedUsers = downlineUsers
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize);
+            
+        return pagedUsers.Select(MapToDto);
+    }
+
+    public async Task<UserReferralDto> JoinMLMAsync(Guid userId, object request)
+    {
+        _logger.LogInformation("Joining user {UserId} to MLM network", userId);
+        
+        // Check if user already exists in MLM network
+        var existingReferral = await _userReferralRepository.GetByUserIdAsync(userId);
+        if (existingReferral != null)
+        {
+            throw new InvalidOperationException("User is already part of the MLM network");
+        }
+        
+        // For now, create a basic referral without parent (root user)
+        // In a real implementation, you would extract parent info from the request
+        var userReferral = new UserReferral(
+            userId,
+            null // parentUserId - would come from request
+        );
+        
+        await _userReferralRepository.AddAsync(userReferral);
+        
+        return MapToDto(userReferral);
+    }
+
     private static UserReferralDto MapToDto(UserReferral userReferral)
     {
         return new UserReferralDto
@@ -402,6 +457,8 @@ public class MLMService : IMLMService
             UserId = userReferral.UserId,
             ParentUserId = userReferral.ParentUserId,
             Path = userReferral.Path,
+            MaterializedPath = userReferral.MaterializedPath,
+            ReferralCode = userReferral.ReferralCode,
             Level = userReferral.Level,
             IsActive = userReferral.IsActive,
             JoinedAt = userReferral.JoinedAt,

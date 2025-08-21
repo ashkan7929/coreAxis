@@ -6,6 +6,8 @@ public class UserReferralDto
     public Guid UserId { get; set; }
     public Guid? ParentUserId { get; set; }
     public string Path { get; set; } = string.Empty;
+    public string MaterializedPath { get; set; } = string.Empty;
+    public string ReferralCode { get; set; } = string.Empty;
     public int Level { get; set; }
     public bool IsActive { get; set; }
     public DateTime JoinedAt { get; set; }

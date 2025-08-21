@@ -13,9 +13,9 @@ namespace CoreAxis.SharedKernel
         private readonly List<DomainEvent> _domainEvents = new List<DomainEvent>();
 
         /// <summary>
-        /// Gets the unique identifier for this entity.
+        /// Gets or sets the unique identifier for this entity.
         /// </summary>
-        public Guid Id { get; protected set; }
+        public Guid Id { get; set; }
 
 
 

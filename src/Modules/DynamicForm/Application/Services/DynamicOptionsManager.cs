@@ -252,18 +252,18 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                     return Failure<bool>("Expression cannot be null or empty");
                 }
 
-                // Use expression engine to validate syntax
-                await Task.CompletedTask; // Make it async for consistency
-                var validationResult = _expressionEngine.ValidateExpression(expression);
-                if (validationResult.IsValid)
+                // Basic validation - check for common patterns
+                var validPatterns = new[] { "static(", "api(", "database(", "filter(", "if(" };
+                var hasValidPattern = validPatterns.Any(pattern => expression.Contains(pattern));
+                
+                if (!hasValidPattern)
                 {
-                    return Success(true);
+                    return Failure<bool>("Expression does not contain a valid function pattern");
                 }
-                else
-                {
-                    var errorMessage = string.Join("; ", validationResult.Errors);
-                    return Failure<bool>(errorMessage);
-                }
+
+                // Additional validation could be added here
+                await Task.CompletedTask;
+                return Success(true);
             }
             catch (Exception ex)
             {
@@ -276,21 +276,16 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
         {
             try
             {
-                await Task.CompletedTask; // Make it async for consistency
                 var functions = new Dictionary<string, string>
                 {
-                    ["api"] = "Fetch options from an external API endpoint",
-                    ["database"] = "Fetch options from a database query",
-                    ["filter"] = "Filter existing options based on conditions",
-                    ["map"] = "Transform option values or labels",
-                    ["sort"] = "Sort options by specified criteria",
-                    ["group"] = "Group options by specified field",
-                    ["limit"] = "Limit the number of options returned",
-                    ["distinct"] = "Remove duplicate options",
-                    ["conditional"] = "Show/hide options based on form data",
-                    ["static"] = "Define static list of options",
-                    ["if"] = "Conditional logic for dynamic options"
+                    ["static"] = "Returns a static list of options defined in the expression",
+                    ["api"] = "Fetches options from an external API endpoint",
+                    ["database"] = "Retrieves options from a database query",
+                    ["filter"] = "Filters existing options based on conditions",
+                    ["if"] = "Conditional expression to return different options based on form data"
                 };
+                
+                await Task.CompletedTask;
                 return Success(functions);
             }
             catch (Exception ex)

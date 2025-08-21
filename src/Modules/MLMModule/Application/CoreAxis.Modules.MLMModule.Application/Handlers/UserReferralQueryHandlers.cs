@@ -28,6 +28,8 @@ public class GetUserReferralByIdQueryHandler : IRequestHandler<GetUserReferralBy
             UserId = userReferral.UserId,
             ParentUserId = userReferral.ParentUserId,
             Path = userReferral.Path,
+            MaterializedPath = userReferral.MaterializedPath,
+            ReferralCode = userReferral.ReferralCode,
             Level = userReferral.Level,
             IsActive = userReferral.IsActive,
             JoinedAt = userReferral.JoinedAt
@@ -58,6 +60,8 @@ public class GetUserReferralByUserIdQueryHandler : IRequestHandler<GetUserReferr
             UserId = userReferral.UserId,
             ParentUserId = userReferral.ParentUserId,
             Path = userReferral.Path,
+            MaterializedPath = userReferral.MaterializedPath,
+            ReferralCode = userReferral.ReferralCode,
             Level = userReferral.Level,
             IsActive = userReferral.IsActive,
             JoinedAt = userReferral.JoinedAt
@@ -84,6 +88,8 @@ public class GetUserReferralChildrenQueryHandler : IRequestHandler<GetUserReferr
             UserId = child.UserId,
             ParentUserId = child.ParentUserId,
             Path = child.Path,
+            MaterializedPath = child.MaterializedPath,
+            ReferralCode = child.ReferralCode,
             Level = child.Level,
             IsActive = child.IsActive,
             JoinedAt = child.JoinedAt
@@ -110,6 +116,8 @@ public class GetUserUplineQueryHandler : IRequestHandler<GetUserUplineQuery, IEn
             UserId = user.UserId,
             ParentUserId = user.ParentUserId,
             Path = user.Path,
+            MaterializedPath = user.MaterializedPath,
+            ReferralCode = user.ReferralCode,
             Level = user.Level,
             IsActive = user.IsActive,
             JoinedAt = user.JoinedAt
@@ -136,6 +144,8 @@ public class GetUserDownlineQueryHandler : IRequestHandler<GetUserDownlineQuery,
             UserId = user.UserId,
             ParentUserId = user.ParentUserId,
             Path = user.Path,
+            MaterializedPath = user.MaterializedPath,
+            ReferralCode = user.ReferralCode,
             Level = user.Level,
             IsActive = user.IsActive,
             JoinedAt = user.JoinedAt

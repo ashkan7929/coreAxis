@@ -59,6 +59,8 @@ public class CreateUserReferralCommandHandler : IRequestHandler<CreateUserReferr
             UserId = userReferral.UserId,
             ParentUserId = userReferral.ParentUserId,
             Path = userReferral.Path,
+            MaterializedPath = userReferral.MaterializedPath,
+            ReferralCode = userReferral.ReferralCode,
             Level = userReferral.Level,
             IsActive = userReferral.IsActive,
             JoinedAt = userReferral.JoinedAt

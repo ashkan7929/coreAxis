@@ -1,4 +1,5 @@
 using CoreAxis.Modules.MLMModule.Application.DTOs;
+using CoreAxis.Modules.MLMModule.Application.Contracts;
 using CoreAxis.Modules.MLMModule.Domain.Enums;
 
 namespace CoreAxis.Modules.MLMModule.Application.Services;
@@ -76,6 +77,44 @@ public interface IMLMService
     /// <returns>Number of commissions processed</returns>
     Task<int> ProcessExpiredCommissionsAsync(
         DateTime expirationDate);
+
+    /// <summary>
+    /// Gets the downline users for a specific user
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <param name="maxDepth">Maximum depth to traverse</param>
+    /// <returns>List of downline users</returns>
+    Task<IEnumerable<UserReferralDto>> GetDownlineAsync(
+        Guid userId,
+        int maxDepth = 10);
+
+    /// <summary>
+    /// Gets the downline users for a specific user with pagination
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <param name="request">Downline request with pagination</param>
+    /// <returns>Paginated list of downline users</returns>
+    Task<IEnumerable<UserReferralDto>> GetDownlineAsync(
+        Guid userId,
+        GetDownlineRequest request);
+
+    /// <summary>
+    /// Gets referral information for a user
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <returns>User referral information</returns>
+    Task<UserReferralDto?> GetUserReferralInfoAsync(
+        Guid userId);
+
+    /// <summary>
+    /// Joins a user to the MLM network
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    /// <param name="request">Join MLM request</param>
+    /// <returns>User referral information</returns>
+    Task<UserReferralDto> JoinMLMAsync(
+        Guid userId,
+        object request);
 }
 
 public class CommissionCalculationDto

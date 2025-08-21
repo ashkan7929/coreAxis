@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -97,8 +97,7 @@ namespace CoreAxis.Modules.ApiManager.Infrastructure.Migrations
                         column: x => x.WebServiceId,
                         principalSchema: "ApiManager",
                         principalTable: "WebServices",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -131,15 +130,13 @@ namespace CoreAxis.Modules.ApiManager.Infrastructure.Migrations
                         column: x => x.MethodId,
                         principalSchema: "ApiManager",
                         principalTable: "WebServiceMethods",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_WebServiceCallLogs_WebServices_WebServiceId",
                         column: x => x.WebServiceId,
                         principalSchema: "ApiManager",
                         principalTable: "WebServices",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -170,8 +167,7 @@ namespace CoreAxis.Modules.ApiManager.Infrastructure.Migrations
                         column: x => x.MethodId,
                         principalSchema: "ApiManager",
                         principalTable: "WebServiceMethods",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateIndex(

@@ -44,12 +44,12 @@ public class WebServiceConfiguration : IEntityTypeConfiguration<WebService>
         builder.HasMany(x => x.Methods)
             .WithOne(x => x.WebService)
             .HasForeignKey(x => x.WebServiceId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.NoAction);
             
         builder.HasMany(x => x.CallLogs)
             .WithOne(x => x.WebService)
             .HasForeignKey(x => x.WebServiceId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.NoAction);
 
         // Indexes
         builder.HasIndex(x => x.Name);

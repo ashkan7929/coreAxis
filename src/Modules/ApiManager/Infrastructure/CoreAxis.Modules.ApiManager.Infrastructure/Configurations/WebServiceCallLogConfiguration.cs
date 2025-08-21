@@ -39,12 +39,12 @@ public class WebServiceCallLogConfiguration : IEntityTypeConfiguration<WebServic
         builder.HasOne(x => x.WebService)
             .WithMany(x => x.CallLogs)
             .HasForeignKey(x => x.WebServiceId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.NoAction);
             
         builder.HasOne(x => x.Method)
             .WithMany(x => x.CallLogs)
             .HasForeignKey(x => x.MethodId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.NoAction);
 
         // Indexes as specified in the requirements
         builder.HasIndex(x => new { x.MethodId, x.CreatedAt });

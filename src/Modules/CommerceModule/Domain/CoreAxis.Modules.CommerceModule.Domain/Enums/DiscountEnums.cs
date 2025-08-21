@@ -115,36 +115,7 @@ public enum PaymentComponent
     Fee = 3
 }
 
-/// <summary>
-/// Represents the status of a refund request.
-/// </summary>
-public enum RefundStatus
-{
-    /// <summary>
-    /// Refund request is pending approval.
-    /// </summary>
-    Pending = 0,
-    
-    /// <summary>
-    /// Refund request has been approved.
-    /// </summary>
-    Approved = 1,
-    
-    /// <summary>
-    /// Refund request has been rejected.
-    /// </summary>
-    Rejected = 2,
-    
-    /// <summary>
-    /// Refund has been processed.
-    /// </summary>
-    Processed = 3,
-    
-    /// <summary>
-    /// Refund processing failed.
-    /// </summary>
-    Failed = 4
-}
+
 
 /// <summary>
 /// Represents the status of a reconciliation record.
@@ -170,4 +141,47 @@ public enum ReconciliationStatus
     /// Mismatch has been resolved.
     /// </summary>
     Resolved = 3
+}
+
+/// <summary>
+/// Represents the billing interval for subscriptions.
+/// </summary>
+public enum BillingInterval
+{
+    /// <summary>
+    /// Daily billing.
+    /// </summary>
+    Daily = 0,
+    
+    /// <summary>
+    /// Weekly billing.
+    /// </summary>
+    Weekly = 1,
+    
+    /// <summary>
+    /// Monthly billing.
+    /// </summary>
+    Monthly = 2,
+    
+    /// <summary>
+    /// Quarterly billing.
+    /// </summary>
+    Quarterly = 3,
+    
+    /// <summary>
+    /// Yearly billing.
+    /// </summary>
+    Yearly = 4
+}
+
+/// <summary>
+/// Status of reconciliation matching.
+/// </summary>
+public enum MatchStatus
+{
+    Pending,
+    Matched,
+    Unmatched,
+    ManualReview,
+    Disputed
 }

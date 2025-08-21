@@ -40,7 +40,7 @@ public class WebServiceParamConfiguration : IEntityTypeConfiguration<WebServiceP
         builder.HasOne(x => x.Method)
             .WithMany(x => x.Parameters)
             .HasForeignKey(x => x.MethodId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.NoAction);
 
         // Indexes
         builder.HasIndex(x => x.MethodId);

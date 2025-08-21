@@ -1,0 +1,146 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <WarningsNotAsErrors>CS1591</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit" Version="2.6.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector" Version="6.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0" />
+    <PackageReference Include="FluentAssertions" Version="6.12.0" />
+    <PackageReference Include="Moq" Version="4.20.69" />
+    <PackageReference Include="AutoFixture" Version="4.18.0" />
+    <PackageReference Include="AutoFixture.Xunit2" Version="4.18.0" />
+    <PackageReference Include="Bogus" Version="35.0.1" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.13.10" />
+    <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.10" Condition="'$(OS)' == 'Windows_NT'" />
+    <PackageReference Include="NBomber" Version="5.0.6" />
+    <PackageReference Include="Testcontainers" Version="3.6.0" />
+    <PackageReference Include="Testcontainers.MsSql" Version="3.6.0" />
+    <PackageReference Include="Respawn" Version="6.1.0" />
+    <PackageReference Include="Verify.Xunit" Version="22.7.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Testing" Version="8.0.0" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../../src/Modules/CommerceModule/CoreAxis.Modules.CommerceModule.Domain/CoreAxis.Modules.CommerceModule.Domain.csproj" />
+    <ProjectReference Include="../../../../src/Modules/CommerceModule/CoreAxis.Modules.CommerceModule.Application/CoreAxis.Modules.CommerceModule.Application.csproj" />
+    <ProjectReference Include="../../../../src/Modules/CommerceModule/CoreAxis.Modules.CommerceModule.Infrastructure/CoreAxis.Modules.CommerceModule.Infrastructure.csproj" />
+    <ProjectReference Include="../../../../src/Modules/CommerceModule/CoreAxis.Modules.CommerceModule.API/CoreAxis.Modules.CommerceModule.API.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.test.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="TestData\" />
+    <Folder Include="TestOutput\" />
+    <Folder Include="Logs\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="FluentAssertions" />
+    <Using Include="Moq" />
+    <Using Include="Microsoft.Extensions.DependencyInjection" />
+    <Using Include="Microsoft.Extensions.Logging" />
+    <Using Include="System.Threading.Tasks" />
+    <Using Include="CoreAxis.Modules.CommerceModule.Tests.Shared" />
+  </ItemGroup>
+
+  <!-- Test Discovery and Execution Settings -->
+  <ItemGroup>
+    <AssemblyAttribute Include="Xunit.TestFrameworkAttribute">
+      <_Parameter1>Xunit.Sdk.TestFramework</_Parameter1>
+      <_Parameter1_TypeName>Xunit.Sdk.TestFramework</_Parameter1_TypeName>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <!-- Code Coverage Settings -->
+  <PropertyGroup>
+    <CollectCoverage>true</CollectCoverage>
+    <CoverletOutputFormat>opencover,cobertura,json,lcov</CoverletOutputFormat>
+    <CoverletOutput>./TestOutput/Coverage/</CoverletOutput>
+    <Exclude>[*.Tests]*,[*]*.Migrations.*</Exclude>
+    <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
+    <ExcludeByFile>**/Migrations/*.cs</ExcludeByFile>
+    <Include>[CoreAxis.Modules.CommerceModule.*]*</Include>
+    <ThresholdType>line,branch,method</ThresholdType>
+    <Threshold>80,70,80</Threshold>
+  </PropertyGroup>
+
+  <!-- Performance Testing Settings -->
+  <PropertyGroup>
+    <BenchmarkDotNetArtifactsPath>./TestOutput/Benchmarks</BenchmarkDotNetArtifactsPath>
+  </PropertyGroup>
+
+  <!-- Test Categories and Traits -->
+  <ItemGroup>
+    <AssemblyMetadata Include="TestCategory.Unit" Value="Unit tests for individual components" />
+    <AssemblyMetadata Include="TestCategory.Integration" Value="Integration tests for component interactions" />
+    <AssemblyMetadata Include="TestCategory.Performance" Value="Performance and benchmark tests" />
+    <AssemblyMetadata Include="TestCategory.Stress" Value="Stress and load tests" />
+    <AssemblyMetadata Include="TestCategory.Regression" Value="Regression tests for bug prevention" />
+    <AssemblyMetadata Include="TestCategory.EndToEnd" Value="End-to-end workflow tests" />
+  </ItemGroup>
+
+  <!-- Build Events -->
+  <Target Name="CreateTestDirectories" BeforeTargets="Build">
+    <MakeDir Directories="$(OutputPath)TestData" Condition="!Exists('$(OutputPath)TestData')" />
+    <MakeDir Directories="$(OutputPath)TestOutput" Condition="!Exists('$(OutputPath)TestOutput')" />
+    <MakeDir Directories="$(OutputPath)Logs" Condition="!Exists('$(OutputPath)Logs')" />
+  </Target>
+
+  <Target Name="CleanTestOutput" BeforeTargets="Clean">
+    <RemoveDir Directories="$(OutputPath)TestOutput" Condition="Exists('$(OutputPath)TestOutput')" />
+    <RemoveDir Directories="$(OutputPath)Logs" Condition="Exists('$(OutputPath)Logs')" />
+  </Target>
+
+  <!-- Test Execution Timeout -->
+  <PropertyGroup>
+    <VSTestTimeout>300000</VSTestTimeout> <!-- 5 minutes -->
+  </PropertyGroup>
+
+</Project>

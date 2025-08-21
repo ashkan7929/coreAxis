@@ -48,17 +48,17 @@ public class WebServiceMethodConfiguration : IEntityTypeConfiguration<WebService
         builder.HasOne(x => x.WebService)
             .WithMany(x => x.Methods)
             .HasForeignKey(x => x.WebServiceId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.NoAction);
             
         builder.HasMany(x => x.Parameters)
             .WithOne(x => x.Method)
             .HasForeignKey(x => x.MethodId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.NoAction);
             
         builder.HasMany(x => x.CallLogs)
             .WithOne(x => x.Method)
             .HasForeignKey(x => x.MethodId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.NoAction);
 
         // Indexes
         builder.HasIndex(x => x.WebServiceId);
