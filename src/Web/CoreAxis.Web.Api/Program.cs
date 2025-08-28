@@ -1,4 +1,5 @@
 using CoreAxis.Modules.DynamicForm.Infrastructure.Data;
+using CoreAxis.Modules.WalletModule.Api;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,6 +12,9 @@ builder.Services.AddSwaggerGen();
 // Add Entity Framework
 builder.Services.AddDbContext<DynamicFormDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Add WalletModule
+builder.Services.AddWalletModuleApi(builder.Configuration);
 
 var app = builder.Build();
 

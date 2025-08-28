@@ -78,6 +78,50 @@ public class WalletDbContext : DbContext
                     .HasMaxLength(256);
             }
         }
+
+        // Seed default transaction types
+        SeedTransactionTypes(modelBuilder);
+    }
+
+    private static void SeedTransactionTypes(ModelBuilder modelBuilder)
+    {
+        var now = DateTime.UtcNow;
+        
+        modelBuilder.Entity<TransactionType>().HasData(
+            new
+            {
+                Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                Name = "Deposit",
+                Description = "Deposit transaction type for adding funds to wallet",
+                Code = "DEPOSIT",
+                IsActive = true,
+                CreatedOn = now,
+                CreatedBy = "System",
+                LastModifiedBy = "System"
+            },
+            new
+            {
+                Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                Name = "Withdraw",
+                Description = "Withdraw transaction type for removing funds from wallet",
+                Code = "WITHDRAW",
+                IsActive = true,
+                CreatedOn = now,
+                CreatedBy = "System",
+                LastModifiedBy = "System"
+            },
+            new
+            {
+                Id = Guid.Parse("33333333-3333-3333-3333-333333333333"),
+                Name = "Transfer",
+                Description = "Transfer transaction type for moving funds between wallets",
+                Code = "TRANSFER",
+                IsActive = true,
+                CreatedOn = now,
+                CreatedBy = "System",
+                LastModifiedBy = "System"
+            }
+        );
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

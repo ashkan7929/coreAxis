@@ -3,7 +3,6 @@ using CoreAxis.Modules.WalletModule.Application.DTOs;
 using CoreAxis.Modules.WalletModule.Application.Services;
 using CoreAxis.Modules.WalletModule.Domain.Entities;
 using CoreAxis.Modules.WalletModule.Domain.Repositories;
-using CoreAxis.Modules.WalletModule.Application.Services;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -44,6 +43,7 @@ public class CreateWalletCommandHandler : IRequestHandler<CreateWalletCommand, W
         // Create new wallet
         var wallet = new Wallet(request.UserId, request.WalletTypeId, request.Currency);
         await _walletRepository.AddAsync(wallet, cancellationToken);
+        await _walletRepository.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Wallet created for user {UserId} with type {WalletTypeId}", request.UserId, request.WalletTypeId);
 

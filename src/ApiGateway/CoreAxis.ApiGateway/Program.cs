@@ -115,6 +115,9 @@ try
         Console.WriteLine($"Assembly: {assembly.GetName().Name}");
     }
 
+    // Register AuthModule
+    builder.Services.AddAuthModuleApi(builder.Configuration);
+    
     // Register ProductOrderModule
     builder.Services.AddProductOrderModuleApi(builder.Configuration);
     

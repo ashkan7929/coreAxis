@@ -1,16 +1,12 @@
 using CoreAxis.Modules.ApiManager.Application.Contracts;
+using CoreAxis.Modules.DynamicForm.Domain.Entities;
 using CoreAxis.Modules.DynamicForm.Domain.Interfaces;
 using CoreAxis.Modules.DynamicForm.Domain.ValueObjects;
 using CoreAxis.SharedKernel;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
+
 
 namespace CoreAxis.Modules.DynamicForm.Application.Services
 {
@@ -37,33 +33,33 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<CoreAxis.SharedKernel.Result<List<FieldOption>>> EvaluateDynamicOptionsAsync(
+        public async Task<Result<List<FieldOption>>> EvaluateDynamicOptionsAsync(
             string expression,
-            Dictionary<string, object?> formData,
+            Dictionary<string, object?> context,
             CancellationToken cancellationToken = default)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(expression))
                 {
-                    return Failure<List<FieldOption>>("Expression cannot be null or empty");
+                    return Result.Failure<List<FieldOption>>("Expression cannot be null or empty");
                 }
 
                 _logger.LogDebug("Evaluating dynamic options expression: {Expression}", expression);
 
                 // Check cache first
-                var cacheKey = GenerateCacheKey(expression, formData);
+                var cacheKey = GenerateCacheKey(expression, context);
                 if (_cache.TryGetValue(cacheKey, out List<FieldOption>? cachedOptions) && cachedOptions != null)
                 {
                     _logger.LogDebug("Returning cached options for expression: {Expression}", expression);
-                    return Success(cachedOptions);
+                    return Result.Success(cachedOptions);
                 }
 
                 // Parse expression to determine the type of dynamic options
-                var options = await EvaluateExpressionAsync(expression, formData, cancellationToken);
+                var options = await EvaluateExpressionAsync(expression, context, cancellationToken);
                 if (options.IsFailure)
                 {
-                    return Failure<List<FieldOption>>(options.Error);
+                    return Result.Failure<List<FieldOption>>(options.Error);
                 }
 
                 // Cache the results
@@ -80,13 +76,13 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error evaluating dynamic options expression: {Expression}", expression);
-                return Failure<List<FieldOption>>($"Failed to evaluate dynamic options: {ex.Message}");
+                return Result.Failure<List<FieldOption>>($"Failed to evaluate dynamic options: {ex.Message}");
             }
         }
 
-        public async Task<CoreAxis.SharedKernel.Result<Dictionary<string, List<FieldOption>>>> EvaluateMultipleDynamicOptionsAsync(
+        public async Task<Result<Dictionary<string, List<FieldOption>>>> EvaluateMultipleDynamicOptionsAsync(
             Dictionary<string, string> expressions,
-            Dictionary<string, object?> formData,
+            Dictionary<string, object?> context,
             CancellationToken cancellationToken = default)
         {
             try
@@ -101,7 +97,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
 
                     tasks.Add(Task.Run(async () =>
                     {
-                        var result = await EvaluateDynamicOptionsAsync(expression, formData, cancellationToken);
+                        var result = await EvaluateDynamicOptionsAsync(expression, context, cancellationToken);
                         return (fieldName, result);
                     }, cancellationToken));
                 }
@@ -122,16 +118,16 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                     }
                 }
 
-                return Success(results);
+                return Result.Success(results);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error evaluating multiple dynamic options");
-                return Failure<Dictionary<string, List<FieldOption>>>($"Failed to evaluate multiple dynamic options: {ex.Message}");
+                return Result.Failure<Dictionary<string, List<FieldOption>>>($"Failed to evaluate multiple dynamic options: {ex.Message}");
             }
         }
 
-        public async Task<CoreAxis.SharedKernel.Result<List<FieldOption>>> GetOptionsFromApiAsync(
+        public async Task<Result<List<FieldOption>>> GetOptionsFromApiAsync(
             string apiUrl,
             Dictionary<string, object?> parameters,
             CancellationToken cancellationToken = default)
@@ -152,16 +148,16 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                     FieldOption.Create("api_option_2", "API Option 2")
                 };
                 
-                return Success(options);
+                return Result.Success(options);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting options from API: {Endpoint}", apiUrl);
-                return Failure<List<FieldOption>>($"Failed to get options from API: {ex.Message}");
+                return Result.Failure<List<FieldOption>>($"Failed to get options from API: {ex.Message}");
             }
         }
 
-        public async Task<CoreAxis.SharedKernel.Result<List<FieldOption>>> GetOptionsFromDatabaseAsync(
+        public async Task<Result<List<FieldOption>>> GetOptionsFromDatabaseAsync(
             string query,
             Dictionary<string, object?> parameters,
             CancellationToken cancellationToken = default)
@@ -180,41 +176,41 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                     FieldOption.Create("db_option_2", "Database Option 2")
                 };
 
-                return Success(options);
+                return Result.Success(options);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting options from database: {Query}", query);
-                return Failure<List<FieldOption>>($"Failed to get options from database: {ex.Message}");
+                return Result.Failure<List<FieldOption>>($"Failed to get options from database: {ex.Message}");
             }
         }
 
-        public async Task<CoreAxis.SharedKernel.Result<List<FieldOption>>> FilterOptionsAsync(
-            List<FieldOption> options,
-            string filterCondition,
-            Dictionary<string, object?> formData,
-            CancellationToken cancellationToken = default)
+        public async Task<Result<List<FieldOption>>> FilterOptionsAsync(
+        List<FieldOption> options,
+        string filterExpression,
+        Dictionary<string, object?> context,
+        CancellationToken cancellationToken = default)
         {
             try
             {
                 if (options == null || !options.Any())
                 {
-                    return Success(new List<FieldOption>());
+                    return Result.Success(new List<FieldOption>());
                 }
 
-                if (string.IsNullOrWhiteSpace(filterCondition))
+                if (string.IsNullOrWhiteSpace(filterExpression))
                 {
-                    return Success(options);
+                    return Result.Success(options);
                 }
 
-                _logger.LogDebug("Filtering options with expression: {Expression}", filterCondition);
+                _logger.LogDebug("Filtering options with expression: {Expression}", filterExpression);
 
                 var filteredOptions = new List<FieldOption>();
 
                 foreach (var option in options)
                 {
                     // Create context for each option
-                    var context = new Dictionary<string, object?>(formData)
+                    var optionContext = new Dictionary<string, object?>(context)
                     {
                         ["option"] = new Dictionary<string, object?>
                         {
@@ -225,8 +221,8 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                         }
                     };
 
-                    var formulaExpression = FormulaExpression.Conditional(filterCondition);
-                    var evaluationResult = await _expressionEngine.EvaluateAsync(formulaExpression, context, cancellationToken);
+                    var formulaExpression = FormulaExpression.Conditional(filterExpression);
+                    var evaluationResult = await _expressionEngine.EvaluateAsync(formulaExpression, optionContext, cancellationToken);
                     if (evaluationResult.IsSuccess && evaluationResult.Value is bool shouldInclude && shouldInclude)
                     {
                         filteredOptions.Add(option);
@@ -234,22 +230,24 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 }
 
                 _logger.LogDebug("Filtered {OriginalCount} options to {FilteredCount}", options.Count, filteredOptions.Count);
-                return Success(filteredOptions);
+                return Result.Success(filteredOptions);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error filtering options with expression: {Expression}", filterCondition);
-                return Failure<List<FieldOption>>($"Failed to filter options: {ex.Message}");
+                _logger.LogError(ex, "Error filtering options with expression: {Expression}", filterExpression);
+                return Result.Failure<List<FieldOption>>($"Failed to filter options: {ex.Message}");
             }
         }
 
-        public async Task<CoreAxis.SharedKernel.Result<bool>> ValidateDynamicOptionsExpression(string expression)
+        public async Task<Result<bool>> ValidateDynamicOptionsExpression(
+            string expression,
+            CancellationToken cancellationToken = default)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(expression))
                 {
-                    return Failure<bool>("Expression cannot be null or empty");
+                    return Result.Failure<bool>("Expression cannot be null or empty");
                 }
 
                 // Basic validation - check for common patterns
@@ -258,21 +256,21 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 
                 if (!hasValidPattern)
                 {
-                    return Failure<bool>("Expression does not contain a valid function pattern");
+                    return Result.Failure<bool>("Expression does not contain a valid function pattern");
                 }
 
                 // Additional validation could be added here
                 await Task.CompletedTask;
-                return Success(true);
+                return Result.Success(true);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error validating dynamic options expression: {Expression}", expression);
-                return Failure<bool>($"Failed to validate expression: {ex.Message}");
+                return Result.Failure<bool>($"Failed to validate expression: {ex.Message}");
             }
         }
 
-        public async Task<CoreAxis.SharedKernel.Result<Dictionary<string, string>>> GetAvailableFunctions()
+        public async Task<Result<Dictionary<string, string>>> GetAvailableFunctions()
         {
             try
             {
@@ -286,18 +284,18 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 };
                 
                 await Task.CompletedTask;
-                return Success(functions);
+                return Result.Success(functions);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting available functions");
-                return Failure<Dictionary<string, string>>($"Failed to get available functions: {ex.Message}");
+                return Result.Failure<Dictionary<string, string>>($"Failed to get available functions: {ex.Message}");
             }
         }
 
-        private async Task<CoreAxis.SharedKernel.Result<List<FieldOption>>> EvaluateExpressionAsync(
+        private async Task<Result<List<FieldOption>>> EvaluateExpressionAsync(
             string expression, 
-            Dictionary<string, object?> formData, 
+            Dictionary<string, object?> context, 
             CancellationToken cancellationToken)
         {
             try
@@ -305,81 +303,81 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 // Parse the expression to determine the operation type
                 if (expression.StartsWith("api("))
                 {
-                    return await EvaluateApiExpression(expression, formData, cancellationToken);
+                    return await EvaluateApiExpression(expression, context, cancellationToken);
                 }
                 else if (expression.StartsWith("database("))
                 {
-                    return await EvaluateDatabaseExpression(expression, formData, cancellationToken);
+                    return await EvaluateDatabaseExpression(expression, context, cancellationToken);
                 }
                 else if (expression.StartsWith("filter("))
                 {
-                    return await EvaluateFilterExpression(expression, formData, cancellationToken);
+                    return await EvaluateFilterExpression(expression, context, cancellationToken);
                 }
                 else if (expression.StartsWith("static("))
                 {
-                    return EvaluateStaticExpression(expression, formData);
+                    return EvaluateStaticExpression(expression, context);
                 }
                 else
                 {
                     // Use expression engine for complex expressions
-                    var result = await _expressionEngine.EvaluateAsync(expression, formData, cancellationToken);
+                    var result = await _expressionEngine.EvaluateAsync(expression, context, cancellationToken);
                     if (result.IsFailure)
                 {
-                    return Failure<List<FieldOption>>(result.Error);
+                    return Result.Failure<List<FieldOption>>(result.Error);
                 }
 
                     // Convert result to field options
                     var options = ConvertToFieldOptions(result.Value);
-                    return Success(options);
+                    return Result.Success(options);
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error evaluating expression: {Expression}", expression);
-                return Failure<List<FieldOption>>($"Failed to evaluate expression: {ex.Message}");
+                return Result.Failure<List<FieldOption>>($"Failed to evaluate expression: {ex.Message}");
             }
         }
 
-        private async Task<CoreAxis.SharedKernel.Result<List<FieldOption>>> EvaluateApiExpression(
+        private async Task<Result<List<FieldOption>>> EvaluateApiExpression(
             string expression, 
-            Dictionary<string, object?> formData, 
+            Dictionary<string, object?> context, 
             CancellationToken cancellationToken)
         {
             // Parse api(endpoint, parameters) expression
             // This is a simplified implementation
             var endpoint = ExtractApiEndpoint(expression);
-            var parameters = ExtractApiParameters(expression, formData);
+            var parameters = ExtractApiParameters(expression, context);
             
             return await GetOptionsFromApiAsync(endpoint, parameters, cancellationToken);
         }
 
-        private async Task<CoreAxis.SharedKernel.Result<List<FieldOption>>> EvaluateDatabaseExpression(
+        private async Task<Result<List<FieldOption>>> EvaluateDatabaseExpression(
             string expression, 
-            Dictionary<string, object?> formData, 
+            Dictionary<string, object?> context, 
             CancellationToken cancellationToken)
         {
             // Parse database(query, parameters) expression
             var query = ExtractDatabaseQuery(expression);
-            var parameters = ExtractDatabaseParameters(expression, formData);
+            var parameters = ExtractDatabaseParameters(expression, context);
             
             return await GetOptionsFromDatabaseAsync(query, parameters, cancellationToken);
         }
 
-        private async Task<CoreAxis.SharedKernel.Result<List<FieldOption>>> EvaluateFilterExpression(
+        private async Task<Result<List<FieldOption>>> EvaluateFilterExpression(
             string expression, 
-            Dictionary<string, object?> formData, 
+            Dictionary<string, object?> context, 
             CancellationToken cancellationToken)
         {
             // Parse filter(options, condition) expression
             var baseOptions = ExtractBaseOptions(expression);
             var filterCondition = ExtractFilterCondition(expression);
             
-            return await FilterOptionsAsync(baseOptions, filterCondition, formData, cancellationToken);
+            return await FilterOptionsAsync(baseOptions, filterCondition, context, cancellationToken);
         }
 
         private Result<List<FieldOption>> EvaluateStaticExpression(
             string expression, 
-            Dictionary<string, object?> formData)
+            Dictionary<string, object?> context)
         {
             // Parse static([{value: "1", label: "Option 1"}, ...]) expression
             try
@@ -392,13 +390,13 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                     opt.GetValueOrDefault("label", "").ToString() ?? ""
                 )).ToList() ?? new List<FieldOption>();
 
-                return Success(fieldOptions);
-            }
-            catch (Exception ex)
-            {
-                return Failure<List<FieldOption>>($"Failed to parse static options: {ex.Message}");
-            }
-        }
+                return Result.Success(fieldOptions);
+             }
+             catch (Exception ex)
+             {
+                 return Result.Failure<List<FieldOption>>($"Failed to parse static options: {ex.Message}");
+             }
+         }
 
         private List<FieldOption> ParseApiResponseToOptions(object apiResponse)
         {
@@ -448,17 +446,17 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
             }
         }
 
-        private string GenerateCacheKey(string expression, Dictionary<string, object?> formData)
+        private string GenerateCacheKey(string expression, Dictionary<string, object?> context)
         {
-            var dataHash = JsonSerializer.Serialize(formData).GetHashCode();
+            var dataHash = JsonSerializer.Serialize(context).GetHashCode();
             return $"dynamic_options_{expression.GetHashCode()}_{dataHash}";
         }
 
         // Helper methods for parsing expressions (simplified implementations)
         private string ExtractApiEndpoint(string expression) => "https://api.example.com/options";
-        private Dictionary<string, object?> ExtractApiParameters(string expression, Dictionary<string, object?> formData) => new();
+        private Dictionary<string, object?> ExtractApiParameters(string expression, Dictionary<string, object?> context) => new();
         private string ExtractDatabaseQuery(string expression) => "SELECT value, label FROM options";
-        private Dictionary<string, object?> ExtractDatabaseParameters(string expression, Dictionary<string, object?> formData) => new();
+        private Dictionary<string, object?> ExtractDatabaseParameters(string expression, Dictionary<string, object?> context) => new();
         private List<FieldOption> ExtractBaseOptions(string expression) => new();
         private string ExtractFilterCondition(string expression) => "true";
         private string ExtractStaticOptions(string expression) => "[]";

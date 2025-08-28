@@ -12,4 +12,5 @@ public interface IWalletRepository
     Task UpdateAsync(Wallet wallet, CancellationToken cancellationToken = default);
     Task DeleteAsync(Wallet wallet, CancellationToken cancellationToken = default);
     Task<bool> ExistsAsync(Guid userId, Guid walletTypeId, CancellationToken cancellationToken = default);
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

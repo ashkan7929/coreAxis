@@ -59,4 +59,9 @@ public class WalletRepository : IWalletRepository
     {
         return await _context.Wallets.AnyAsync(w => w.UserId == userId && w.WalletTypeId == walletTypeId, cancellationToken);
     }
+
+    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        await _context.SaveChangesAsync(cancellationToken);
+    }
 }
