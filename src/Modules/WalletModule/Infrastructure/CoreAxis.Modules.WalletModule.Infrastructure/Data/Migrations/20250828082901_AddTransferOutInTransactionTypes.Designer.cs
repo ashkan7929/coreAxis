@@ -4,6 +4,7 @@ using CoreAxis.Modules.WalletModule.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CoreAxis.Modules.WalletModule.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(WalletDbContext))]
-    partial class WalletDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250828082901_AddTransferOutInTransactionTypes")]
+    partial class AddTransferOutInTransactionTypes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -189,7 +192,7 @@ namespace CoreAxis.Modules.WalletModule.Infrastructure.Data.Migrations
                             Id = new Guid("11111111-1111-1111-1111-111111111111"),
                             Code = "DEPOSIT",
                             CreatedBy = "System",
-                            CreatedOn = new DateTime(2025, 8, 28, 8, 29, 37, 614, DateTimeKind.Utc).AddTicks(3690),
+                            CreatedOn = new DateTime(2025, 8, 28, 8, 29, 1, 370, DateTimeKind.Utc).AddTicks(1670),
                             Description = "Deposit transaction type for adding funds to wallet",
                             IsActive = true,
                             LastModifiedBy = "System",
@@ -200,7 +203,7 @@ namespace CoreAxis.Modules.WalletModule.Infrastructure.Data.Migrations
                             Id = new Guid("22222222-2222-2222-2222-222222222222"),
                             Code = "WITHDRAW",
                             CreatedBy = "System",
-                            CreatedOn = new DateTime(2025, 8, 28, 8, 29, 37, 614, DateTimeKind.Utc).AddTicks(3690),
+                            CreatedOn = new DateTime(2025, 8, 28, 8, 29, 1, 370, DateTimeKind.Utc).AddTicks(1670),
                             Description = "Withdraw transaction type for removing funds from wallet",
                             IsActive = true,
                             LastModifiedBy = "System",
@@ -211,33 +214,11 @@ namespace CoreAxis.Modules.WalletModule.Infrastructure.Data.Migrations
                             Id = new Guid("33333333-3333-3333-3333-333333333333"),
                             Code = "TRANSFER",
                             CreatedBy = "System",
-                            CreatedOn = new DateTime(2025, 8, 28, 8, 29, 37, 614, DateTimeKind.Utc).AddTicks(3690),
+                            CreatedOn = new DateTime(2025, 8, 28, 8, 29, 1, 370, DateTimeKind.Utc).AddTicks(1670),
                             Description = "Transfer transaction type for moving funds between wallets",
                             IsActive = true,
                             LastModifiedBy = "System",
                             Name = "Transfer"
-                        },
-                        new
-                        {
-                            Id = new Guid("44444444-4444-4444-4444-444444444444"),
-                            Code = "TRANSFER_OUT",
-                            CreatedBy = "System",
-                            CreatedOn = new DateTime(2025, 8, 28, 8, 29, 37, 614, DateTimeKind.Utc).AddTicks(3690),
-                            Description = "Transfer out transaction type for debiting funds from source wallet",
-                            IsActive = true,
-                            LastModifiedBy = "System",
-                            Name = "Transfer Out"
-                        },
-                        new
-                        {
-                            Id = new Guid("55555555-5555-5555-5555-555555555555"),
-                            Code = "TRANSFER_IN",
-                            CreatedBy = "System",
-                            CreatedOn = new DateTime(2025, 8, 28, 8, 29, 37, 614, DateTimeKind.Utc).AddTicks(3690),
-                            Description = "Transfer in transaction type for crediting funds to destination wallet",
-                            IsActive = true,
-                            LastModifiedBy = "System",
-                            Name = "Transfer In"
                         });
                 });
 

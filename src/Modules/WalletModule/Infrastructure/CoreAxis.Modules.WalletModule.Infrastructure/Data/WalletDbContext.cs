@@ -120,6 +120,28 @@ public class WalletDbContext : DbContext
                 CreatedOn = now,
                 CreatedBy = "System",
                 LastModifiedBy = "System"
+            },
+            new
+            {
+                Id = Guid.Parse("44444444-4444-4444-4444-444444444444"),
+                Name = "Transfer Out",
+                Description = "Transfer out transaction type for debiting funds from source wallet",
+                Code = "TRANSFER_OUT",
+                IsActive = true,
+                CreatedOn = now,
+                CreatedBy = "System",
+                LastModifiedBy = "System"
+            },
+            new
+            {
+                Id = Guid.Parse("55555555-5555-5555-5555-555555555555"),
+                Name = "Transfer In",
+                Description = "Transfer in transaction type for crediting funds to destination wallet",
+                Code = "TRANSFER_IN",
+                IsActive = true,
+                CreatedOn = now,
+                CreatedBy = "System",
+                LastModifiedBy = "System"
             }
         );
     }
