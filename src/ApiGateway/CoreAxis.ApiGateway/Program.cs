@@ -13,15 +13,33 @@ using Serilog.Events;
 using System;
 using DotNetEnv;
 using AspNetCoreRateLimit;
+using System.Linq;
 
 try
 {
-    // Load environment variables from .env file if it exists
-    var envPath = Path.Combine(AppContext.BaseDirectory, ".env");
-    if (File.Exists(envPath))
+    // Load environment variables from .env file if it exists (search common locations)
+    string? loadedEnvPath = null;
+    var candidateEnvPaths = new[]
     {
-        Env.Load(envPath);
+        Path.Combine(AppContext.BaseDirectory, ".env"),
+        Path.Combine(Directory.GetCurrentDirectory(), ".env"),
+        Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../.env")),
+        Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../.env")),
+        Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../.env")),
+        "/Users/ashkan/Desktop/projects/coreAxis/.env"
+    };
+    foreach (var candidate in candidateEnvPaths.Distinct().Where(p => !string.IsNullOrWhiteSpace(p)))
+    {
+        if (File.Exists(candidate))
+        {
+            Env.Load(candidate);
+            loadedEnvPath = candidate;
+            break;
+        }
     }
+    Console.WriteLine(loadedEnvPath != null
+        ? $"[Startup] .env loaded from: {loadedEnvPath}"
+        : "[Startup] .env not found in search paths; relying on process environment variables.");
 
     var builder = WebApplication.CreateBuilder(args);
 
@@ -228,7 +246,10 @@ try
         return Results.Ok(new
         {
             Env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
-            BaseUrl = cfg["Megfa:BaseUrl"]
+            BaseUrl = cfg["Magfa:BaseUrl"],
+            Username = cfg["Magfa:Username"],
+            Domain = cfg["Magfa:Domain"],
+            From = cfg["Magfa:From"]
         });
     });
 

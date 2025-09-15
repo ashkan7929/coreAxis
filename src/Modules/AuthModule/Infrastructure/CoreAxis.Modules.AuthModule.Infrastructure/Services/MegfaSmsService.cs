@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Linq;
 using CoreAxis.Modules.AuthModule.Application.Services;
 using CoreAxis.SharedKernel;
 using Microsoft.Extensions.Configuration;
@@ -18,6 +19,10 @@ public class MegfaSmsService : IMegfaSmsService
     private readonly IConfiguration _configuration;
     private readonly ILogger<MegfaSmsService> _logger;
     private readonly string _from;
+    // Added for richer logging
+    private readonly string _username;
+    private readonly string _domain;
+    private readonly bool _enableSensitiveLogging;
 
     public MegfaSmsService(
         IConfiguration configuration,
@@ -31,6 +36,11 @@ public class MegfaSmsService : IMegfaSmsService
         var password = _configuration["Magfa:Password"] ?? throw new InvalidOperationException("Magfa password is not configured");
         var domain = _configuration["Magfa:Domain"] ?? "magfa";
         _from = _configuration["Magfa:From"] ?? throw new InvalidOperationException("Magfa sender number is not configured");
+        
+        // assign to fields for structured logging
+        _username = username;
+        _domain = domain;
+        _enableSensitiveLogging = bool.TryParse(_configuration["Magfa:EnableSensitiveLogging"], out var flag) && flag;
         
         var options = new RestClientOptions(baseUrl)
         {
@@ -65,15 +75,48 @@ public class MegfaSmsService : IMegfaSmsService
             request.AddHeader("cache-control", "no-cache");
             request.AddHeader("accept", "application/json");
             
-            request.AddJsonBody(new
+            // Prepare body
+            var requestBody = new
             {
                 senders = new[] { _from },
                 recipients = new[] { phoneNumber },
                 messages = new[] { message }
-            });
+            };
+            request.AddJsonBody(requestBody);
+
+            // Log request details (password redacted always)
+            var urlForLog = $"{_restClient.Options.BaseUrl?.AbsoluteUri?.TrimEnd('/')}/send";
+            var sanitizedMessage = _enableSensitiveLogging ? message : SanitizeMessage(message);
+            var logBodyObject = new
+            {
+                senders = new[] { _from },
+                recipients = new[] { phoneNumber },
+                messages = new[] { _enableSensitiveLogging ? message : sanitizedMessage }
+            };
+            string requestJsonForLog = JsonSerializer.Serialize(logBodyObject, new JsonSerializerOptions { WriteIndented = false });
+            string requestHeadersForLog = "accept=application/json; cache-control=no-cache";
+
+            _logger.LogInformation(
+                "Magfa SMS Request => Method: POST, Url: {Url}, Auth: {Username}/{Domain}, Password: {Password}, Headers: {Headers}, Body: {Body}",
+                urlForLog,
+                _username,
+                _domain,
+                "[REDACTED]",
+                requestHeadersForLog,
+                requestJsonForLog);
 
             var response = await _restClient.ExecuteAsync(request, cancellationToken);
             var responseContent = response.Content ?? string.Empty;
+
+            // Log response details
+            var headerPairs = response.Headers?.Select(h => $"{h.Name}={h.Value}")?.ToArray() ?? Array.Empty<string>();
+            _logger.LogInformation(
+                "Magfa SMS Response <= StatusCode: {StatusCode}, IsSuccessful: {IsSuccessful}, ContentType: {ContentType}, Headers: {Headers}, Content: {Content}",
+                response.StatusCode,
+                response.IsSuccessful,
+                response.ContentType,
+                string.Join("; ", headerPairs),
+                responseContent);
 
             if (!response.IsSuccessful)
             {
@@ -193,6 +236,28 @@ public class MegfaSmsService : IMegfaSmsService
             
             return Result<SmsResult>.Success(errorResult);
         }
+    }
+
+    // ===== Helpers for safe logging =====
+    private static string SanitizeMessage(string message)
+    {
+        if (string.IsNullOrEmpty(message)) return message;
+        // Mask continuous digit sequences (like OTP codes) to avoid leaking secrets in logs
+        var chars = message.ToCharArray();
+        int run = 0;
+        for (int i = 0; i < chars.Length; i++)
+        {
+            if (char.IsDigit(chars[i]))
+            {
+                run++;
+                if (run >= 4) chars[i] = '*';
+            }
+            else
+            {
+                run = 0;
+            }
+        }
+        return new string(chars);
     }
 }
 
