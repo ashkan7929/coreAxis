@@ -22,6 +22,7 @@
     <PackageReference Include="DotNetEnv" Version="3.0.0" />
     <PackageReference Include="AspNetCoreRateLimit" Version="5.0.0" />
     <None Update=".env" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="serilog.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

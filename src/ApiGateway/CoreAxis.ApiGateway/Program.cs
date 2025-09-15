@@ -33,6 +33,8 @@ try
 
     // Add environment variables to configuration
     builder.Configuration.AddEnvironmentVariables();
+    // Load Serilog configuration file
+    builder.Configuration.AddJsonFile("serilog.json", optional: true, reloadOnChange: true);
 
     // Manually expand environment variables in configuration sections
     ExpandEnvironmentVariables(builder.Configuration);
