@@ -112,7 +112,7 @@ public static class DependencyInjection
         // Add Swagger Documentation
         services.AddSwaggerGen(c =>
         {
-            c.SwaggerDoc("v1", new OpenApiInfo
+            c.SwaggerDoc("dynamicform-v1", new OpenApiInfo
             {
                 Title = "CoreAxis Dynamic Form API",
                 Version = "v1",

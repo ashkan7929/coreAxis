@@ -7,7 +7,15 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("webApi-v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "CoreAxis Web API",
+        Version = "v1",
+        Description = "Main Web API for CoreAxis application"
+    });
+});
 
 // Add Entity Framework
 builder.Services.AddDbContext<DynamicFormDbContext>(options =>

@@ -15,7 +15,7 @@ public static class DependencyInjection
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(c =>
         {
-            c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+            c.SwaggerDoc("apimanager-v1", new Microsoft.OpenApi.Models.OpenApiInfo
             {
                 Title = "CoreAxis ApiManager API",
                 Version = "v1",

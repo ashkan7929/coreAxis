@@ -49,7 +49,7 @@ builder.Services.AddVersionedApiExplorer(setup =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo
+    c.SwaggerDoc("commerce-v1", new OpenApiInfo
     {
         Title = "CoreAxis Commerce Module API",
         Version = "v1",
@@ -138,13 +138,22 @@ builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
+// Honor PathBase for IIS virtual directories/reverse proxies
+var pathBase = builder.Configuration["PathBase"];
+if (!string.IsNullOrEmpty(pathBase))
+{
+    app.UsePathBase(pathBase);
+}
+
 // Configure the HTTP request pipeline
-if (app.Environment.IsDevelopment())
+var enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger");
+if (app.Environment.IsDevelopment() || enableSwagger)
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "CoreAxis Commerce Module API v1");
+        // Use relative path so it works under virtual directories
+        c.SwaggerEndpoint("commerce-v1/swagger.json", "CoreAxis Commerce Module API v1");
         c.RoutePrefix = string.Empty; // Set Swagger UI at the app's root
     });
 }
