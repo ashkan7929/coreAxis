@@ -10,6 +10,7 @@ public class PlaceOrderCommand : IRequest<OrderDto>
     public decimal TotalAmount { get; set; }
     public List<PlaceOrderLineDto> OrderLines { get; set; } = new();
     public string? IdempotencyKey { get; set; }
+    public string TenantId { get; set; } = string.Empty;
 }
 
 public class CancelOrderCommand : IRequest<bool>

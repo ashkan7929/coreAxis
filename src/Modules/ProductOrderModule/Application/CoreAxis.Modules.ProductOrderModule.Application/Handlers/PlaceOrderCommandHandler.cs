@@ -1,7 +1,9 @@
 using CoreAxis.Modules.ProductOrderModule.Application.Commands;
 using CoreAxis.Modules.ProductOrderModule.Application.DTOs;
 using CoreAxis.Modules.ProductOrderModule.Domain.Orders;
-using CoreAxis.Modules.ProductOrderModule.Domain.Orders.ValueObjects;
+using CoreAxis.Modules.ProductOrderModule.Domain.Entities;
+using CoreAxis.Modules.ProductOrderModule.Domain.ValueObjects;
+using CoreAxis.Modules.ProductOrderModule.Domain.Enums;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using System.Data;
@@ -104,8 +106,7 @@ public class PlaceOrderCommandHandler : IRequestHandler<PlaceOrderCommand, Order
 
     private async Task<Order> CreateOrderWithTransactionAsync(PlaceOrderCommand request, CancellationToken cancellationToken)
     {
-        // Create order lines with validation
-        var orderLines = new List<OrderLine>();
+        // Validate order lines first
         foreach (var orderLineDto in request.OrderLines)
         {
             if (string.IsNullOrWhiteSpace(orderLineDto.AssetCode))
@@ -116,17 +117,10 @@ public class PlaceOrderCommandHandler : IRequestHandler<PlaceOrderCommand, Order
             
             if (orderLineDto.UnitPrice <= 0)
                 throw new ArgumentException($"UnitPrice must be positive for asset {orderLineDto.AssetCode}");
-
-            var orderLine = OrderLine.Create(
-                AssetCode.Create(orderLineDto.AssetCode),
-                orderLineDto.Quantity,
-                orderLineDto.UnitPrice
-            );
-            orderLines.Add(orderLine);
         }
 
-        // Validate total amount matches sum of order lines
-        var calculatedTotal = orderLines.Sum(ol => ol.TotalPrice);
+        // Calculate and validate total amount
+        var calculatedTotal = request.OrderLines.Sum(ol => ol.Quantity * ol.UnitPrice);
         if (Math.Abs(calculatedTotal - request.TotalAmount) > 0.00000001m)
         {
             _logger.LogWarning("TotalAmount mismatch: provided {ProvidedTotal}, calculated {CalculatedTotal}", 
@@ -136,16 +130,25 @@ public class PlaceOrderCommandHandler : IRequestHandler<PlaceOrderCommand, Order
 
         // Create order
         var order = Order.Create(
-            request.UserId,
+            Guid.Parse(request.UserId),
+            OrderType.Buy, // Default to Buy, this should be determined by business logic
             AssetCode.Create(request.AssetCode),
             request.TotalAmount,
-            orderLines
+            request.TenantId,
+            request.IdempotencyKey
         );
 
-        // Set idempotency key if provided
-        if (!string.IsNullOrWhiteSpace(request.IdempotencyKey))
+        // Create and add order lines to the order
+        foreach (var orderLineDto in request.OrderLines)
         {
-            order.SetIdempotencyKey(request.IdempotencyKey);
+            var unitPrice = Money.Create(orderLineDto.UnitPrice, "USD"); // Default currency, should be configurable
+            var orderLine = OrderLine.Create(
+                order.Id,
+                AssetCode.Create(orderLineDto.AssetCode),
+                orderLineDto.Quantity,
+                unitPrice
+            );
+            order.AddOrderLine(orderLine);
         }
 
         // Save with transaction safety
@@ -186,43 +189,20 @@ public class PlaceOrderCommandHandler : IRequestHandler<PlaceOrderCommand, Order
             Id = order.Id,
             UserId = order.UserId,
             AssetCode = order.AssetCode.Value,
-            TotalAmount = order.TotalAmount,
-            Status = order.Status,
-            CreatedAt = order.CreatedAt,
-            UpdatedAt = order.UpdatedAt,
+            TotalAmount = order.TotalAmount?.Amount ?? 0,
+            Status = order.Status.ToString(),
+            CreatedOn = order.CreatedOn,
+            LastModifiedOn = order.LastModifiedOn,
             OrderLines = order.OrderLines.Select(ol => new OrderLineDto
             {
                 Id = ol.Id,
                 OrderId = ol.OrderId,
                 AssetCode = ol.AssetCode.Value,
                 Quantity = ol.Quantity,
-                UnitPrice = ol.UnitPrice,
-                TotalPrice = ol.TotalPrice,
-                Description = ol.Description
+                UnitPrice = ol.UnitPrice?.Amount ?? 0,
+                LineTotal = ol.LineTotal?.Amount ?? 0,
+                Notes = ol.Notes
             }).ToList()
         };
-    }
-}
-
-public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, bool>
-{
-    private readonly IOrderRepository _orderRepository;
-
-    public CancelOrderCommandHandler(IOrderRepository orderRepository)
-    {
-        _orderRepository = orderRepository;
-    }
-
-    public async Task<bool> Handle(CancelOrderCommand request, CancellationToken cancellationToken)
-    {
-        var order = await _orderRepository.GetByIdAsync(request.OrderId);
-        
-        if (order == null || order.UserId != request.UserId)
-            return false;
-
-        order.Cancel();
-        await _orderRepository.SaveChangesAsync();
-        
-        return true;
     }
 }

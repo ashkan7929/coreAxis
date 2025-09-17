@@ -1,9 +1,9 @@
 using CoreAxis.EventBus;
-using CoreAxis.Modules.ProductOrderModule.Domain.Orders;
 using CoreAxis.SharedKernel.Contracts.Events;
 using CoreAxis.Modules.ProductOrderModule.Domain.Entities;
 using CoreAxis.Modules.ProductOrderModule.Domain.ValueObjects;
-using CoreAxis.Modules.ProductOrderModule.Domain.Orders.ValueObjects;
+using CoreAxis.Modules.ProductOrderModule.Domain.Enums;
+using CoreAxis.Modules.ProductOrderModule.Domain.Orders;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 
@@ -56,8 +56,8 @@ public class PriceLockedIntegrationEventHandler : IIntegrationEventHandler<Price
 
             // Update order with locked price information
             var expiryDuration = @event.ExpiresAt - @event.LockedAt;
-            
-            order.SetPriceLock(@event.LockedPrice, @event.ExpiresAt);
+            var lockedPrice = Money.Create(@event.LockedPrice, "USD"); // Assuming USD currency
+            order.LockPrice(lockedPrice, expiryDuration);
 
             await _orderRepository.UpdateAsync(order);
             await _orderRepository.SaveChangesAsync();

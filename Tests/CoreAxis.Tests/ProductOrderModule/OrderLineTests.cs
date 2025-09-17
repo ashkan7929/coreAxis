@@ -1,5 +1,5 @@
-using CoreAxis.Modules.ProductOrderModule.Domain.Orders;
-using CoreAxis.Modules.ProductOrderModule.Domain.Orders.ValueObjects;
+using CoreAxis.Modules.ProductOrderModule.Domain.Entities;
+using CoreAxis.Modules.ProductOrderModule.Domain.ValueObjects;
 using Xunit;
 
 namespace CoreAxis.Tests.ProductOrderModule;

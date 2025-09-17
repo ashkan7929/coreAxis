@@ -194,6 +194,16 @@ public class Order : EntityBase
     }
 
     /// <summary>
+    /// Sets the idempotency key for the order.
+    /// </summary>
+    /// <param name="idempotencyKey">The idempotency key</param>
+    public void SetIdempotencyKey(string? idempotencyKey)
+    {
+        IdempotencyKey = idempotencyKey;
+        UpdateJsonSnapshot();
+    }
+
+    /// <summary>
     /// Updates the JSON snapshot of the order.
     /// </summary>
     private void UpdateJsonSnapshot()

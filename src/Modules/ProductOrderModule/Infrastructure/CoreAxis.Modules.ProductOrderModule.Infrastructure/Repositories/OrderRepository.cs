@@ -1,4 +1,6 @@
 using CoreAxis.Modules.ProductOrderModule.Domain.Orders;
+using CoreAxis.Modules.ProductOrderModule.Domain.Entities;
+using CoreAxis.Modules.ProductOrderModule.Domain.Enums;
 using CoreAxis.Modules.ProductOrderModule.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,15 +32,94 @@ public class OrderRepository : IOrderRepository
             .FirstOrDefaultAsync(o => o.IdempotencyKey == idempotencyKey);
     }
 
-    public async Task<List<Order>> GetUserOrdersAsync(string userId, int page = 1, int pageSize = 10)
+    public async Task<List<Order>> GetUserOrdersAsync(Guid userId, int page = 1, int pageSize = 10)
     {
         return await _context.Orders
             .Include(o => o.OrderLines)
             .Where(o => o.UserId == userId)
-            .OrderByDescending(o => o.CreatedAt)
+            .OrderByDescending(o => o.CreatedOn)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
+    }
+
+    public async Task<int> GetUserOrdersCountAsync(Guid userId)
+    {
+        return await _context.Orders
+            .Where(o => o.UserId == userId)
+            .CountAsync();
+    }
+
+    public async Task<List<Order>> GetAllOrdersAsync(
+        OrderStatus? status = null,
+        string? assetCode = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        int pageNumber = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Orders
+            .Include(o => o.OrderLines)
+            .AsQueryable();
+
+        if (status.HasValue)
+        {
+            query = query.Where(o => o.Status == status.Value);
+        }
+
+        if (!string.IsNullOrEmpty(assetCode))
+        {
+            query = query.Where(o => o.AssetCode.Value == assetCode);
+        }
+
+        if (fromDate.HasValue)
+        {
+            query = query.Where(o => o.CreatedOn >= fromDate.Value);
+        }
+
+        if (toDate.HasValue)
+        {
+            query = query.Where(o => o.CreatedOn <= toDate.Value);
+        }
+
+        return await query
+            .OrderByDescending(o => o.CreatedOn)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<int> GetAllOrdersCountAsync(
+        OrderStatus? status = null,
+        string? assetCode = null,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Orders.AsQueryable();
+
+        if (status.HasValue)
+        {
+            query = query.Where(o => o.Status == status.Value);
+        }
+
+        if (!string.IsNullOrEmpty(assetCode))
+        {
+            query = query.Where(o => o.AssetCode.Value == assetCode);
+        }
+
+        if (fromDate.HasValue)
+        {
+            query = query.Where(o => o.CreatedOn >= fromDate.Value);
+        }
+
+        if (toDate.HasValue)
+        {
+            query = query.Where(o => o.CreatedOn <= toDate.Value);
+        }
+
+        return await query.CountAsync(cancellationToken);
     }
 
     public async Task AddAsync(Order order)
@@ -46,14 +127,16 @@ public class OrderRepository : IOrderRepository
         await _context.Orders.AddAsync(order);
     }
 
-    public async Task UpdateAsync(Order order)
+    public Task UpdateAsync(Order order)
     {
         _context.Orders.Update(order);
+        return Task.CompletedTask;
     }
 
-    public async Task DeleteAsync(Order order)
+    public Task DeleteAsync(Order order)
     {
         _context.Orders.Remove(order);
+        return Task.CompletedTask;
     }
 
     public async Task<int> SaveChangesAsync()

@@ -34,6 +34,7 @@
     <ProjectReference Include="..\..\src\Modules\WalletModule\API\CoreAxis.Modules.WalletModule.Api\CoreAxis.Modules.WalletModule.Api.csproj" />
     <ProjectReference Include="..\..\src\Modules\ProductOrderModule\Application\CoreAxis.Modules.ProductOrderModule.Application\CoreAxis.Modules.ProductOrderModule.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\ProductOrderModule\Domain\CoreAxis.Modules.ProductOrderModule.Domain\CoreAxis.Modules.ProductOrderModule.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\ProductOrderModule\Infrastructure\CoreAxis.Modules.ProductOrderModule.Infrastructure\CoreAxis.Modules.ProductOrderModule.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Modules\MLMModule\API\CoreAxis.Modules.MLMModule.API\CoreAxis.Modules.MLMModule.API.csproj" />
     <ProjectReference Include="..\..\src\Modules\MLMModule\Application\CoreAxis.Modules.MLMModule.Application\CoreAxis.Modules.MLMModule.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\MLMModule\Domain\CoreAxis.Modules.MLMModule.Domain\CoreAxis.Modules.MLMModule.Domain.csproj" />
