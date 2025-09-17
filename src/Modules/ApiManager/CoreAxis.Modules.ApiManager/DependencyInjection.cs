@@ -25,7 +25,7 @@ public static class DependencyInjection
     {
         // Add all layers with in-memory database for testing
         services.AddApiManagerInfrastructureInMemory();
-        services.AddApiManagerApplication();
+        // services.AddApiManagerApplication(); // Commented out to avoid duplicate health check registration
         services.AddApiManagerPresentation();
 
         return services;

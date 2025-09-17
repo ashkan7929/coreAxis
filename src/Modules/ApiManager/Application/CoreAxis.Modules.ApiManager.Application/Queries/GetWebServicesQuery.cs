@@ -1,5 +1,6 @@
 using MediatR;
 using CoreAxis.Modules.ApiManager.Domain;
+using CoreAxis.Modules.ApiManager.Application.DTOs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -13,24 +14,10 @@ public record GetWebServicesQuery(
 ) : IRequest<GetWebServicesResult>;
 
 public record GetWebServicesResult(
-    List<WebServiceDto> WebServices,
+    List<WebServiceSummaryDto> WebServices,
     int TotalCount,
     int PageNumber,
     int PageSize
-);
-
-public record WebServiceDto(
-    Guid Id,
-    string Name,
-    string Description,
-    string BaseUrl,
-    bool IsActive,
-    Guid? SecurityProfileId,
-    string? SecurityProfileType,
-    string? OwnerTenantId,
-    DateTime CreatedAt,
-    DateTime? UpdatedAt,
-    int MethodCount
 );
 
 public class GetWebServicesQueryHandler : IRequestHandler<GetWebServicesQuery, GetWebServicesResult>
@@ -69,18 +56,13 @@ public class GetWebServicesQueryHandler : IRequestHandler<GetWebServicesQuery, G
             .OrderBy(ws => ws.Name)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Select(ws => new WebServiceDto(
+            .Select(ws => new WebServiceSummaryDto(
                 ws.Id,
                 ws.Name,
-                ws.Description,
                 ws.BaseUrl,
+                ws.Description,
                 ws.IsActive,
-                ws.SecurityProfileId,
-                ws.SecurityProfile != null ? ws.SecurityProfile.Type.ToString() : null,
-                ws.OwnerTenantId,
-                ws.CreatedAt,
-                ws.UpdatedAt,
-                ws.Methods.Count(m => m.IsActive)
+                ws.CreatedAt
             ))
             .ToListAsync(cancellationToken);
 

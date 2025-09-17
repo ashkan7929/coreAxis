@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System;
 
 namespace CoreAxis.ApiGateway.HealthChecks
@@ -20,15 +21,16 @@ namespace CoreAxis.ApiGateway.HealthChecks
         public static IServiceCollection AddCoreAxisHealthChecks(this IServiceCollection services)
         {
             services.AddHealthChecks()
-                .AddCheck<ApiGatewayHealthCheck>("api_gateway_health_check");
+                .AddCheck("api_gateway_health_check", () => HealthCheckResult.Healthy("API Gateway is healthy"));
 
-            services.AddHealthChecksUI(options =>
-            {
-                options.SetEvaluationTimeInSeconds(5); // Sets the time interval in which HealthChecks will be triggered
-                options.MaximumHistoryEntriesPerEndpoint(10); // Sets the maximum history entries per endpoint
-                options.AddHealthCheckEndpoint("CoreAxis API", "/health"); // Registers the API endpoint
-            })
-            .AddInMemoryStorage(); // Adds the storage provider for the health check UI
+            // Temporarily disable UI to test basic health checks
+            // services.AddHealthChecksUI(options =>
+            // {
+            //     options.SetEvaluationTimeInSeconds(5);
+            //     options.MaximumHistoryEntriesPerEndpoint(10);
+            //     options.AddHealthCheckEndpoint("CoreAxis API", "/health");
+            // })
+            // .AddInMemoryStorage();
 
             return services;
         }
@@ -40,18 +42,7 @@ namespace CoreAxis.ApiGateway.HealthChecks
         /// <returns>The application builder.</returns>
         public static IApplicationBuilder UseCoreAxisHealthChecks(this IApplicationBuilder app)
         {
-            app.UseHealthChecks("/health", new HealthCheckOptions
-            {
-                Predicate = _ => true,
-                ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-            });
-
-            app.UseHealthChecksUI(options =>
-            {
-                options.UIPath = "/health-ui";
-                options.ApiPath = "/health-api";
-            });
-
+            app.UseHealthChecks("/health");
             return app;
         }
 

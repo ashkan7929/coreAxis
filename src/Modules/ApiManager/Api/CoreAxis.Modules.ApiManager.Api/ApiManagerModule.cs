@@ -21,7 +21,7 @@ public class ApiManagerModule : IModule
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         
         // Register all ApiManager services
-        services.AddApiManagerModule(configuration);
+        // services.AddApiManagerModule(configuration); // Commented out to avoid duplicate registration
         
         // Add controllers from this module
         services.AddControllers()

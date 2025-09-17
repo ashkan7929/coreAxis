@@ -24,30 +24,7 @@ public record WebServiceDetailsDto(
 
 
 
-public record WebServiceMethodDto(
-    Guid Id,
-    string Name,
-    string Description,
-    string Path,
-    string HttpMethod,
-    bool IsActive,
-    int TimeoutMs,
-    string? RetryPolicyJson,
-    string? CircuitPolicyJson,
-    DateTime CreatedAt,
-    DateTime? UpdatedAt,
-    List<WebServiceParamDto> Parameters
-);
-
-public record WebServiceParamDto(
-    Guid Id,
-    string Name,
-    string Description,
-    string Location,
-    string DataType,
-    bool IsRequired,
-    string? DefaultValue
-);
+// DTOs moved to separate files
 
 public class GetWebServiceDetailsQueryHandler : IRequestHandler<GetWebServiceDetailsQuery, WebServiceDetailsDto?>
 {
@@ -92,24 +69,27 @@ public class GetWebServiceDetailsQueryHandler : IRequestHandler<GetWebServiceDet
             webService.UpdatedAt,
             webService.Methods.Select(m => new WebServiceMethodDto(
                 m.Id,
-                m.Path, // Name field
-                "", // Description not available
+                m.WebServiceId,
                 m.Path,
                 m.HttpMethod,
-                m.IsActive,
+                m.RequestSchema,
+                m.ResponseSchema,
                 m.TimeoutMs,
                 m.RetryPolicyJson,
                 m.CircuitPolicyJson,
+                m.IsActive,
                 m.CreatedAt,
                 m.UpdatedAt,
                 m.Parameters.Select(p => new WebServiceParamDto(
                     p.Id,
+                    p.MethodId,
                     p.Name,
-                    "", // Description not available in domain
-                    p.Location.ToString(),
+                    p.Location,
                     p.Type,
                     p.IsRequired,
-                    p.DefaultValue
+                    p.DefaultValue,
+                    p.CreatedAt,
+                    p.UpdatedAt
                 )).ToList()
             )).ToList()
         );

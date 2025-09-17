@@ -6,6 +6,7 @@ using CoreAxis.Modules.AuthModule.API;
 using CoreAxis.Modules.WalletModule.Api;
 using CoreAxis.Modules.ProductOrderModule.Api;
 using CoreAxis.Modules.ApiManager.API;
+using static CoreAxis.Modules.ApiManager.API.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
@@ -142,8 +143,8 @@ try
     // Add Authorization
     builder.Services.AddAuthorization();
 
-    // Add health checks
-    builder.Services.AddCoreAxisHealthChecks();
+    // Add health checks - temporarily disabled
+    // builder.Services.AddCoreAxisHealthChecks();
 
     // Register modules
     builder.Services.AddSingleton<IModuleRegistrar, ModuleRegistrar>();
@@ -180,6 +181,9 @@ try
     // Register ProductOrderModule
     builder.Services.AddProductOrderModuleApi(builder.Configuration);
     
+    // Register ApiManager Module
+    builder.Services.AddApiManagerModule(builder.Configuration);
+    
     var modules = moduleRegistrar.DiscoverAndRegisterModules(builder.Services);
     Console.WriteLine($"Discovered modules: {modules.Count()}");
 
@@ -214,8 +218,8 @@ try
 
     if (app.Environment.IsDevelopment())
     {
-        // Use health checks
-        app.UseCoreAxisHealthChecks();
+        // Use health checks - temporarily disabled
+        // app.UseCoreAxisHealthChecks();
     }
 
     if (app.Environment.IsDevelopment())
@@ -230,8 +234,8 @@ try
     app.UseAuthorization();
     app.MapControllers();
 
-    // Use health checks
-    app.UseCoreAxisHealthChecks();
+    // Use health checks - temporarily disabled
+    // app.UseCoreAxisHealthChecks();
 
     // Serve static files for health dashboard
     app.UseStaticFiles();

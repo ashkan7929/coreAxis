@@ -13,9 +13,9 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // Add ApiManager services
-        services.AddApiManagerApplication(configuration);
-        services.AddApiManagerInfrastructure(configuration);
+        // ApiManager services are registered separately in Program.cs
+        // services.AddApiManagerApplication(configuration);
+        // services.AddApiManagerInfrastructure(configuration);
         
         // Register price provider
         var priceProviderType = configuration.GetValue<string>("ProductOrder:PriceProvider") ?? "ApiManager";
