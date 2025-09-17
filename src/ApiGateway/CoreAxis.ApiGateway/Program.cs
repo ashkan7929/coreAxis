@@ -178,6 +178,9 @@ try
     // Register AuthModule
     builder.Services.AddAuthModuleApi(builder.Configuration);
     
+    // Register WalletModule
+    builder.Services.AddWalletModuleApi(builder.Configuration);
+    
     // Register ProductOrderModule
     builder.Services.AddProductOrderModuleApi(builder.Configuration);
     
