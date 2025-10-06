@@ -1,7 +1,20 @@
+using System;
 using CoreAxis.EventBus;
 
 namespace CoreAxis.SharedKernel.Contracts;
 
+/// <summary>
+/// Legacy contract for price quotation payloads (DTO-style).
+/// Prefer using <see cref="Contracts.Events.PriceQuoted"/> for integration messaging.
+/// </summary>
+/// <remarks>
+/// Cleanup plan:
+/// - If both a DTO and an integration event are required, this type will be
+///   renamed to <c>PriceQuotedDto</c> and the event type to <c>PriceQuotedIntegrationEvent</c>.
+/// - This class is kept temporarily to avoid breaking changes; migrate callers
+///   to <see cref="Contracts.Events.PriceQuoted"/> and plan removal in the next major release.
+/// </remarks>
+[Obsolete("Use CoreAxis.SharedKernel.Contracts.Events.PriceQuoted. Planned rename: PriceQuotedDto in next release.")]
 public class PriceQuoted : IntegrationEvent
 {
     public Guid OrderId { get; }

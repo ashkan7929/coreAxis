@@ -1,5 +1,6 @@
 using CoreAxis.SharedKernel.Domain;
 using CoreAxis.SharedKernel.Localization;
+using CoreAxis.SharedKernel.Outbox;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 
@@ -22,6 +23,12 @@ namespace CoreAxis.SharedKernel
 
             // Register localization services
             services.AddScoped<ILocalizationService, LocalizationService>();
+
+            // Register Outbox components for reliable event delivery
+            // Assumes each module provides its own IOutboxRepository implementation.
+            services.AddScoped<IOutboxService, OutboxService>();
+            services.AddHostedService<OutboxPublisher>();
+            services.AddOptions<OutboxOptions>(); // Allow external configuration of polling interval
 
             return services;
         }

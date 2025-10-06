@@ -4,9 +4,31 @@ using System.Threading.Tasks;
 namespace CoreAxis.SharedKernel
 {
     /// <summary>
-    /// Unit of Work pattern interface for managing database transactions.
-    /// Provides a way to group multiple repository operations into a single transaction.
+    /// Unit of Work interface for managing transactional boundaries per module DbContext.
+    /// Coordinates committing domain changes and Outbox messages atomically.
     /// </summary>
+    /// <remarks>
+    /// Guidance:
+    /// - Treat each module's DbContext as the transactional boundary.
+    /// - Persist domain aggregates via repositories, append Outbox messages, then commit once.
+    /// - Outbox messages are emitted by <see cref="Outbox.OutboxPublisher"/> after commit.
+    ///
+    /// Example:
+    /// <code>
+    /// public async Task PlaceOrderAsync(Order order, IList&lt;IntegrationEvent&gt; events, CancellationToken ct)
+    /// {
+    ///     await _ordersRepository.AddAsync(order);
+    ///     foreach (var evt in events)
+    ///     {
+    ///         var msg = new Outbox.OutboxMessage(evt.GetType().AssemblyQualifiedName!,
+    ///             System.Text.Json.JsonSerializer.Serialize(evt), evt.CorrelationId, evt.CausationId, order.TenantId);
+    ///         await _outboxService.AddMessageAsync(msg, ct);
+    ///     }
+    ///
+    ///     await _unitOfWork.SaveChangesAsync(); // commits aggregates + outbox atomically
+    /// }
+    /// </code>
+    /// </remarks>
     public interface IUnitOfWork : IDisposable
     {
         /// <summary>

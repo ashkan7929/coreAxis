@@ -1,0 +1,59 @@
+{
+    "module": "SharedKernel",
+    "tasks": [
+        {
+            "id": "SK-1",
+            "title": "Wire Outbox fully in DI",
+            "description": "Register Outbox components in DependencyInjection.AddSharedKernel(): AddScoped(IOutboxService, OutboxService) and AddHostedService(OutboxPublisher). Do NOT rename interfaces or classes. Assume each module provides its own IOutboxRepository. Ensure publisher polling interval and graceful shutdown are configured. Goal: cross-module reliable event delivery via Outbox + EventBus.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "SK-2",
+            "title": "Add Correlation middleware extension",
+            "description": "Create IApplicationBuilder extension UseCoreAxisCorrelation() to insert Observability/CorrelationMiddleware early in the pipeline. Middleware must propagate/assign X-Correlation-Id and X-Tenant-Id and enrich logging context (CorrelationId, TenantId, UserId, Email). Document ordering before other middlewares.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "SK-3",
+            "title": "ProblemDetails / Exception mapping",
+            "description": "Provide a reusable middleware/filter to map CoreAxisException (and generic exceptions) to RFC7807 Problem+JSON. Include fields: status, code, title/message, traceId/correlationId. Expose IServiceCollection.AddCoreAxisProblemDetails() helper. No UI, web-only.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "SK-4",
+            "title": "EventBus DI helper",
+            "description": "Create IServiceCollection.AddCoreAxisEventBus() that registers IEventBus (InMemoryEventBus for dev) and scans/loads IIntegrationEventHandler<T>. Keep implementation swappable for production transports. Add a short README comment in code on how to switch implementations.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "SK-5",
+            "title": "Contracts cleanup plan (non‑breaking)",
+            "description": "Document intended usages for Contracts/PriceQuoted.cs vs Contracts/Events/PriceQuoted.cs. If both are needed (DTO vs IntegrationEvent), rename types with suffixes (PriceQuotedDto, PriceQuotedIntegrationEvent) and mark old types [Obsolete] with guidance. Do NOT remove now; just prepare plan and comments.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "SK-6",
+            "title": "UnitOfWork usage guidance",
+            "description": "Enhance XML-docs and summary comments on IRepository and IUnitOfWork to clarify transactional boundaries and how to commit domain changes + Outbox messages atomically per module DbContext. Provide a short example snippet in comments.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "SK-7",
+            "title": "Serilog enrichment consistency",
+            "description": "Ensure CorrelationMiddleware enriches Serilog/MEL with consistent property names: CorrelationId, TenantId, UserId, Email. Add masking guidance for PII in logs in a code comment. No runtime behavior changes besides enrichment keys.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "SK-8",
+            "title": "Shared health check templates",
+            "description": "Add optional IHealthCheck implementations: EventBusHealthCheck (sample) and OutboxLivenessHealthCheck. Expose extension methods to register them. Keep them optional; wire examples in ApiGateway.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "SK-9",
+            "title": "Validate package boundaries",
+            "description": "Verify SharedKernel has no references to feature modules. Add a CI step (or comment checklist) to prevent cross-module references. If any coupling exists, move offending types to proper module or to SharedKernel if truly cross-cutting.",
+            "status": "انجام شده"
+        }
+    ]
+}

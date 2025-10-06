@@ -1,0 +1,125 @@
+{
+    "project": "CoreAxis",
+    "module": "SharedKernel",
+    "goal": "Cross-cutting building blocks: domain base types, domain events dispatcher, outbox pattern, event bus bindings, authorization-by-permission, localization, correlation/tenant headers, repository/unit-of-work and common result/pagination types.",
+    "language": "C#",
+    "frameworks": [
+        "ASP.NET Core",
+        "EF Core"
+    ],
+    "logging": [
+        "Microsoft.Extensions.Logging",
+        "Serilog (via CorrelationMiddleware)"
+    ],
+    "paths": {
+        "root": "src/BuildingBlocks/SharedKernel/CoreAxis.SharedKernel/"
+    },
+    "files": {
+        "root": [
+            "CoreAxis.SharedKernel.csproj",
+            "DependencyInjection.cs",
+            "EntityBase.cs",
+            "IRepository.cs",
+            "Repository.cs",
+            "IUnitOfWork.cs",
+            "ValueObject.cs",
+            "Result.cs",
+            "PaginatedList.cs",
+            "Class1.cs"
+        ],
+        "authorization": [
+            "Authorization/RequirePermissionAttribute.cs",
+            "Authorization/PermissionAuthorizationHandler.cs",
+            "Authorization/AuthorizationExtensions.cs"
+        ],
+        "configuration": [
+            "Configuration/Profiles.cs"
+        ],
+        "contracts": [
+            "Contracts/Events/CommissionCalculated.cs",
+            "Contracts/Events/CommissionGenerated.cs",
+            "Contracts/Events/OrderPlaced.cs",
+            "Contracts/Events/PaymentInitiated.cs",
+            "Contracts/Events/PaymentConfirmed.cs",
+            "Contracts/Events/PriceLocked.cs",
+            "Contracts/Events/PriceQuoted.cs",
+            "Contracts/Events/TransactionCreated.cs",
+            "Contracts/Events/UserRegistered.cs",
+            "Contracts/PriceQuoted.cs"
+        ],
+        "domain": [
+            "Domain/DomainEventDispatcher.cs",
+            "Domain/IDomainEventDispatcher.cs"
+        ],
+        "domain_events": [
+            "DomainEvents/DomainEvent.cs"
+        ],
+        "exceptions": [
+            "Exceptions/CoreAxisException.cs"
+        ],
+        "extensions": [
+            "Extensions/RepositoryExtensions.cs"
+        ],
+        "integration_events": [
+            "IntegrationEvents/IIntegrationEvent.cs"
+        ],
+        "localization": [
+            "Localization/ILocalizationService.cs",
+            "Localization/LocalizationService.cs"
+        ],
+        "observability": [
+            "Observability/CorrelationMiddleware.cs"
+        ],
+        "outbox": [
+            "Outbox/IOutboxService.cs",
+            "Outbox/OutboxService.cs",
+            "Outbox/OutboxMessage.cs",
+            "Outbox/OutboxPublisher.cs (contains IOutboxRepository interface at bottom)"
+        ],
+        "ports": [
+            "Ports/IPaymentGateway.cs",
+            "Ports/ICommissionEngine.cs",
+            "Ports/IPriceProvider.cs",
+            "Ports/INotificationClient.cs",
+            "Ports/IWorkflowClient.cs"
+        ]
+    },
+    "event_bus_project": {
+        "root": "src/EventBus/CoreAxis.EventBus/",
+        "files": [
+            "IEventBus.cs",
+            "IIntegrationEventHandler.cs",
+            "IntegrationEvent.cs",
+            "InMemoryEventBus.cs",
+            "CoreAxis.EventBus.csproj",
+            "README.md"
+        ],
+        "healthcheck_examples": [
+            "ApiGateway/CoreAxis.ApiGateway/HealthChecks/EventBusHealthCheck.cs",
+            "src/ApiGateway/CoreAxis.ApiGateway/HealthChecks/EventBusHealthCheck.cs"
+        ]
+    },
+    "runtime_contracts": {
+        "headers": [
+            "X-Correlation-Id",
+            "X-Tenant-Id"
+        ],
+        "authz_usage": "Use [RequirePermission] on controllers; PermissionAuthorizationHandler checks claims/context.",
+        "localization": "ILocalizationService wraps IStringLocalizer.",
+        "events": "Publish integration events through IEventBus. For reliability, write to Outbox (IOutboxService) and let OutboxPublisher emit.",
+        "outbox_repo_contract": "IOutboxRepository interface is declared at the BOTTOM of Outbox/OutboxPublisher.cs (not a separate file).",
+        "di_current": "DependencyInjection.AddSharedKernel() registers DomainEventDispatcher and LocalizationService."
+    },
+    "design_notes": {
+        "idempotency": "Callers of sensitive ops should use outbox + unique keys.",
+        "observability": "CorrelationMiddleware injects correlation/tenant into logs; use early in pipeline.",
+        "contracts_duplication": "There are two PriceQuoted contracts (Contracts/PriceQuoted.cs and Contracts/Events/PriceQuoted.cs). Keep as-is for now or plan a consolidation task."
+    },
+    "acceptance": [
+        "DomainEventDispatcher is resolvable via DI.",
+        "CorrelationMiddleware present and usable.",
+        "OutboxMessage + OutboxService + OutboxPublisher available; IOutboxRepository to be implemented in each module’s Infrastructure.",
+        "EventBus available (InMemory) with typed handlers.",
+        "Permission-based authorization attributes/handler available."
+    ]
+}

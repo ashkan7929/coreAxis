@@ -2,6 +2,7 @@ using CoreAxis.EventBus;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Text.Json;
 
 namespace CoreAxis.SharedKernel.Outbox;
@@ -10,12 +11,14 @@ public class OutboxPublisher : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<OutboxPublisher> _logger;
-    private readonly TimeSpan _interval = TimeSpan.FromSeconds(30);
+    private readonly TimeSpan _interval;
 
-    public OutboxPublisher(IServiceProvider serviceProvider, ILogger<OutboxPublisher> logger)
+    public OutboxPublisher(IServiceProvider serviceProvider, ILogger<OutboxPublisher> logger, IOptions<OutboxOptions> options)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        var seconds = options?.Value?.PollingIntervalSeconds > 0 ? options.Value.PollingIntervalSeconds : 30;
+        _interval = TimeSpan.FromSeconds(seconds);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -82,6 +85,12 @@ public class OutboxPublisher : BackgroundService
                 await outboxRepository.UpdateAsync(message, cancellationToken);
             }
         }
+    }
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("OutboxPublisher is stopping gracefully.");
+        await base.StopAsync(cancellationToken);
     }
 }
 

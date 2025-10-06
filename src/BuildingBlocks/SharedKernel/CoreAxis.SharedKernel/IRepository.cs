@@ -10,6 +10,22 @@ namespace CoreAxis.SharedKernel
     /// Base repository interface for all entities.
     /// Provides common CRUD operations and query capabilities.
     /// </summary>
+    /// <remarks>
+    /// Guidance:
+    /// - Use repositories within a unit of work scope to ensure atomic commits.
+    /// - Do not call SaveChanges inside repository methods; delegate to <see cref="IUnitOfWork"/>.
+    ///
+    /// Example:
+    /// <code>
+    /// using var scope = _serviceProvider.CreateScope();
+    /// var repo = scope.ServiceProvider.GetRequiredService&lt;IRepository&lt;Order&gt;&gt;();
+    /// var uow  = scope.ServiceProvider.GetRequiredService&lt;IUnitOfWork&gt;();
+    ///
+    /// await repo.AddAsync(order);
+    /// await _outboxService.AddMessageAsync(outboxMessage);
+    /// await uow.SaveChangesAsync(); // commit aggregates + outbox atomically
+    /// </code>
+    /// </remarks>
     /// <typeparam name="T">The entity type that inherits from EntityBase</typeparam>
     public interface IRepository<T> where T : EntityBase
     {

@@ -23,6 +23,7 @@ public class CorrelationMiddleware
         var correlationId = GetOrCreateCorrelationId(context);
         var tenantId = GetTenantId(context);
         var userId = GetUserId(context);
+        var email = GetUserEmail(context);
 
         // Add correlation ID to response headers
         context.Response.Headers[CorrelationIdHeader] = correlationId;
@@ -31,11 +32,13 @@ public class CorrelationMiddleware
         using (LogContext.PushProperty("CorrelationId", correlationId))
         using (LogContext.PushProperty("TenantId", tenantId))
         using (LogContext.PushProperty("UserId", userId))
+        using (LogContext.PushProperty("Email", email))
         {
             // Store in HttpContext for easy access
             context.Items["CorrelationId"] = correlationId;
             context.Items["TenantId"] = tenantId;
             context.Items["UserId"] = userId;
+            context.Items["Email"] = email;
 
             _logger.LogDebug("Processing request {Method} {Path} with CorrelationId: {CorrelationId}", 
                 context.Request.Method, context.Request.Path, correlationId);
@@ -91,6 +94,15 @@ public class CorrelationMiddleware
 
         return null;
     }
+
+    // Note: Email is personally identifiable information (PII). Avoid logging raw email where not necessary.
+    // If logging is required, consider masking or hashing to reduce exposure.
+    private string? GetUserEmail(HttpContext context)
+    {
+        var emailClaim = context.User?.FindFirst(ClaimTypes.Email)?.Value
+                         ?? context.User?.FindFirst("email")?.Value;
+        return string.IsNullOrEmpty(emailClaim) ? null : emailClaim;
+    }
 }
 
 public static class CorrelationExtensions
@@ -108,6 +120,11 @@ public static class CorrelationExtensions
     public static string? GetUserId(this HttpContext context)
     {
         return context.Items["UserId"]?.ToString();
+    }
+
+    public static string? GetUserEmail(this HttpContext context)
+    {
+        return context.Items["Email"]?.ToString();
     }
 
     public static Guid GetCorrelationIdAsGuid(this HttpContext context)

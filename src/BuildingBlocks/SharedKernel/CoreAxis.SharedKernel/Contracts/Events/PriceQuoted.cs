@@ -2,6 +2,15 @@ using CoreAxis.EventBus;
 
 namespace CoreAxis.SharedKernel.Contracts.Events;
 
+/// <summary>
+/// Integration event published when a price is quoted.
+/// Preferred type for cross-service messaging.
+/// </summary>
+/// <remarks>
+/// Naming guidance:
+/// - As part of contracts cleanup, this will be renamed to <c>PriceQuotedIntegrationEvent</c>.
+/// - The legacy DTO <c>Contracts.PriceQuoted</c> is marked [Obsolete] and will be renamed to <c>PriceQuotedDto</c>.
+/// </remarks>
 public class PriceQuoted : IntegrationEvent
 {
     public Guid OrderId { get; }
