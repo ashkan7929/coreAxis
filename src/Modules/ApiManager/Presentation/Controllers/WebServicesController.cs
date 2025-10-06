@@ -5,12 +5,14 @@ using CoreAxis.Modules.AuthModule.API.Authz;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
 namespace CoreAxis.Modules.ApiManager.Presentation.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Route("admin/apim/services")]
 [Authorize]
 public class WebServicesController : ControllerBase
 {
@@ -44,7 +46,11 @@ public class WebServicesController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving web services");
-            return StatusCode(500, new { message = "Internal server error" });
+            return Problem(
+                title: "Internal Server Error",
+                detail: "Failed to retrieve web services.",
+                statusCode: StatusCodes.Status500InternalServerError,
+                type: "https://coreaxis.dev/problems/apim/internal_error");
         }
     }
 
@@ -64,7 +70,16 @@ public class WebServicesController : ControllerBase
             
             if (result == null)
             {
-                return NotFound(new { message = $"WebService with ID {id} not found" });
+                var problem = new ProblemDetails
+                {
+                    Type = "https://coreaxis.dev/problems/api-manager/not-found",
+                    Title = "WebService Not Found",
+                    Status = StatusCodes.Status404NotFound,
+                    Detail = $"WebService with ID {id} not found"
+                };
+                problem.Extensions["code"] = "api_manager.webservice_not_found";
+                problem.Extensions["webServiceId"] = id;
+                return NotFound(problem);
             }
             
             return Ok(result);
@@ -72,7 +87,11 @@ public class WebServicesController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving web service {WebServiceId}", id);
-            return StatusCode(500, new { message = "Internal server error" });
+            return Problem(
+                title: "Internal Server Error",
+                detail: "Failed to retrieve web service.",
+                statusCode: StatusCodes.Status500InternalServerError,
+                type: "https://coreaxis.dev/problems/apim/internal_error");
         }
     }
 
@@ -103,17 +122,37 @@ public class WebServicesController : ControllerBase
         catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Invalid argument for creating web service");
-            return BadRequest(new { message = ex.Message });
+            var problem = new ProblemDetails
+            {
+                Type = "https://coreaxis.dev/problems/api-manager/invalid-argument",
+                Title = "Invalid Argument",
+                Status = StatusCodes.Status400BadRequest,
+                Detail = ex.Message
+            };
+            problem.Extensions["code"] = "api_manager.invalid_argument";
+            return BadRequest(problem);
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "Invalid operation for creating web service");
-            return Conflict(new { message = ex.Message });
+            var problem = new ProblemDetails
+            {
+                Type = "https://coreaxis.dev/problems/api-manager/duplicate-service",
+                Title = "Duplicate WebService",
+                Status = StatusCodes.Status409Conflict,
+                Detail = ex.Message
+            };
+            problem.Extensions["code"] = "api_manager.duplicate_service_name";
+            return Conflict(problem);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating web service");
-            return StatusCode(500, new { message = "Internal server error" });
+            return Problem(
+                title: "Internal Server Error",
+                detail: "Failed to create web service.",
+                statusCode: StatusCodes.Status500InternalServerError,
+                type: "https://coreaxis.dev/problems/apim/internal_error");
         }
     }
 
@@ -121,6 +160,7 @@ public class WebServicesController : ControllerBase
     /// Create a new method for a web service
     /// </summary>
     [HttpPost("{webServiceId:guid}/methods")]
+    [HttpPost("{webServiceId:guid}/endpoints")]
     [HasPermission("ApiManager", "Create")]
     public async Task<ActionResult<CreateWebServiceMethodResponse>> CreateWebServiceMethod(
         Guid webServiceId,
@@ -156,17 +196,41 @@ public class WebServicesController : ControllerBase
         catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Invalid argument for creating web service method");
-            return BadRequest(new { message = ex.Message });
+            var problem = new ProblemDetails
+            {
+                Type = "https://coreaxis.dev/problems/api-manager/invalid-argument",
+                Title = "Invalid Argument",
+                Status = StatusCodes.Status400BadRequest,
+                Detail = ex.Message
+            };
+            problem.Extensions["code"] = "api_manager.invalid_argument";
+            return BadRequest(problem);
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "Invalid operation for creating web service method");
-            return Conflict(new { message = ex.Message });
+            var problem = new ProblemDetails
+            {
+                Type = "https://coreaxis.dev/problems/api-manager/duplicate-method",
+                Title = "Duplicate Method",
+                Status = StatusCodes.Status409Conflict,
+                Detail = ex.Message
+            };
+            problem.Extensions["code"] = "api_manager.duplicate_method_path";
+            return Conflict(problem);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating web service method for WebService {WebServiceId}", webServiceId);
-            return StatusCode(500, new { message = "Internal server error" });
+            var problem = new ProblemDetails
+            {
+                Type = "https://coreaxis.dev/problems/api-manager/internal-error",
+                Title = "Internal Server Error",
+                Status = StatusCodes.Status500InternalServerError,
+                Detail = "Internal server error"
+            };
+            problem.Extensions["code"] = "api_manager.internal_error";
+            return StatusCode(StatusCodes.Status500InternalServerError, problem);
         }
     }
 
@@ -199,12 +263,30 @@ public class WebServicesController : ControllerBase
         catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Invalid argument for invoking method {MethodId}", methodId);
-            return BadRequest(new { message = ex.Message });
+            var problem = new ProblemDetails
+            {
+                Type = "https://coreaxis.dev/problems/api-manager/invalid-argument",
+                Title = "Invalid Argument",
+                Status = StatusCodes.Status400BadRequest,
+                Detail = ex.Message
+            };
+            problem.Extensions["code"] = "api_manager.invalid_argument";
+            problem.Extensions["methodId"] = methodId;
+            return BadRequest(problem);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error invoking method {MethodId}", methodId);
-            return StatusCode(500, new { message = "Internal server error" });
+            var problem = new ProblemDetails
+            {
+                Type = "https://coreaxis.dev/problems/api-manager/internal-error",
+                Title = "Internal Server Error",
+                Status = StatusCodes.Status500InternalServerError,
+                Detail = "Internal server error"
+            };
+            problem.Extensions["code"] = "api_manager.internal_error";
+            problem.Extensions["methodId"] = methodId;
+            return StatusCode(StatusCodes.Status500InternalServerError, problem);
         }
     }
 
@@ -241,7 +323,11 @@ public class WebServicesController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving call logs");
-            return StatusCode(500, new { message = "Internal server error" });
+            return Problem(
+                title: "Internal Server Error",
+                detail: "Failed to retrieve call logs.",
+                statusCode: StatusCodes.Status500InternalServerError,
+                type: "https://coreaxis.dev/problems/apim/internal_error");
         }
     }
 
@@ -269,7 +355,16 @@ public class WebServicesController : ControllerBase
             
             if (!success)
             {
-                return NotFound(new { message = $"WebService with ID {id} not found" });
+                var problem = new ProblemDetails
+                {
+                    Type = "https://coreaxis.dev/problems/api-manager/not-found",
+                    Title = "WebService Not Found",
+                    Status = StatusCodes.Status404NotFound,
+                    Detail = $"WebService with ID {id} not found"
+                };
+                problem.Extensions["code"] = "api_manager.webservice_not_found";
+                problem.Extensions["webServiceId"] = id;
+                return NotFound(problem);
             }
             
             return NoContent();
@@ -277,17 +372,37 @@ public class WebServicesController : ControllerBase
         catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Invalid argument for updating web service {WebServiceId}", id);
-            return BadRequest(new { message = ex.Message });
+            var problem = new ProblemDetails
+            {
+                Type = "https://coreaxis.dev/problems/api-manager/invalid-argument",
+                Title = "Invalid Argument",
+                Status = StatusCodes.Status400BadRequest,
+                Detail = ex.Message
+            };
+            problem.Extensions["code"] = "api_manager.invalid_argument";
+            return BadRequest(problem);
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "Invalid operation for updating web service {WebServiceId}", id);
-            return Conflict(new { message = ex.Message });
+            var problem = new ProblemDetails
+            {
+                Type = "https://coreaxis.dev/problems/api-manager/conflict",
+                Title = "Conflict",
+                Status = StatusCodes.Status409Conflict,
+                Detail = ex.Message
+            };
+            problem.Extensions["code"] = "api_manager.conflict";
+            return Conflict(problem);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating web service {WebServiceId}", id);
-            return StatusCode(500, new { message = "Internal server error" });
+            return Problem(
+                title: "Internal Server Error",
+                detail: "Failed to update web service.",
+                statusCode: StatusCodes.Status500InternalServerError,
+                type: "https://coreaxis.dev/problems/apim/internal_error");
         }
     }
 
@@ -307,7 +422,16 @@ public class WebServicesController : ControllerBase
             
             if (!success)
             {
-                return NotFound(new { message = $"WebService with ID {id} not found" });
+                var problem = new ProblemDetails
+                {
+                    Type = "https://coreaxis.dev/problems/api-manager/not-found",
+                    Title = "WebService Not Found",
+                    Status = StatusCodes.Status404NotFound,
+                    Detail = $"WebService with ID {id} not found"
+                };
+                problem.Extensions["code"] = "api_manager.webservice_not_found";
+                problem.Extensions["webServiceId"] = id;
+                return NotFound(problem);
             }
             
             return NoContent();
@@ -339,7 +463,11 @@ public class WebServicesController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving methods for web service {WebServiceId}", webServiceId);
-            return StatusCode(500, new { message = "Internal server error" });
+            return Problem(
+                title: "Internal Server Error",
+                detail: "Failed to retrieve web service methods.",
+                statusCode: StatusCodes.Status500InternalServerError,
+                type: "https://coreaxis.dev/problems/apim/internal_error");
         }
     }
 
@@ -347,6 +475,7 @@ public class WebServicesController : ControllerBase
     /// Update a web service method
     /// </summary>
     [HttpPut("methods/{methodId:guid}")]
+    [HttpPut("endpoints/{methodId:guid}")]
     [HasPermission("ApiManager", "Update")]
     public async Task<ActionResult> UpdateWebServiceMethod(
         Guid methodId,
@@ -370,7 +499,16 @@ public class WebServicesController : ControllerBase
             
             if (!success)
             {
-                return NotFound(new { message = $"Method with ID {methodId} not found" });
+                var problem = new ProblemDetails
+                {
+                    Type = "https://coreaxis.dev/problems/api-manager/not-found",
+                    Title = "Method Not Found",
+                    Status = StatusCodes.Status404NotFound,
+                    Detail = $"Method with ID {methodId} not found"
+                };
+                problem.Extensions["code"] = "api_manager.method_not_found";
+                problem.Extensions["methodId"] = methodId;
+                return NotFound(problem);
             }
             
             return NoContent();
@@ -378,17 +516,44 @@ public class WebServicesController : ControllerBase
         catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Invalid argument for updating method {MethodId}", methodId);
-            return BadRequest(new { message = ex.Message });
+            var problem = new ProblemDetails
+            {
+                Type = "https://coreaxis.dev/problems/api-manager/invalid-argument",
+                Title = "Invalid Argument",
+                Status = StatusCodes.Status400BadRequest,
+                Detail = ex.Message
+            };
+            problem.Extensions["code"] = "api_manager.invalid_argument";
+            problem.Extensions["methodId"] = methodId;
+            return BadRequest(problem);
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogWarning(ex, "Invalid operation for updating method {MethodId}", methodId);
-            return Conflict(new { message = ex.Message });
+            var problem = new ProblemDetails
+            {
+                Type = "https://coreaxis.dev/problems/api-manager/conflict",
+                Title = "Conflict",
+                Status = StatusCodes.Status409Conflict,
+                Detail = ex.Message
+            };
+            problem.Extensions["code"] = "api_manager.conflict";
+            problem.Extensions["methodId"] = methodId;
+            return Conflict(problem);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating method {MethodId}", methodId);
-            return StatusCode(500, new { message = "Internal server error" });
+            var problem = new ProblemDetails
+            {
+                Type = "https://coreaxis.dev/problems/api-manager/internal-error",
+                Title = "Internal Server Error",
+                Status = StatusCodes.Status500InternalServerError,
+                Detail = "Internal server error"
+            };
+            problem.Extensions["code"] = "api_manager.internal_error";
+            problem.Extensions["methodId"] = methodId;
+            return StatusCode(StatusCodes.Status500InternalServerError, problem);
         }
     }
 
@@ -396,6 +561,7 @@ public class WebServicesController : ControllerBase
     /// Delete a web service method
     /// </summary>
     [HttpDelete("methods/{methodId:guid}")]
+    [HttpDelete("endpoints/{methodId:guid}")]
     [HasPermission("ApiManager", "Delete")]
     public async Task<ActionResult> DeleteWebServiceMethod(
         Guid methodId,
@@ -408,7 +574,16 @@ public class WebServicesController : ControllerBase
             
             if (!success)
             {
-                return NotFound(new { message = $"Method with ID {methodId} not found" });
+                var problem = new ProblemDetails
+                {
+                    Type = "https://coreaxis.dev/problems/api-manager/not-found",
+                    Title = "Method Not Found",
+                    Status = StatusCodes.Status404NotFound,
+                    Detail = $"Method with ID {methodId} not found"
+                };
+                problem.Extensions["code"] = "api_manager.method_not_found";
+                problem.Extensions["methodId"] = methodId;
+                return NotFound(problem);
             }
             
             return NoContent();
@@ -416,7 +591,16 @@ public class WebServicesController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting method {MethodId}", methodId);
-            return StatusCode(500, new { message = "Internal server error" });
+            var problem = new ProblemDetails
+            {
+                Type = "https://coreaxis.dev/problems/api-manager/internal-error",
+                Title = "Internal Server Error",
+                Status = StatusCodes.Status500InternalServerError,
+                Detail = "Internal server error"
+            };
+            problem.Extensions["code"] = "api_manager.internal_error";
+            problem.Extensions["methodId"] = methodId;
+            return StatusCode(StatusCodes.Status500InternalServerError, problem);
         }
     }
 }

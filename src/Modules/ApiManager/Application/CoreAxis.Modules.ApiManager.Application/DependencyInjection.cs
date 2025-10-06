@@ -1,8 +1,12 @@
 using CoreAxis.Modules.ApiManager.Application.Contracts;
 using CoreAxis.Modules.ApiManager.Application.Services;
+using CoreAxis.Modules.ApiManager.Application.Security;
 using CoreAxis.Modules.ApiManager.Application.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Http;
 using Polly;
 using Polly.Extensions.Http;
 using System.Reflection;
@@ -16,6 +20,14 @@ public static class DependencyInjection
         // Add MediatR
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
+        // HttpContext accessor for correlation/tenant and future auth flows
+        services.AddHttpContextAccessor();
+
+        // Memory cache for response and token caching
+        services.AddMemoryCache();
+        // Optional distributed cache for tokens if app configured it elsewhere
+        services.AddDistributedMemoryCache();
+
         // Add HTTP client with Polly policies
         services.AddHttpClient<IApiProxy, ApiProxy>(client =>
         {
@@ -25,8 +37,40 @@ public static class DependencyInjection
         // Register services
         services.AddScoped<IApiProxy, ApiProxy>();
 
+        // Register pluggable authentication handlers and resolver
+        services.AddSingleton<IHmacCanonicalSigner, HmacCanonicalSigner>();
+        services.AddSingleton<ITimestampProvider, SystemTimestampProvider>();
+        services.AddSingleton<IAuthSchemeHandler, ApiKeyAuthHandler>();
+        services.AddSingleton<IAuthSchemeHandler, OAuth2AuthHandler>();
+        services.AddSingleton<IAuthSchemeHandler, HmacAuthHandler>();
+        services.AddSingleton<IAuthSchemeHandlerResolver, AuthSchemeHandlerResolver>();
+
+        // Register masking service for request/response logging
+        services.AddSingleton<ILoggingMaskingService, LoggingMaskingService>();
+
         // Add health checks
         services.AddApiManagerHealthChecks();
+
+        // Rate limiting policy for runtime façade (moved to Web host to avoid assembly issues)
+        // To enable, add this in ASP.NET Core host:
+        // services.AddRateLimiter(options =>
+        // {
+        //     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        //     options.AddPolicy("apim-call", context =>
+        //     {
+        //         var tenantId = context.Request.Headers["X-Tenant-Id"].FirstOrDefault() ?? "global";
+        //         return RateLimitPartition.GetFixedWindowLimiter<string>(
+        //             tenantId,
+        //             _ => new FixedWindowRateLimiterOptions
+        //             {
+        //                 PermitLimit = 60,
+        //                 Window = TimeSpan.FromMinutes(1),
+        //                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+        //                 QueueLimit = 0,
+        //                 AutoReplenishment = true
+        //             });
+        //     });
+        // });
 
         return services;
     }

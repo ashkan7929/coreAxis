@@ -4,6 +4,7 @@ using CoreAxis.Modules.ApiManager.Application.DTOs;
 using CoreAxis.Modules.AuthModule.API.Authz;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -39,7 +40,11 @@ public class SecurityProfilesController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving security profiles");
-            return StatusCode(500, new { message = "Internal server error" });
+            return Problem(
+                title: "Internal Server Error",
+                detail: "Failed to retrieve security profiles.",
+                statusCode: StatusCodes.Status500InternalServerError,
+                type: "https://coreaxis.dev/problems/apim/internal_error");
         }
     }
 
@@ -58,7 +63,11 @@ public class SecurityProfilesController : ControllerBase
 
             if (profile == null)
             {
-                return NotFound(new { message = $"Security profile with ID {id} not found" });
+                return Problem(
+                    title: "Not Found",
+                    detail: $"Security profile with ID {id} not found.",
+                    statusCode: StatusCodes.Status404NotFound,
+                    type: "https://coreaxis.dev/problems/apim/not_found");
             }
 
             return Ok(profile);
@@ -66,7 +75,11 @@ public class SecurityProfilesController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving security profile {ProfileId}", id);
-            return StatusCode(500, new { message = "Internal server error" });
+            return Problem(
+                title: "Internal Server Error",
+                detail: "Failed to retrieve security profile.",
+                statusCode: StatusCodes.Status500InternalServerError,
+                type: "https://coreaxis.dev/problems/apim/internal_error");
         }
     }
 
@@ -97,12 +110,20 @@ public class SecurityProfilesController : ControllerBase
         }
         catch (ArgumentException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return Problem(
+                title: "Bad Request",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status400BadRequest,
+                type: "https://coreaxis.dev/problems/apim/bad_request");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating security profile");
-            return StatusCode(500, new { message = "Internal server error" });
+            return Problem(
+                title: "Internal Server Error",
+                detail: "Failed to create security profile.",
+                statusCode: StatusCodes.Status500InternalServerError,
+                type: "https://coreaxis.dev/problems/apim/internal_error");
         }
     }
 
@@ -128,7 +149,11 @@ public class SecurityProfilesController : ControllerBase
 
             if (!success)
             {
-                return NotFound(new { message = $"Security profile with ID {id} not found" });
+                return Problem(
+                    title: "Not Found",
+                    detail: $"Security profile with ID {id} not found.",
+                    statusCode: StatusCodes.Status404NotFound,
+                    type: "https://coreaxis.dev/problems/apim/not_found");
             }
 
             return NoContent();
@@ -136,7 +161,11 @@ public class SecurityProfilesController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating security profile {ProfileId}", id);
-            return StatusCode(500, new { message = "Internal server error" });
+            return Problem(
+                title: "Internal Server Error",
+                detail: "Failed to update security profile.",
+                statusCode: StatusCodes.Status500InternalServerError,
+                type: "https://coreaxis.dev/problems/apim/internal_error");
         }
     }
 
@@ -156,19 +185,31 @@ public class SecurityProfilesController : ControllerBase
 
             if (!success)
             {
-                return NotFound(new { message = $"Security profile with ID {id} not found" });
+                return Problem(
+                    title: "Not Found",
+                    detail: $"Security profile with ID {id} not found.",
+                    statusCode: StatusCodes.Status404NotFound,
+                    type: "https://coreaxis.dev/problems/apim/not_found");
             }
 
             return NoContent();
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return Problem(
+                title: "Bad Request",
+                detail: ex.Message,
+                statusCode: StatusCodes.Status400BadRequest,
+                type: "https://coreaxis.dev/problems/apim/bad_request");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting security profile {ProfileId}", id);
-            return StatusCode(500, new { message = "Internal server error" });
+            return Problem(
+                title: "Internal Server Error",
+                detail: "Failed to delete security profile.",
+                statusCode: StatusCodes.Status500InternalServerError,
+                type: "https://coreaxis.dev/problems/apim/internal_error");
         }
     }
 }

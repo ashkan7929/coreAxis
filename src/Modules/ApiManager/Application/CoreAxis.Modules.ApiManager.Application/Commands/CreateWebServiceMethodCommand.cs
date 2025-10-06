@@ -14,7 +14,8 @@ public record CreateWebServiceMethodCommand(
     int TimeoutMs = 30000,
     string? RetryPolicyJson = null,
     string? CircuitPolicyJson = null,
-    List<CreateWebServiceParamDto>? Parameters = null
+    List<CreateWebServiceParamDto>? Parameters = null,
+    string? EndpointConfigJson = null
 ) : IRequest<Guid>;
 
 public record CreateWebServiceParamDto(
@@ -66,7 +67,8 @@ public class CreateWebServiceMethodCommandHandler : IRequestHandler<CreateWebSer
             request.HttpMethod,
             request.TimeoutMs,
             retryPolicyJson: request.RetryPolicyJson,
-            circuitPolicyJson: request.CircuitPolicyJson
+            circuitPolicyJson: request.CircuitPolicyJson,
+            endpointConfigJson: request.EndpointConfigJson
         );
 
         _dbContext.Set<WebServiceMethod>().Add(method);

@@ -12,6 +12,7 @@ public class WebServiceMethod : EntityBase
     public int TimeoutMs { get; private set; }
     public string? RetryPolicyJson { get; private set; }
     public string? CircuitPolicyJson { get; private set; }
+    public string? EndpointConfigJson { get; private set; }
     public bool IsActive { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
@@ -26,7 +27,7 @@ public class WebServiceMethod : EntityBase
     public WebServiceMethod(Guid webServiceId, string path, string httpMethod, 
                            int timeoutMs = 30000, string? requestSchema = null, 
                            string? responseSchema = null, string? retryPolicyJson = null, 
-                           string? circuitPolicyJson = null)
+                           string? circuitPolicyJson = null, string? endpointConfigJson = null)
     {
         Id = Guid.NewGuid();
         WebServiceId = webServiceId;
@@ -37,6 +38,7 @@ public class WebServiceMethod : EntityBase
         ResponseSchema = responseSchema;
         RetryPolicyJson = retryPolicyJson;
         CircuitPolicyJson = circuitPolicyJson;
+        EndpointConfigJson = endpointConfigJson;
         IsActive = true;
         CreatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
@@ -44,7 +46,8 @@ public class WebServiceMethod : EntityBase
 
     public void Update(string path, string httpMethod, int timeoutMs, 
                       string? requestSchema = null, string? responseSchema = null, 
-                      string? retryPolicyJson = null, string? circuitPolicyJson = null)
+                      string? retryPolicyJson = null, string? circuitPolicyJson = null,
+                      string? endpointConfigJson = null)
     {
         Path = path;
         HttpMethod = httpMethod.ToUpperInvariant();
@@ -53,6 +56,7 @@ public class WebServiceMethod : EntityBase
         ResponseSchema = responseSchema;
         RetryPolicyJson = retryPolicyJson;
         CircuitPolicyJson = circuitPolicyJson;
+        EndpointConfigJson = endpointConfigJson;
         UpdatedAt = DateTime.UtcNow;
     }
 

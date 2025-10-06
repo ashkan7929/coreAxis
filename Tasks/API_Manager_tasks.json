@@ -1,0 +1,102 @@
+{
+    "module": "ApiManager",
+    "principles": [
+        "WebService-only (no UI)",
+        "Use SharedKernel for ProblemDetails, Correlation, Outbox",
+        "Do not store secrets; use SecretRef placeholders",
+        "Sensitive fields (headers/body) must be masked in logs"
+    ],
+    "tasks": [
+        {
+            "id": "APM-1",
+            "title": "Complete OAuth2 Token Cache",
+            "description": "Implement client-credentials OAuth2 flow with in-memory or distributed cache keyed by (clientId, scope). Refresh tokens 1 minute before expiry. Integrate into AuthType=OAuth2 handler.",
+            "status": "Completed"
+        },
+        {
+            "id": "APM-2",
+            "title": "Add HMAC Signer Utility",
+            "description": "Create reusable HMAC signing helper to support canonical string (method + path + date + hash(body)). Configure via EndpointConfig.AuthType=HMAC. Include clock-skew tolerance ±5 min.",
+            "status": "Completed"
+        },
+        {
+            "id": "APM-3",
+            "title": "Rate limiting for /apim/call",
+            "description": "Implement per-tenant and global rate limits on POST /apim/call using fixed-window counter. Return ProblemDetails 429 with Retry-After. Configurable thresholds via appsettings.",
+            "status": "Completed"
+        },
+        {
+            "id": "APM-4",
+            "title": "Add short-TTL response cache per endpoint",
+            "description": "Enable optional caching for idempotent endpoints via EndpointConfig.CacheTtlSeconds. Use IMemoryCache or IDistributedCache depending on deployment. Skip cache for POST/PUT/DELETE.",
+            "status": "Completed"
+        },
+        {
+            "id": "APM-5",
+            "title": "Bulk Import/Export Registry",
+            "description": "Expose GET /admin/apim/registry/export and POST /admin/apim/registry/import. Validate schema and prevent secret values in import payloads. Support upsert semantics.",
+            "status": "Completed"
+        },
+        {
+            "id": "APM-6",
+            "title": "Refactor Auth Schemes into IAuthHandler system",
+            "description": "Abstract Auth handling into pluggable IAuthHandler (None, ApiKey, OAuth2, HMAC). Each endpoint resolves handler by AuthType. Register via DI. Existing ApiKey logic to move here.",
+            "status": "Completed"
+        },
+        {
+            "id": "APM-7",
+            "title": "Outbox events for configuration changes",
+            "description": "When ServiceRegistry, EndpointConfig, or PolicyProfile is modified, enqueue Outbox event (ServiceUpdated, EndpointUpdated). Downstream modules can refresh caches on these events.",
+            "status": "Completed"
+        },
+        {
+            "id": "APM-8",
+            "title": "Improve Admin ProblemDetails consistency",
+            "description": "Standardize error codes/messages for admin routes. Add error codes like APIM_DUPLICATE_SERVICE, APIM_INVALID_POLICY. Ensure RFC7807 format with correlationId.",
+            "status": "Completed"
+        },
+        {
+            "id": "APM-9",
+            "title": "Add synthetic health checks",
+            "description": "Extend /health/ready to include probes per registered service (HEAD/GET test endpoints). Timeout ≤ 3s each; aggregate failures summarized in response.",
+            "status": "Completed"
+        },
+        {
+            "id": "APM-10",
+            "title": "Add metrics for retry/breaker",
+            "description": "Expose metrics counters for retry attempts, breaker opens, and circuit resets per endpoint. Hook into PolicyProfile’s Polly context. Send to Serilog/Prometheus exporter.",
+            "status": "Completed"
+        },
+        {
+            "id": "APM-11",
+            "title": "Enhance masking engine",
+            "description": "Expand HeaderMaskRule to support regex matching and body path expressions (JSONPath). Ensure all ApiCallLog entries mask Authorization, Bearer, Token, and PAN fields.",
+            "status": "Completed"
+        },
+        {
+            "id": "APM-12",
+            "title": "Registry snapshot documentation",
+            "description": "Document JSON schema for import/export registry and provide example templates for Payment, Pricing, Identity services.",
+            "status": "Completed"
+        },
+        {
+            "id": "APM-13",
+            "title": "OAuth/HMAC Outbox event optional",
+            "description": "Emit optional Outbox events for OAuth/HMAC flows; considered within APM-1/2.",
+            "status": "Completed"
+        },
+        {
+            "id": "APM-14",
+            "title": "Documentation",
+            "description": "Markdown README and curl examples are available.",
+            "status": "Completed"
+        }
+    ],
+    "acceptance": [
+        "Admin can register and modify services, endpoints, and policies.",
+        "Auth handlers (None/ApiKey/OAuth2/HMAC) all functional and tested.",
+        "Runtime POST /apim/call executes with applied retry/breaker/policy settings.",
+        "Logs show masked data and correlation IDs.",
+        "Rate limiting and caching work per configuration."
+    ]
+}

@@ -20,8 +20,11 @@ public class LoggingMaskingService : ILoggingMaskingService
     {
         new Regex(@"(?i)(password|pwd|secret|key|token|credential|auth)\s*[:=]\s*[""']?([^\s,}""']+)", RegexOptions.Compiled),
         new Regex(@"(?i)(api[_-]?key|access[_-]?token|bearer[_-]?token)\s*[:=]\s*[""']?([^\s,}""']+)", RegexOptions.Compiled),
-        new Regex(@"(?i)(client[_-]?secret|private[_-]?key)\s*[:=]\s*[""']?([^\s,}""']+)", RegexOptions.Compiled)
+        new Regex(@"(?i)(client[_-]?secret|private[_-]?key)\s*[:=]\s*[""']?([^\s,}""']+)", RegexOptions.Compiled),
+        new Regex(@"(?i)(pan|card[_-]?number|cc|credit[_-]?card)\s*[:=]\s*[""']?([^\s,}""']+)", RegexOptions.Compiled)
     };
+    // Generic PAN-like sequence matcher (13-19 digits possibly separated by spaces/dashes)
+    private static readonly Regex PanNumberPattern = new Regex(@"\b(?:\d[ -]?){13,19}\b", RegexOptions.Compiled);
     
     // JSON property names that should be masked
     private static readonly string[] SensitiveJsonProperties = 
@@ -29,7 +32,9 @@ public class LoggingMaskingService : ILoggingMaskingService
         "password", "secret", "key", "token", "credential", "auth",
         "apiKey", "api_key", "accessToken", "access_token", 
         "bearerToken", "bearer_token", "clientSecret", "client_secret",
-        "privateKey", "private_key", "refreshToken", "refresh_token"
+        "privateKey", "private_key", "refreshToken", "refresh_token",
+        // Payment/PAN-related
+        "pan", "cardNumber", "card_number", "cc", "creditCard", "credit_card"
     };
     
     private const string MaskValue = "***MASKED***";
@@ -54,6 +59,8 @@ public class LoggingMaskingService : ILoggingMaskingService
                 return $"{key}: {MaskValue}";
             });
         }
+        // Mask generic PAN number sequences if present
+        result = PanNumberPattern.Replace(result, MaskValue);
         
         return result;
     }

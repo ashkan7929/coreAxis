@@ -1,4 +1,4 @@
-using CoreAxis.Modules.ApiManager.Application.Services;
+using CoreAxis.Modules.ApiManager.Application.Contracts;
 using CoreAxis.Modules.ProductOrder.Domain.Entities;
 using CoreAxis.Modules.ProductOrder.Domain.Services;
 using Microsoft.Extensions.Logging;

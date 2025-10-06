@@ -1,6 +1,8 @@
 using System.Text;
 using System.Text.Json;
 using CoreAxis.Modules.ApiManager.Application.Contracts;
+using CoreAxis.Modules.ApiManager.Application.Masking;
+using CoreAxis.Modules.ApiManager.Application.Security;
 using CoreAxis.Modules.ApiManager.Domain;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
@@ -13,12 +15,16 @@ public class ApiProxyService : IApiProxy
     private readonly HttpClient _httpClient;
     private readonly ILogger<ApiProxyService> _logger;
     private readonly DbContext _dbContext;
+    private readonly IAuthSchemeHandlerResolver _authResolver;
+    private readonly ILoggingMaskingService _maskingService;
 
-    public ApiProxyService(HttpClient httpClient, ILogger<ApiProxyService> logger, DbContext dbContext)
+    public ApiProxyService(HttpClient httpClient, ILogger<ApiProxyService> logger, DbContext dbContext, IAuthSchemeHandlerResolver authResolver, ILoggingMaskingService maskingService)
     {
         _httpClient = httpClient;
         _logger = logger;
         _dbContext = dbContext;
+        _authResolver = authResolver;
+        _maskingService = maskingService;
     }
 
     public async Task<ApiProxyResult> InvokeAsync(
@@ -115,10 +121,10 @@ public class ApiProxyService : IApiProxy
                 request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
 
-            // Add security headers if security profile exists
+            // Apply pluggable authentication via resolver if security profile exists
             if (method.WebService.SecurityProfile != null)
             {
-                await ApplySecurityProfileAsync(request, method.WebService.SecurityProfile);
+                await _authResolver.ApplyAsync(request, method.WebService.SecurityProfile, cancellationToken);
             }
 
             // Add request body for POST/PUT/PATCH
@@ -132,8 +138,10 @@ public class ApiProxyService : IApiProxy
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(TimeSpan.FromMilliseconds(method.TimeoutMs));
 
-            // Log request
-            callLog.SetRequest(requestBody);
+            // Determine masking rules and log masked request
+            var maskingRules = MaskingHelper.ExtractRules(method);
+            var maskedRequestBody = string.IsNullOrEmpty(requestBody) ? requestBody : MaskingHelper.MaskBody(requestBody, _maskingService, maskingRules);
+            callLog.SetRequest(maskedRequestBody);
             _logger.LogInformation("Invoking {Method} {Url}", method.HttpMethod, requestUrl);
 
             // Execute request
@@ -144,8 +152,9 @@ public class ApiProxyService : IApiProxy
             var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
             var responseHeaders = response.Headers.ToDictionary(h => h.Key, h => string.Join(", ", h.Value));
 
-            // Log response
-            callLog.SetResponse(responseBody, (int)response.StatusCode, stopwatch.ElapsedMilliseconds, response.IsSuccessStatusCode);
+            // Log masked response body
+            var maskedResponseBody = MaskingHelper.MaskBody(responseBody, _maskingService, maskingRules);
+            callLog.SetResponse(maskedResponseBody, (int)response.StatusCode, stopwatch.ElapsedMilliseconds, response.IsSuccessStatusCode);
             await SaveCallLogAsync(callLog, cancellationToken);
 
             _logger.LogInformation("Response received: {StatusCode} in {ElapsedMs}ms", 
@@ -198,41 +207,7 @@ public class ApiProxyService : IApiProxy
         }
     }
 
-    private async Task ApplySecurityProfileAsync(HttpRequestMessage request, SecurityProfile securityProfile)
-    {
-        try
-        {
-            if (string.IsNullOrEmpty(securityProfile.ConfigJson))
-                return;
-
-            var config = JsonSerializer.Deserialize<Dictionary<string, object>>(securityProfile.ConfigJson);
-            if (config == null) return;
-
-            switch (securityProfile.Type)
-            {
-                case SecurityType.ApiKey:
-                    if (config.TryGetValue("headerName", out var headerName) && 
-                        config.TryGetValue("apiKey", out var apiKey))
-                    {
-                        request.Headers.TryAddWithoutValidation(headerName.ToString()!, apiKey.ToString());
-                    }
-                    break;
-
-                case SecurityType.OAuth2:
-                    if (config.TryGetValue("token", out var token))
-                    {
-                        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.ToString());
-                    }
-                    break;
-
-
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to apply security profile {SecurityProfileId}", securityProfile.Id);
-        }
-    }
+    // Authentication is handled by IAuthSchemeHandlerResolver; legacy method removed.
 
     private async Task SaveCallLogAsync(WebServiceCallLog callLog, CancellationToken cancellationToken)
     {

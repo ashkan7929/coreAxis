@@ -1,0 +1,99 @@
+{
+    "project": "CoreAxis",
+    "module": "ApiManager",
+    "goal": "Central registry for external web services + runtime policies (timeout/retry/circuit breaker), request/response logging with masking, and correlation/tenant propagation.",
+    "code_layout": {
+        "roots": [
+            "src/Modules/ApiManager",
+            "src/Modules/ApiManager.Application",
+            "src/Modules/ApiManager.Infrastructure",
+            "src/Modules/ApiManager.Api"
+        ],
+        "adapters_in_use_by_others": [
+            "ProductOrderModule.Infrastructure.Adapters.PriceProviderViaApiManager"
+        ]
+    },
+    "domain": {
+        "entities": [
+            {
+                "name": "ServiceRegistry",
+                "summary": "Top-level service (e.g., Payments, Pricing, Identity) with baseUrl and default policies."
+            },
+            {
+                "name": "EndpointConfig",
+                "summary": "Per-endpoint method/path, headers, auth scheme (ApiKey/OAuth/HMAC/None), and overrides for policies."
+            },
+            {
+                "name": "PolicyProfile",
+                "summary": "Timeout (ms), Retry (count, backoff), CircuitBreaker (failures, duration), and Optional Cache TTL."
+            },
+            {
+                "name": "SecretRef",
+                "summary": "Logical reference to secrets (not raw secrets), resolved by configuration provider."
+            },
+            {
+                "name": "ApiCallLog",
+                "summary": "Audit log: request/response (masked), status, latency, correlationId, tenantId, error details."
+            }
+        ],
+        "value_objects": [
+            "HttpMethod (enum)",
+            "AuthType (None, ApiKey, OAuth2, HMAC)",
+            "HeaderMaskRule"
+        ]
+    },
+    "application": {
+        "commands": [
+            "RegisterServiceCommand",
+            "UpsertEndpointCommand",
+            "UpsertPolicyProfileCommand"
+        ],
+        "queries": [
+            "GetServiceByNameQuery",
+            "ListServicesQuery",
+            "ListEndpointsQuery",
+            "GetApiLogsQuery"
+        ]
+    },
+    "infrastructure": {
+        "http_client": "Typed HttpClientFactory with Polly policies (timeout/retry/circuit-breaker) wired from PolicyProfile.",
+        "logging": "Request/Response logging with field masking + correlation/tenant propagation via SharedKernel.CorrelationMiddleware.",
+        "persistence": "EF Core mappings for ServiceRegistry, EndpointConfig, PolicyProfile, ApiCallLog.",
+        "outbox": "Outbox ready (for change events like ServiceUpdated) – optional."
+    },
+    "api": {
+        "admin_endpoints": [
+            "POST /admin/apim/services",
+            "PUT /admin/apim/services/{id}",
+            "POST /admin/apim/services/{id}/endpoints",
+            "POST /admin/apim/policies"
+        ],
+        "ops_endpoints": [
+            "GET /admin/apim/services",
+            "GET /admin/apim/services/{id}",
+            "GET /admin/apim/logs?service=&endpoint=&from=&to="
+        ],
+        "runtime_gateway": [
+            "POST /apim/call (body: service, endpoint, payload, context) – optional façade used by adapters"
+        ]
+    },
+    "security": {
+        "rbac": "Admin endpoints protected by [RequirePermission(\"ApiManager.Write\")] & Read with ApiManager.Read",
+        "masking": "Headers/body masking rules stored per endpoint; secrets never persisted in clear."
+    },
+    "observability": {
+        "metrics": "Latency, success rate, retry count, breaker state exposed via meters",
+        "health": "Per-service synthetic probe (optional), overall liveness/readiness"
+    },
+    "known_consumers": [
+        "ProductOrderModule (PriceProviderViaApiManager)",
+        "Future: Payments, Identity, External Pricing sources"
+    ],
+    "current_gaps": [
+        "Unified HMAC signer & OAuth flow abstraction is minimal/basic.",
+        "Bulk import/export of registry as JSON not exposed yet.",
+        "Per-endpoint cache (short TTL) optional but not consistently applied.",
+        "Admin ProblemDetails messages can be more explicit (codes).",
+        "Rate limiting for public runtime façade not configured."
+    ]
+}

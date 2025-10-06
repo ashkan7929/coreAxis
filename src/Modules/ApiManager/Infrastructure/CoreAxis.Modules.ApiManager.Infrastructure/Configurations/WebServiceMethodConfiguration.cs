@@ -34,6 +34,9 @@ public class WebServiceMethodConfiguration : IEntityTypeConfiguration<WebService
             
         builder.Property(x => x.CircuitPolicyJson)
             .HasColumnType("nvarchar(max)");
+
+        builder.Property(x => x.EndpointConfigJson)
+            .HasColumnType("nvarchar(max)");
             
         builder.Property(x => x.IsActive)
             .IsRequired();

@@ -13,7 +13,8 @@ public record UpdateWebServiceMethodCommand(
     string? RequestSchema = null,
     string? ResponseSchema = null,
     string? RetryPolicyJson = null,
-    string? CircuitPolicyJson = null
+    string? CircuitPolicyJson = null,
+    string? EndpointConfigJson = null
 ) : IRequest<bool>;
 
 public class UpdateWebServiceMethodCommandHandler : IRequestHandler<UpdateWebServiceMethodCommand, bool>
@@ -57,7 +58,8 @@ public class UpdateWebServiceMethodCommandHandler : IRequestHandler<UpdateWebSer
             request.RequestSchema,
             request.ResponseSchema,
             request.RetryPolicyJson,
-            request.CircuitPolicyJson
+            request.CircuitPolicyJson,
+            request.EndpointConfigJson
         );
         
         await _dbContext.SaveChangesAsync(cancellationToken);

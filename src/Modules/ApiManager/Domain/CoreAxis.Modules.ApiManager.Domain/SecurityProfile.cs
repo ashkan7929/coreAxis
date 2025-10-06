@@ -6,7 +6,8 @@ public enum SecurityType
 {
     None = 0,
     ApiKey = 1,
-    OAuth2 = 2
+    OAuth2 = 2,
+    HMAC = 3
 }
 
 public class SecurityProfile : EntityBase

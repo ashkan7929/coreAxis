@@ -1,6 +1,6 @@
 using MediatR;
 using CoreAxis.Modules.ApiManager.Domain;
-using CoreAxis.Modules.ApiManager.Application.Services;
+using CoreAxis.Modules.ApiManager.Application.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
