@@ -18,6 +18,7 @@
     <ProjectReference Include="..\..\Domain\CoreAxis.Modules.ProductOrderModule.Domain\CoreAxis.Modules.ProductOrderModule.Domain.csproj" />
     <ProjectReference Include="..\..\Application\CoreAxis.Modules.ProductOrderModule.Application\CoreAxis.Modules.ProductOrderModule.Application.csproj" />
     <ProjectReference Include="..\..\..\..\BuildingBlocks\SharedKernel\CoreAxis.SharedKernel\CoreAxis.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\ApiManager\Application\CoreAxis.Modules.ApiManager.Application\CoreAxis.Modules.ApiManager.Application.csproj" />
   </ItemGroup>
 
 </Project>

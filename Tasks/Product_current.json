@@ -1,0 +1,120 @@
+{
+    "project": "CoreAxis",
+    "module": "Product",
+    "goal": "Expose a product catalog for downstream modules (Formula/Quote, Order/Checkout, MLM plans per product).",
+    "code_layout": {
+        "primary": "src/Modules/ProductOrderModule",
+        "legacy_adapter": "src/Modules/ProductOrder/Infrastructure/.../PriceProviders/PriceProviderViaApiManager.cs"
+    },
+    "domains": {
+        "entities": [
+            {
+                "name": "Order",
+                "module": "ProductOrderModule.Domain",
+                "notes": "The 'Product' data currently lives implicitly through Order/OrderLine usage. A dedicated Product entity/API is not fully exposed yet."
+            },
+            {
+                "name": "OrderLine",
+                "module": "ProductOrderModule.Domain"
+            }
+        ],
+        "value_objects": [
+            {
+                "name": "Money",
+                "module": "ProductOrderModule.Domain.ValueObjects"
+            },
+            {
+                "name": "AssetCode",
+                "module": "ProductOrderModule.Domain.ValueObjects"
+            }
+        ],
+        "enums": [
+            {
+                "name": "OrderStatus",
+                "values": [
+                    "Created",
+                    "PriceLocked",
+                    "Paid",
+                    "Confirmed",
+                    "Completed",
+                    "Cancelled",
+                    "Expired"
+                ]
+            },
+            {
+                "name": "OrderType",
+                "values": [
+                    "Unknown",
+                    "Standard"
+                ]
+            }
+        ],
+        "events": [
+            "OrderCreatedEvent",
+            "OrderPriceLockedEvent",
+            "OrderConfirmedEvent",
+            "OrderCompletedEvent",
+            "OrderCancelledEvent",
+            "OrderExpiredEvent"
+        ]
+    },
+    "application": {
+        "commands": [
+            "CreateOrderCommand",
+            "UpdateOrderCommand",
+            "DeleteOrderCommand",
+            "CancelOrderCommand",
+            "PlaceOrderCommand"
+        ],
+        "queries": [
+            "GetOrderQuery",
+            "GetAllOrdersQuery",
+            "GetOrderByIdQuery",
+            "GetOrdersByUserQuery"
+        ],
+        "dtos": [
+            "OrderDto",
+            "PagedResult"
+        ]
+    },
+    "infrastructure": {
+        "dbcontext": "ProductOrderDbContext (EF Core)",
+        "repository": "OrderRepository (implements IOrderRepository)",
+        "migrations": "InitialProductOrderModuleCreate",
+        "event_handlers": [
+            "OrderCreatedEventHandler",
+            "OrderPlacedIntegrationEventHandler",
+            "PriceLockedIntegrationEventHandler"
+        ],
+        "outbox": "OutboxRepository present (module-side impl)"
+    },
+    "di": {
+        "module_registration": "Infrastructure/DependencyInjection.AddProductOrderModuleInfra(...)",
+        "uses_sharedkernel": [
+            "Outbox (IOutboxService/IOutboxRepository)",
+            "DomainEventDispatcher",
+            "EventBus (InMemory)",
+            "Correlation middleware compatibility"
+        ]
+    },
+    "api_manager_integration": {
+        "status": "available via legacy adapter",
+        "adapter": "PriceProviderViaApiManager (calls ApiManager: PriceService.GetPrice)",
+        "note": "Adapter sits under the older 'ProductOrder' path; needs convergence with 'ProductOrderModule' namespace."
+    },
+    "tests": {
+        "paths": "Tests/CoreAxis.Tests/ProductOrderModule",
+        "examples": [
+            "MoneyTests",
+            "OrderLineTests",
+            "PlaceOrderCommandHandlerTests",
+            "ProductOrderIntegrationTests"
+        ]
+    },
+    "gaps_observed": [
+        "No dedicated Product entity/API (CRUD) is exposed yet for catalog (id, name, attributes, priceFrom, status).",
+        "Two product-related roots: 'ProductOrderModule' (canonical) and 'ProductOrder' (legacy adapter for price).",
+        "No REST endpoints for public product listing/search/pagination.",
+        "No product-versioning or attribute-schema support yet (needed for Dynamic Forms + Formula binding later)."
+    ]
+}

@@ -1,5 +1,6 @@
 using CoreAxis.Modules.DynamicForm.Infrastructure.Data;
 using CoreAxis.Modules.WalletModule.Api;
+using CoreAxis.Modules.ProductOrderModule.Api;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,6 +24,9 @@ builder.Services.AddDbContext<DynamicFormDbContext>(options =>
 
 // Add WalletModule
 builder.Services.AddWalletModuleApi(builder.Configuration);
+
+// Add ProductOrderModule (Product API)
+builder.Services.AddProductOrderModuleApi(builder.Configuration);
 
 var app = builder.Build();
 

@@ -6,6 +6,7 @@ using CoreAxis.SharedKernel.DomainEvents;
 using CoreAxis.SharedKernel.Outbox;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
+using CoreAxis.Modules.ProductOrderModule.Infrastructure.Entities;
 
 namespace CoreAxis.Modules.ProductOrderModule.Infrastructure.Data;
 
@@ -20,7 +21,9 @@ public class ProductOrderDbContext : DbContext
 
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderLine> OrderLines { get; set; }
+    public DbSet<Product> Products { get; set; }
     public DbSet<OutboxMessage> OutboxMessages { get; set; }
+    public DbSet<IdempotencyEntry> IdempotencyEntries { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -55,6 +58,23 @@ public class ProductOrderDbContext : DbContext
                   .HasDatabaseName("IX_OutboxMessages_Processing");
             entity.HasIndex(e => e.CorrelationId)
                   .HasDatabaseName("IX_OutboxMessages_CorrelationId");
+        });
+
+        // Configure IdempotencyEntry entity
+        modelBuilder.Entity<IdempotencyEntry>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasDefaultValueSql("NEWID()");
+            entity.Property(e => e.IdempotencyKey).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Operation).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.RequestHash).IsRequired().HasMaxLength(64);
+            entity.Property(e => e.CreatedOn).HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasIndex(e => e.IdempotencyKey)
+                  .IsUnique()
+                  .HasDatabaseName("IX_IdempotencyEntries_IdempotencyKey");
+            entity.HasIndex(e => new { e.Operation, e.RequestHash })
+                  .HasDatabaseName("IX_IdempotencyEntries_Operation_RequestHash");
         });
 
         // Configure base entity properties for all entities

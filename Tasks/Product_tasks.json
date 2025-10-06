@@ -1,0 +1,108 @@
+{
+    "module": "Product",
+    "principles": [
+        "No UI, REST only",
+        "Keep SharedKernel boundaries (Outbox, EventBus, ProblemDetails, Correlation) intact",
+        "Non-breaking, additive changes",
+        "Prefer 'ProductOrderModule' as canonical; only reuse the legacy price adapter by wrapping"
+    ],
+    "tasks": [
+        {
+            "id": "PRD-1",
+            "title": "Introduce Product aggregate (domain)",
+            "description": "Add a dedicated Product entity under ProductOrderModule.Domain (separate from orders). Fields: Id(Guid), Code(string unique), Name(string), Status(enum: Active/Inactive), PriceFrom(Money), Attributes(jsonb/dictionary for dynamic attributes), CreatedAt/UpdatedAt. Provide IProductRepository with basic lookups (by Id/Code) and paged listing with filters (status, q=name/code).",
+            "status": "انجام شده"
+        },
+        {
+            "id": "PRD-2",
+            "title": "EF Core mapping + migration for Product",
+            "description": "Add Product configuration (unique index on Code, indexes on Status, Name). Add initial migration for Product table(s). Ensure Money is mapped properly (decimal scale) and Attributes is json/jsonb (provider-based).",
+            "status": "انجام شده"
+        },
+        {
+            "id": "PRD-3",
+            "title": "Product REST: Admin CRUD",
+            "description": "Create Admin endpoints: POST/PUT/DELETE /admin/products and GET /admin/products/:id. Validate unique Code, required fields. Emit integration/domain events on create/update/status-change if needed (non-breaking: events are optional now). Use ProblemDetails for errors; enforce RBAC via [RequirePermission].",
+            "status": "انجام شده"
+        },
+        {
+            "id": "PRD-4",
+            "title": "Product REST: Public list + detail",
+            "description": "Create public endpoints: GET /products (paged, filter: status=Active, q=fulltext on name/code, sort=Name/CreatedAt) and GET /products/:id or /products/by-code/:code. Output minimal DTO: id, code, name, priceFrom, status, attributes (subset).",
+            "status": "انجام شده"
+        },
+        {
+            "id": "PRD-5",
+            "title": "Wire DI for Product (module layer)",
+            "description": "Add DependencyInjection for Product module: register DbContext (if separate or shared with order module), repositories (IProductRepository), and mapping profiles if any. Ensure it coexists with ProductOrderDbContext or decide to host Product in the same DbContext (preferred for now).",
+            "status": "انجام شده"
+        },
+        {
+            "id": "PRD-6",
+            "title": "Unify legacy PriceProvider adapter",
+            "description": "Move or wrap PriceProviderViaApiManager under ProductOrderModule.Infrastructure.Adapters (no behavior change). Provide IProductPriceProvider that internally delegates to ApiManager (service=PriceService, method=GetPrice). Keep config in appsettings or ApiManager registry. Preserve logging and correlation headers.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "PRD-7",
+            "title": "Product → Pricing contract (lightweight)",
+            "description": "Define a slim DTO/contract that Pricing module can consume: ProductPricingInput { productId, code, basePrice: Money, attributes: dict }. Add a mapper from Product entity to this DTO. No network hop here—just a model used by Pricing service/handler later.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "PRD-8",
+            "title": "Catalog search/pagination performance",
+            "description": "Add repository methods for efficient pagination (offset or cursor) and lightweight projections for list endpoints. Ensure indexes (Status, Name, Code) are present. Return totalCount in response for admin listing; for public listing, totalCount is optional.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "PRD-9",
+            "title": "Outbox-ready events (optional now)",
+            "description": "Prepare (but do not mandate) ProductUpdated/ProductStatusChanged integration events. Enqueue via Outbox if emitted. These will be useful for cache invalidation or search indexing later. Keep this task non-blocking and behind a feature flag.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "PRD-10",
+            "title": "ProblemDetails + Correlation on product endpoints",
+            "description": "Ensure all new endpoints return RFC7807 Problem+JSON for errors and include CorrelationId in responses. Reuse SharedKernel: UseCoreAxisCorrelation() and AddCoreAxisProblemDetails().",
+            "status": "انجام شده"
+        },
+        {
+            "id": "PRD-11",
+            "title": "RBAC for admin routes",
+            "description": "Apply [RequirePermission] attribute to admin routes. Define minimal permissions (Products.Read, Products.Write, Products.Delete). Map them to roles in your Auth service.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "PRD-12",
+            "title": "DTO contracts (admin/public)",
+            "description": "Define ProductAdminDto (all fields) and ProductPublicDto (id, code, name, priceFrom, selected attributes). Add mapping profiles. Keep Money serialization stable (scale/precision, currency if needed).",
+            "status": "انجام شده"
+        },
+        {
+            "id": "PRD-13",
+            "title": "Validation & idempotency",
+            "description": "Add FluentValidation (or equivalent) for Admin create/update. For create, support Idempotency-Key header (optional); on conflict, return existing resource reference. Log with CorrelationId.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "PRD-14",
+            "title": "Wire into solution & docs",
+            "description": "Expose AddProductModule(...) in composition root (ApiGateway or Product API service). Update README/ARCHITECTURE notes with endpoints, sample payloads, and error model.",
+            "status": "انجام شده"
+        }
+    ],
+    "acceptance": [
+        "Public: GET /products returns only Active products, paged & filterable.",
+        "Public: GET /products/:id (or by-code) returns ProductPublicDto.",
+        "Admin: CRUD endpoints available, RBAC-enforced, ProblemDetails on error.",
+        "EF migrations applied; indexes on Code, Status, Name.",
+        "Price provider adapter callable via ApiManager (no UI).",
+        "No breaking changes to existing Order/handlers."
+    ],
+    "non_goals_now": [
+        "No UI/admin panels (API only).",
+        "No search engine integration (e.g., ES) yet.",
+        "No product bundles/variants matrix yet (attributes field is generic for now)."
+    ]
+}
