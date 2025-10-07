@@ -144,18 +144,48 @@ public class GetTransactionsQueryHandler : IRequestHandler<GetTransactionsQuery,
                 request.Filter.UserId,
                 cancellationToken);
         }
-        else if (request.Filter.WalletId.HasValue)
-        {
-            transactions = await _transactionRepository.GetByWalletIdAsync(request.Filter.WalletId.Value, cancellationToken);
-        }
-        else if (request.Filter.UserId.HasValue)
-        {
-            transactions = await _transactionRepository.GetByUserIdAsync(request.Filter.UserId.Value, cancellationToken);
-        }
         else
         {
-            // Get all transactions with pagination logic if needed
-            transactions = new List<CoreAxis.Modules.WalletModule.Domain.Entities.Transaction>();
+            // When cursor or limit is provided, use cursor-based pagination
+            var hasCursorOrLimit = !string.IsNullOrWhiteSpace(request.Filter.Cursor) || request.Filter.Limit.HasValue;
+
+            if (hasCursorOrLimit)
+            {
+                DateTime? cursorCreatedOn = null;
+                Guid? cursorId = null;
+
+                if (!string.IsNullOrWhiteSpace(request.Filter.Cursor))
+                {
+                    TryDecodeCursor(request.Filter.Cursor!, out cursorCreatedOn, out cursorId);
+                }
+
+                var limit = request.Filter.Limit ?? request.Filter.PageSize;
+
+                transactions = await _transactionRepository.GetByFilterCursorAsync(
+                    request.Filter.WalletId,
+                    request.Filter.UserId,
+                    request.Filter.TransactionTypeId,
+                    request.Filter.FromDate,
+                    request.Filter.ToDate,
+                    request.Filter.Status,
+                    cursorCreatedOn,
+                    cursorId,
+                    limit,
+                    cancellationToken);
+            }
+            else if (request.Filter.WalletId.HasValue)
+            {
+                transactions = await _transactionRepository.GetByWalletIdAsync(request.Filter.WalletId.Value, cancellationToken);
+            }
+            else if (request.Filter.UserId.HasValue)
+            {
+                transactions = await _transactionRepository.GetByUserIdAsync(request.Filter.UserId.Value, cancellationToken);
+            }
+            else
+            {
+                // Default: no filters provided
+                transactions = new List<CoreAxis.Modules.WalletModule.Domain.Entities.Transaction>();
+            }
         }
 
         // Filter by transaction type if specified
@@ -186,11 +216,34 @@ public class GetTransactionsQueryHandler : IRequestHandler<GetTransactionsQuery,
                 BalanceAfter = transaction.BalanceAfter,
                 Description = transaction.Description,
                 Reference = transaction.Reference,
+                CreatedOn = transaction.CreatedOn,
                 Status = transaction.Status,
                 ProcessedAt = transaction.ProcessedAt,
                 RelatedTransactionId = transaction.RelatedTransactionId
             })
             .OrderByDescending(t => t.ProcessedAt);
+    }
+
+    private static bool TryDecodeCursor(string cursor, out DateTime? createdOn, out Guid? id)
+    {
+        createdOn = null;
+        id = null;
+        try
+        {
+            var raw = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(cursor));
+            var parts = raw.Split(':');
+            if (parts.Length == 2 && long.TryParse(parts[0], out var ticks) && Guid.TryParse(parts[1], out var gid))
+            {
+                createdOn = new DateTime(ticks, DateTimeKind.Utc);
+                id = gid;
+                return true;
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+        return false;
     }
 }
 

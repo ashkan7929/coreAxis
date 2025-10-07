@@ -94,7 +94,8 @@ public class WithdrawCommandHandler : IRequestHandler<WithdrawCommand, Transacti
             {
                 Success = false,
                 Message = ex.Message,
-                Errors = [ex.Message]
+                Errors = [ex.Message],
+                Code = MapErrorCode(ex.Message)
             };
         }
         catch (ArgumentException ex)
@@ -104,7 +105,8 @@ public class WithdrawCommandHandler : IRequestHandler<WithdrawCommand, Transacti
             {
                 Success = false,
                 Message = ex.Message,
-                Errors = [ex.Message]
+                Errors = [ex.Message],
+                Code = MapErrorCode(ex.Message)
             };
         }
         catch (Exception ex)
@@ -114,9 +116,23 @@ public class WithdrawCommandHandler : IRequestHandler<WithdrawCommand, Transacti
             {
                 Success = false,
                 Message = "Withdrawal failed",
-                Errors = ["An unexpected error occurred"]
+                Errors = ["An unexpected error occurred"],
+                Code = "WLT_CONCURRENCY_CONFLICT"
             };
         }
+    }
+
+    private static string MapErrorCode(string message)
+    {
+        if (message.Contains("Insufficient balance", StringComparison.OrdinalIgnoreCase))
+            return "WLT_NEGATIVE_BLOCKED";
+        if (message.Contains("locked", StringComparison.OrdinalIgnoreCase))
+            return "WLT_ACCOUNT_FROZEN";
+        if (message.Contains("Amount must be positive", StringComparison.OrdinalIgnoreCase))
+            return "WLT_POLICY_VIOLATION";
+        if (message.Contains("currency mismatch", StringComparison.OrdinalIgnoreCase) || message.Contains("source and destination are the same", StringComparison.OrdinalIgnoreCase))
+            return "WLT_INVALID_TRANSFER";
+        return "WLT_POLICY_VIOLATION";
     }
 }
 
@@ -208,7 +224,8 @@ public class TransferCommandHandler : IRequestHandler<TransferCommand, Transacti
             {
                 Success = false,
                 Message = ex.Message,
-                Errors = [ex.Message]
+                Errors = [ex.Message],
+                Code = MapErrorCode(ex.Message)
             };
         }
         catch (ArgumentException ex)
@@ -219,7 +236,8 @@ public class TransferCommandHandler : IRequestHandler<TransferCommand, Transacti
             {
                 Success = false,
                 Message = ex.Message,
-                Errors = [ex.Message]
+                Errors = [ex.Message],
+                Code = MapErrorCode(ex.Message)
             };
         }
         catch (Exception ex)
@@ -230,8 +248,22 @@ public class TransferCommandHandler : IRequestHandler<TransferCommand, Transacti
             {
                 Success = false,
                 Message = "Transfer failed",
-                Errors = ["An unexpected error occurred"]
+                Errors = ["An unexpected error occurred"],
+                Code = "WLT_CONCURRENCY_CONFLICT"
             };
         }
+    }
+
+    private static string MapErrorCode(string message)
+    {
+        if (message.Contains("Insufficient balance", StringComparison.OrdinalIgnoreCase))
+            return "WLT_NEGATIVE_BLOCKED";
+        if (message.Contains("locked", StringComparison.OrdinalIgnoreCase))
+            return "WLT_ACCOUNT_FROZEN";
+        if (message.Contains("Amount must be positive", StringComparison.OrdinalIgnoreCase))
+            return "WLT_POLICY_VIOLATION";
+        if (message.Contains("currency mismatch", StringComparison.OrdinalIgnoreCase) || message.Contains("source and destination are the same", StringComparison.OrdinalIgnoreCase))
+            return "WLT_INVALID_TRANSFER";
+        return "WLT_POLICY_VIOLATION";
     }
 }

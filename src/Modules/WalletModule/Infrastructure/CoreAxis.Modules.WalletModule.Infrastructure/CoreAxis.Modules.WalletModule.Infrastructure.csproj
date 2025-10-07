@@ -18,6 +18,8 @@
     <ProjectReference Include="..\..\Domain\CoreAxis.Modules.WalletModule.Domain\CoreAxis.Modules.WalletModule.Domain.csproj" />
     <ProjectReference Include="..\..\Application\CoreAxis.Modules.WalletModule.Application\CoreAxis.Modules.WalletModule.Application.csproj" />
     <ProjectReference Include="..\..\..\..\BuildingBlocks\SharedKernel\CoreAxis.SharedKernel\CoreAxis.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\MLMModule\Application\CoreAxis.Modules.MLMModule.Application\CoreAxis.Modules.MLMModule.Application.csproj" />
+    <ProjectReference Include="..\..\..\MLMModule\Infrastructure\CoreAxis.Modules.MLMModule.Infrastructure\CoreAxis.Modules.MLMModule.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

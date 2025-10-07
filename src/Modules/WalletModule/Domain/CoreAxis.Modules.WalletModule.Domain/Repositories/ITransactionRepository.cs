@@ -18,4 +18,17 @@ public interface ITransactionRepository
     // Idempotency support
     Task<Transaction?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken = default);
     Task<bool> ExistsByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken = default);
+
+    // Cursor-based pagination search
+    Task<IEnumerable<Transaction>> GetByFilterCursorAsync(
+        Guid? walletId,
+        Guid? userId,
+        Guid? transactionTypeId,
+        DateTime? fromDate,
+        DateTime? toDate,
+        TransactionStatus? status,
+        DateTime? cursorCreatedOn,
+        Guid? cursorId,
+        int limit,
+        CancellationToken cancellationToken = default);
 }

@@ -1,0 +1,108 @@
+{
+    "module": "Wallet",
+    "principles": [
+        "No breaking changes to existing request/response schemas.",
+        "Strengthen idempotency and invariants around money movements.",
+        "Event-driven wiring for OrderFinalized and MLM while keeping current APIs intact.",
+        "Improve operability: reconciliation, export, observability, and rate limiting."
+    ],
+    "tasks": [
+        {
+            "id": "WLT-1",
+            "title": "Harden Idempotency across credit/debit/transfer",
+            "description": "Enforce Idempotency-Key on POST /wallet/credit|debit|transfer. If a request with the same key (same user/account and payload hash) is resent, return the original Transaction (200) without creating new ledger lines. Persist key with TTL (e.g., 24–72h) and index for fast lookup.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "WLT-2",
+            "title": "Atomic double-entry & negative-balance rules",
+            "description": "Ensure both ledger lines (credit/debit) are written within a single transaction. Add guard rails: for disallowedNegativeBalance accounts, block debits that would push balance below zero and return ProblemDetails code WLT_NEGATIVE_BLOCKED.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "WLT-3",
+            "title": "OrderFinalized consumer → commission credits (pending)",
+            "description": "Subscribe to OrderFinalized (EventBus). For each beneficiary (provided by MLM module or via a service call), create WalletTransaction of type Commission with Status=Pending and ledger entries accordingly. Use idempotency key (orderId+beneficiaryId+\"COMMISSION\").",
+            "status": "انجام شده"
+        },
+        {
+            "id": "WLT-4",
+            "title": "Commission settlement job (Pending → Booked)",
+            "description": "Introduce a scheduled job (HostedService) to settle pending commissions (e.g., after payment eligibility window). Transition transaction status to Booked/Completed, append ledger settlement lines if design separates them, and emit WalletCredited event.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "WLT-5",
+            "title": "Transfer invariants & self-transfer guard",
+            "description": "On POST /wallet/transfer ensure source!=destination account, same currency, and atomic pair entries. Return ProblemDetails WLT_INVALID_TRANSFER if violated.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "WLT-6",
+            "title": "Admin reconciliation report + export",
+            "description": "Add GET /admin/wallet/reconcile returning core reconciliation counts; basic CSV/JSON export can be added later.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "WLT-7",
+            "title": "BalanceSnapshot policy & refresh",
+            "description": "Define snapshot refresh strategy (every 5 minutes). Implement BackgroundService to maintain snapshots and a GET endpoint to fetch them quickly.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "WLT-8",
+            "title": "Rate limiting & anti-abuse",
+            "description": "Apply per-tenant and per-user rate limits to POST money-moving endpoints (credit/debit/transfer). Return 429 with ProblemDetails WLT_RATE_LIMIT and Retry-After when exceeded. Coordinate limits with ApiGateway if present.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "WLT-9",
+            "title": "Statements & pagination ergonomics",
+            "description": "Enhance GET /wallet/transactions with cursor-based pagination (createdAt+Id). Add GET /wallet/statements?from=&to=&format=csv|json returning a normalized list (date, ref, type, amount, balanceAfter).",
+            "status": "انجام شده"
+        },
+        {
+            "id": "WLT-10",
+            "title": "ProblemDetails codes & logging consistency",
+            "description": "Standardize codes: WLT_NEGATIVE_BLOCKED, WLT_IDEMPOTENT_REPLAY, WLT_INVALID_TRANSFER, WLT_RATE_LIMIT, WLT_CONCURRENCY_CONFLICT. Ensure structured logs include correlationId, userId, accountId, transactionId and do NOT log PII.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "WLT-11",
+            "title": "Currency & rules configuration",
+            "description": "Externalize per-tenant currency policy and rules (allowNegative, daily debit caps) into configuration (DB table or config service). Enforce at service layer; return ProblemDetails WLT_POLICY_VIOLATION on breach.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "WLT-12",
+            "title": "Outbox events for wallet changes",
+            "description": "Publish TransactionCreated/WalletCredited/WalletDebited to Outbox right after commit. These events will let other modules (MLM reports, notifications) react without coupling.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "WLT-13",
+            "title": "Freeze/Unfreeze enforcement",
+            "description": "Ensure Frozen accounts reject credit/debit/transfer except admin adjustments (if policy allows). Return ProblemDetails WLT_ACCOUNT_FROZEN and log security tag.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "WLT-14",
+            "title": "Minimal dashboards/metrics hooks",
+            "description": "Add meters/counters for credits, debits, transfers, failures by code, and p95 latency per endpoint. No UI; just exporters (e.g., Prometheus/OTel) so Ops can dashboard later.",
+            "status": "انجام شده"
+        }
+    ],
+    "acceptance": [
+        "Existing clients of /wallet/* experience no contract breakages.",
+        "Duplicate POSTs with the same Idempotency-Key return the original transaction (no double charge/credit).",
+        "OrderFinalized events create pending commission transactions and later settle to booked.",
+        "Admin can export reconciliation data and statements (CSV/JSON).",
+        "Rate limits apply to money-moving endpoints; proper ProblemDetails codes are returned.",
+        "All money operations are atomic, double-entry, and logged with correlation."
+    ],
+    "non_goals_now": [
+        "No UI pages (only APIs).",
+        "No multi-currency conversion (separate accounts per currency).",
+        "No external bank payout integration in this phase (future)."
+    ]
+}

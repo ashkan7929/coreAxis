@@ -107,4 +107,54 @@ public class TransactionRepository : ITransactionRepository
         return await _context.Transactions
             .AnyAsync(t => t.IdempotencyKey == idempotencyKey, cancellationToken);
     }
+
+    public async Task<IEnumerable<Transaction>> GetByFilterCursorAsync(
+        Guid? walletId,
+        Guid? userId,
+        Guid? transactionTypeId,
+        DateTime? fromDate,
+        DateTime? toDate,
+        TransactionStatus? status,
+        DateTime? cursorCreatedOn,
+        Guid? cursorId,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Transactions
+            .Include(t => t.TransactionType)
+            .Include(t => t.Wallet)
+            .AsQueryable();
+
+        if (walletId.HasValue)
+            query = query.Where(t => t.WalletId == walletId.Value);
+        if (userId.HasValue)
+            query = query.Where(t => t.Wallet.UserId == userId.Value);
+        if (transactionTypeId.HasValue)
+            query = query.Where(t => t.TransactionTypeId == transactionTypeId.Value);
+        if (fromDate.HasValue)
+            query = query.Where(t => t.CreatedOn >= fromDate.Value);
+        if (toDate.HasValue)
+            query = query.Where(t => t.CreatedOn <= toDate.Value);
+        if (status.HasValue)
+            query = query.Where(t => t.Status == status.Value);
+
+        // Apply cursor (strict ordering by CreatedOn desc, then Id desc)
+        if (cursorCreatedOn.HasValue)
+        {
+            if (cursorId.HasValue)
+            {
+                query = query.Where(t => t.CreatedOn < cursorCreatedOn.Value || (t.CreatedOn == cursorCreatedOn.Value && t.Id.CompareTo(cursorId.Value) < 0));
+            }
+            else
+            {
+                query = query.Where(t => t.CreatedOn < cursorCreatedOn.Value);
+            }
+        }
+
+        return await query
+            .OrderByDescending(t => t.CreatedOn)
+            .ThenByDescending(t => t.Id)
+            .Take(Math.Max(1, Math.Min(limit, 500)))
+            .ToListAsync(cancellationToken);
+    }
 }

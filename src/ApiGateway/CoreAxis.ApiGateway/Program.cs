@@ -2,6 +2,7 @@ using CoreAxis.ApiGateway.HealthChecks;
 using CoreAxis.ApiGateway.Logging;
 using CoreAxis.BuildingBlocks;
 using CoreAxis.EventBus;
+using CoreAxis.SharedKernel.Eventing;
 using CoreAxis.Modules.AuthModule.API;
 using CoreAxis.Modules.WalletModule.Api;
 using CoreAxis.Modules.ProductOrderModule.Api;
@@ -174,6 +175,9 @@ try
     {
         Console.WriteLine($"Assembly: {assembly.GetName().Name}");
     }
+
+    // Register CoreAxis EventBus and auto-load integration handlers
+    builder.Services.AddCoreAxisEventBus();
 
     // Register AuthModule
     builder.Services.AddAuthModuleApi(builder.Configuration);

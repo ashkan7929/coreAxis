@@ -1,0 +1,114 @@
+{
+    "project": "CoreAxis",
+    "module": "Wallet",
+    "goal": "Tenant-aware, event-driven wallet with double-entry ledger, idempotent credit/debit/transfer operations, and APIs already consumed by other teams.",
+    "code_layout": {
+        "root": "src/Modules/Wallet",
+        "projects": {
+            "API": "CoreAxis.Modules.Wallet.API",
+            "Application": "CoreAxis.Modules.Wallet.Application",
+            "Domain": "CoreAxis.Modules.Wallet.Domain",
+            "Infrastructure": "CoreAxis.Modules.Wallet.Infrastructure"
+        }
+    },
+    "domain": {
+        "entities": [
+            {
+                "name": "WalletAccount",
+                "summary": "Per user (and optionally per currency) account. Fields: Id, UserId, Currency, Status(Active/Frozen/Closed), CreatedAt."
+            },
+            {
+                "name": "WalletLedgerEntry",
+                "summary": "Double-entry line item: Id, AccountId, Direction(Credit|Debit), Amount, Currency, BalanceAfter, ReferenceType, ReferenceId, IdempotencyKey, CreatedAt."
+            },
+            {
+                "name": "WalletTransaction",
+                "summary": "Logical transaction (may include multiple ledger lines). Fields: Id, Type(Credit|Debit|Transfer|Adjustment|Commission), Status(Pending|Booked|Reversed), CorrelationId, Metadata."
+            },
+            {
+                "name": "BalanceSnapshot",
+                "summary": "Optional periodic snapshot for fast reads/reconciliation."
+            }
+        ],
+        "value_objects": [
+            "Money (amount, currency)",
+            "LedgerDirection",
+            "TransactionStatus",
+            "AccountStatus"
+        ],
+        "events": [
+            "TransactionCreated",
+            "WalletCredited",
+            "WalletDebited",
+            "TransferCompleted",
+            "TransactionReversed"
+        ]
+    },
+    "application": {
+        "services": [
+            "WalletService (credit/debit/transfer with double-entry)",
+            "BalanceService (get balance, snapshot refresh)",
+            "ReversalService (reverse by reference/idempotency)",
+            "IdempotencyService (guards by Idempotency-Key)",
+            "CommissionPayoutService (hook-ready; consumes OrderFinalized in future)"
+        ],
+        "handlers": [
+            "Consume OrderFinalized -> (hook present or easy to wire)",
+            "Publish TransactionCreated -> Outbox/EventBus"
+        ],
+        "policies": [
+            "Atomicity via UnitOfWork",
+            "Consistency checks (no negative balance when disallowed)",
+            "Currency isolation per account"
+        ]
+    },
+    "infrastructure": {
+        "dbcontext": "WalletDbContext",
+        "repositories": [
+            "WalletAccountRepository",
+            "WalletTransactionRepository",
+            "WalletLedgerRepository"
+        ],
+        "ef_mapping": "Fluent configurations for accounts, transactions, ledger (indexes on UserId, AccountId, IdempotencyKey, CreatedAt)",
+        "outbox": "Enabled for integration events"
+    },
+    "api": {
+        "public_endpoints": [
+            "POST /api/wallet/credit",
+            "POST /api/wallet/debit",
+            "POST /api/wallet/transfer",
+            "GET  /api/wallet/balance",
+            "GET  /api/wallet/transactions",
+            "GET  /api/wallet/transactions/{id}"
+        ],
+        "admin_endpoints": [
+            "POST /api/admin/wallet/adjust",
+            "POST /api/admin/wallet/freeze",
+            "POST /api/admin/wallet/unfreeze",
+            "GET  /api/admin/wallet/accounts",
+            "GET  /api/admin/wallet/reports/ledger"
+        ],
+        "usage_note": "These endpoints are already used by other teams; avoid breaking request/response contracts."
+    },
+    "security_observability": {
+        "authz": "Controllers are [Authorize]; partial use of [RequirePermission] on admin routes.",
+        "problem_details": "RFC7807 enabled via SharedKernel.",
+        "correlation": "X-Correlation-Id/X-Tenant-Id propagated and logged.",
+        "rate_limit": "Not enforced yet on money-moving endpoints.",
+        "metrics": "Basic logs exist; counters/histograms for credit/debit latency not standardized."
+    },
+    "known_integrations": [
+        "Order/Checkout (planned): on OrderFinalized -> credit commissions or apply settlement.",
+        "MLM (planned): multi-level commission credit as pending then booked.",
+        "API Manager: none (internal DB-only)."
+    ],
+    "current_gaps": [
+        "Commission payout flow (pending -> booked) not fully wired to OrderFinalized.",
+        "Reconciliation tools (admin report/export + daily checks) basic.",
+        "Strong idempotency contract documented but not enforced everywhere.",
+        "Rate limiting & anti-abuse not applied on money-moving endpoints.",
+        "Statement export (CSV/JSON) missing or minimal.",
+        "BalanceSnapshot refresh policy not standardized.",
+        "Currency/rules config (allowNegative, min/max) partially externalized."
+    ]
+}

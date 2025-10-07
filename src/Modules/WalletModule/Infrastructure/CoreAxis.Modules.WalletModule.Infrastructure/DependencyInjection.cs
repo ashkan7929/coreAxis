@@ -3,6 +3,8 @@ using CoreAxis.Modules.WalletModule.Domain.Repositories;
 using CoreAxis.Modules.WalletModule.Infrastructure.Data;
 using CoreAxis.Modules.WalletModule.Infrastructure.Repositories;
 using CoreAxis.Modules.WalletModule.Infrastructure.Services;
+using CoreAxis.Modules.WalletModule.Infrastructure.Configuration;
+using CoreAxis.Modules.WalletModule.Infrastructure.Providers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,8 +27,20 @@ public static class DependencyInjection
         services.AddScoped<IWalletProviderRepository, WalletProviderRepository>();
         services.AddScoped<IWalletContractRepository, WalletContractRepository>();
 
+        // Options: Wallet policy configuration (AllowNegative, DailyDebitCap)
+        services.AddOptions<WalletPolicyOptions>()
+            .Bind(configuration.GetSection("Wallet:Policy"));
+
         // Register services
+        services.AddScoped<IWalletPolicyService, WalletPolicyService>();
         services.AddScoped<ITransactionService, TransactionService>();
+
+        // Hosted services
+        services.AddHostedService<CommissionSettlementHostedService>();
+        services.AddHostedService<BalanceSnapshotBackgroundService>();
+
+        // Providers
+        services.AddSingleton<IBalanceSnapshotProvider, InMemoryBalanceSnapshotProvider>();
 
         return services;
     }

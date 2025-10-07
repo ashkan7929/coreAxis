@@ -16,6 +16,7 @@ public class TransactionDto
     public string? IdempotencyKey { get; set; }
     public Guid? CorrelationId { get; set; }
     public TransactionStatus Status { get; set; }
+    public DateTime CreatedOn { get; set; }
     public DateTime ProcessedAt { get; set; }
     public Guid? RelatedTransactionId { get; set; }
 }
@@ -58,6 +59,9 @@ public class TransactionFilterDto
     public TransactionStatus? Status { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 50;
+    // Optional cursor-based pagination (createdAt+Id encoded)
+    public string? Cursor { get; set; }
+    public int? Limit { get; set; }
 }
 
 public class TransactionResultDto
@@ -66,4 +70,5 @@ public class TransactionResultDto
     public string Message { get; set; } = string.Empty;
     public TransactionDto? Transaction { get; set; }
     public List<string> Errors { get; set; } = new();
+    public string? Code { get; set; }
 }

@@ -1,4 +1,7 @@
 using CoreAxis.BuildingBlocks;
+using CoreAxis.EventBus;
+using CoreAxis.SharedKernel.Contracts.Events;
+using CoreAxis.Modules.WalletModule.Infrastructure.EventHandlers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -45,8 +48,13 @@ public class WalletModule : IModule
     /// <param name="app">The application builder to configure middleware with.</param>
     public void ConfigureApplication(IApplicationBuilder app)
     {
-        // Configure any module-specific middleware here if needed
-        // For now, the WalletModule doesn't require specific middleware configuration
+        // Subscribe WalletModule to integration events
+        var serviceProvider = app.ApplicationServices;
+        var eventBus = serviceProvider.GetRequiredService<IEventBus>();
+
+        // Subscribe to OrderFinalized.v1 events to create Pending commission transactions
+        eventBus.Subscribe<OrderFinalized, OrderFinalizedIntegrationEventHandler>();
+
         Console.WriteLine($"Module {Name} v{Version} configured.");
     }
 }

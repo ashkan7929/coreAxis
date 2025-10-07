@@ -142,6 +142,17 @@ public class WalletDbContext : DbContext
                 CreatedOn = now,
                 CreatedBy = "System",
                 LastModifiedBy = "System"
+            },
+            new
+            {
+                Id = Guid.Parse("66666666-6666-6666-6666-666666666666"),
+                Name = "Commission",
+                Description = "Commission transaction type for MLM payouts",
+                Code = "COMMISSION",
+                IsActive = true,
+                CreatedOn = now,
+                CreatedBy = "System",
+                LastModifiedBy = "System"
             }
         );
     }

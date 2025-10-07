@@ -35,6 +35,7 @@ public static class DependencyInjection
 
         // Register event handlers
         services.AddScoped<IIntegrationEventHandler<PaymentConfirmed>, PaymentConfirmedEventHandler>();
+        services.AddScoped<IIntegrationEventHandler<OrderFinalized>, OrderFinalizedIntegrationEventHandler>();
         services.AddScoped<IDomainEventHandler<CommissionApprovedEvent>, CommissionApprovedEventHandler>();
 
         return services;

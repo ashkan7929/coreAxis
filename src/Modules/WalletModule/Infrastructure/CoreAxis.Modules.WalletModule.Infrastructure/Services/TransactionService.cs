@@ -4,6 +4,8 @@ using CoreAxis.Modules.WalletModule.Domain.Repositories;
 using CoreAxis.Modules.WalletModule.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 
 namespace CoreAxis.Modules.WalletModule.Infrastructure.Services;
 
@@ -14,19 +16,30 @@ public class TransactionService : ITransactionService
     private readonly ITransactionRepository _transactionRepository;
     private readonly ITransactionTypeRepository _transactionTypeRepository;
     private readonly ILogger<TransactionService> _logger;
+    private readonly IWalletPolicyService _walletPolicyService;
+
+    // Metrics
+    private static readonly Meter _meter = new("CoreAxis.Wallet", "1.0");
+    private static readonly Counter<long> _creditsCounter = _meter.CreateCounter<long>("wallet.credits.count");
+    private static readonly Counter<long> _debitsCounter = _meter.CreateCounter<long>("wallet.debits.count");
+    private static readonly Counter<long> _transfersCounter = _meter.CreateCounter<long>("wallet.transfers.count");
+    private static readonly Counter<long> _failuresCounter = _meter.CreateCounter<long>("wallet.failures.count");
+    private static readonly Histogram<double> _latencyMs = _meter.CreateHistogram<double>("wallet.operations.latency.ms");
 
     public TransactionService(
         WalletDbContext context,
         IWalletRepository walletRepository,
         ITransactionRepository transactionRepository,
         ITransactionTypeRepository transactionTypeRepository,
-        ILogger<TransactionService> logger)
+        ILogger<TransactionService> logger,
+        IWalletPolicyService walletPolicyService)
     {
         _context = context;
         _walletRepository = walletRepository;
         _transactionRepository = transactionRepository;
         _transactionTypeRepository = transactionTypeRepository;
         _logger = logger;
+        _walletPolicyService = walletPolicyService;
     }
 
     public async Task<Transaction> ExecuteDepositAsync(
@@ -39,6 +52,7 @@ public class TransactionService : ITransactionService
         string? correlationId = null,
         CancellationToken cancellationToken = default)
     {
+        var sw = Stopwatch.StartNew();
         // Check for existing transaction with same idempotency key
         if (!string.IsNullOrEmpty(idempotencyKey))
         {
@@ -46,6 +60,7 @@ public class TransactionService : ITransactionService
             if (existingTransaction != null)
             {
                 _logger.LogInformation("Returning existing transaction for idempotency key: {IdempotencyKey}", idempotencyKey);
+                _latencyMs.Record(sw.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("operation", "deposit"));
                 return existingTransaction;
             }
         }
@@ -67,6 +82,15 @@ public class TransactionService : ITransactionService
             if (amount <= 0)
             {
                 throw new ArgumentException("Amount must be positive", nameof(amount));
+            }
+
+            // Enforce lock: deposits to locked wallets are blocked unless policy allows
+            if (wallet.IsLocked)
+            {
+                _logger.LogWarning("SECURITY: Attempted deposit on locked wallet {WalletId}. UserId {UserId}. Reason {LockReason}. Code {ErrorCode}",
+                    walletId, wallet.UserId, wallet.LockReason, "WLT_ACCOUNT_FROZEN");
+                _failuresCounter.Add(1, new KeyValuePair<string, object?>("code", "WLT_ACCOUNT_FROZEN"));
+                throw new InvalidOperationException($"Wallet is locked: {wallet.LockReason}");
             }
 
             // Get deposit transaction type
@@ -103,17 +127,21 @@ public class TransactionService : ITransactionService
             _logger.LogInformation("Deposit of {Amount} completed for wallet {WalletId} with transaction {TransactionId}", 
                 amount, walletId, newTransaction.Id);
 
+            _creditsCounter.Add(1, new KeyValuePair<string, object?>("type", "DEPOSIT"));
+            _latencyMs.Record(sw.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("operation", "deposit"));
+
             return newTransaction;
         }
         catch (Exception ex)
         {
             await transaction.RollbackAsync(cancellationToken);
             _logger.LogError(ex, "Error executing deposit for wallet {WalletId}", walletId);
+            _failuresCounter.Add(1, new KeyValuePair<string, object?>("operation", "deposit"));
             throw;
         }
     }
 
-    public async Task<Transaction> ExecuteWithdrawalAsync(
+    public async Task<Transaction> ExecuteCommissionCreditAsync(
         Guid walletId,
         decimal amount,
         string description,
@@ -123,13 +151,15 @@ public class TransactionService : ITransactionService
         string? correlationId = null,
         CancellationToken cancellationToken = default)
     {
+        var sw = Stopwatch.StartNew();
         // Check for existing transaction with same idempotency key
         if (!string.IsNullOrEmpty(idempotencyKey))
         {
             var existingTransaction = await GetByIdempotencyKeyAsync(idempotencyKey, cancellationToken);
             if (existingTransaction != null)
             {
-                _logger.LogInformation("Returning existing transaction for idempotency key: {IdempotencyKey}", idempotencyKey);
+                _logger.LogInformation("Returning existing commission transaction for idempotency key: {IdempotencyKey}", idempotencyKey);
+                _latencyMs.Record(sw.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("operation", "commission"));
                 return existingTransaction;
             }
         }
@@ -153,11 +183,134 @@ public class TransactionService : ITransactionService
                 throw new ArgumentException("Amount must be positive", nameof(amount));
             }
 
-            // Check if wallet can be debited
-            if (!wallet.CanDebit(amount))
+            // Check if wallet is locked
+            if (wallet.IsLocked)
             {
-                var reason = wallet.IsLocked ? $"Wallet is locked: {wallet.LockReason}" : "Insufficient balance";
-                throw new InvalidOperationException(reason);
+                _logger.LogWarning("SECURITY: Attempted commission credit on locked wallet {WalletId}. UserId {UserId}. Reason {LockReason}. Code {ErrorCode}",
+                    walletId, wallet.UserId, wallet.LockReason, "WLT_ACCOUNT_FROZEN");
+                _failuresCounter.Add(1, new KeyValuePair<string, object?>("code", "WLT_ACCOUNT_FROZEN"));
+                throw new InvalidOperationException($"Wallet is locked: {wallet.LockReason}");
+            }
+
+            // Get commission transaction type
+            var transactionType = await _transactionTypeRepository.GetByCodeAsync("COMMISSION", cancellationToken);
+            if (transactionType == null)
+            {
+                throw new InvalidOperationException("COMMISSION transaction type not configured");
+            }
+
+            // Create transaction record
+            var newTransaction = new Transaction(
+                wallet.Id,
+                transactionType.Id,
+                amount,
+                wallet.Balance,
+                description,
+                reference,
+                idempotencyKey,
+                string.IsNullOrEmpty(correlationId) ? null : Guid.Parse(correlationId),
+                metadata,
+                null);
+
+            // Save changes
+            _context.Wallets.Update(wallet);
+            await _context.Transactions.AddAsync(newTransaction, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            _logger.LogInformation("Commission credit of {Amount} completed for wallet {WalletId} with transaction {TransactionId}",
+                amount, walletId, newTransaction.Id);
+
+            _latencyMs.Record(sw.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("operation", "commission"));
+
+            return newTransaction;
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "Error executing commission credit for wallet {WalletId}", walletId);
+            _failuresCounter.Add(1, new KeyValuePair<string, object?>("operation", "commission"));
+            throw;
+        }
+    }
+
+    public async Task<Transaction> ExecuteWithdrawalAsync(
+        Guid walletId,
+        decimal amount,
+        string description,
+        string? reference = null,
+        object? metadata = null,
+        string? idempotencyKey = null,
+        string? correlationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var sw = Stopwatch.StartNew();
+        // Check for existing transaction with same idempotency key
+        if (!string.IsNullOrEmpty(idempotencyKey))
+        {
+            var existingTransaction = await GetByIdempotencyKeyAsync(idempotencyKey, cancellationToken);
+            if (existingTransaction != null)
+            {
+                _logger.LogInformation("Returning existing transaction for idempotency key: {IdempotencyKey}", idempotencyKey);
+                _latencyMs.Record(sw.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("operation", "withdrawal"));
+                return existingTransaction;
+            }
+        }
+
+        using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            // Get wallet with row-level locking
+            var wallet = await _context.Wallets
+                .Where(w => w.Id == walletId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (wallet == null)
+            {
+                throw new InvalidOperationException($"Wallet with ID {walletId} not found");
+            }
+
+            // Validate amount
+            if (amount <= 0)
+            {
+                throw new ArgumentException("Amount must be positive", nameof(amount));
+            }
+
+            // Policy enforcement
+            var policy = await _walletPolicyService.GetPolicyAsync("default", wallet.Currency, cancellationToken);
+
+            // Enforce lock: withdrawals from locked wallets are blocked
+            if (wallet.IsLocked)
+            {
+                _logger.LogWarning("SECURITY: Attempted withdrawal on locked wallet {WalletId}. UserId {UserId}. Reason {LockReason}. Code {ErrorCode}",
+                    walletId, wallet.UserId, wallet.LockReason, "WLT_ACCOUNT_FROZEN");
+                _failuresCounter.Add(1, new KeyValuePair<string, object?>("code", "WLT_ACCOUNT_FROZEN"));
+                throw new InvalidOperationException($"Wallet is locked: {wallet.LockReason}");
+            }
+
+            // Negative balance rule
+            if (!policy.AllowNegative && !wallet.CanDebit(amount))
+            {
+                _logger.LogWarning("POLICY: Withdrawal blocked due to insufficient balance. walletId={WalletId} code=WLT_NEGATIVE_BLOCKED",
+                    walletId);
+                _failuresCounter.Add(1, new KeyValuePair<string, object?>("code", "WLT_NEGATIVE_BLOCKED"));
+                throw new InvalidOperationException("Insufficient balance");
+            }
+
+            // Daily debit cap
+            if (policy.DailyDebitCap.HasValue)
+            {
+                var today = DateTime.UtcNow.Date;
+                var debitedToday = await _context.Transactions
+                    .Where(t => t.WalletId == walletId && t.Amount < 0 && t.CreatedOn >= today)
+                    .SumAsync(t => -t.Amount, cancellationToken);
+                if (debitedToday + amount > policy.DailyDebitCap.Value)
+                {
+                    _logger.LogWarning("POLICY: Daily debit cap exceeded. walletId={WalletId} attempted={Attempted} debitedToday={DebitedToday} cap={Cap} code=WLT_POLICY_VIOLATION",
+                        walletId, amount, debitedToday, policy.DailyDebitCap.Value);
+                    _failuresCounter.Add(1, new KeyValuePair<string, object?>("code", "WLT_POLICY_VIOLATION"));
+                    throw new InvalidOperationException("Daily debit cap exceeded");
+                }
             }
 
             // Get withdraw transaction type
@@ -194,12 +347,16 @@ public class TransactionService : ITransactionService
             _logger.LogInformation("Withdrawal of {Amount} completed for wallet {WalletId} with transaction {TransactionId}", 
                 amount, walletId, newTransaction.Id);
 
+            _debitsCounter.Add(1, new KeyValuePair<string, object?>("type", "WITHDRAW"));
+            _latencyMs.Record(sw.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("operation", "withdrawal"));
+
             return newTransaction;
         }
         catch (Exception ex)
         {
             await transaction.RollbackAsync(cancellationToken);
             _logger.LogError(ex, "Error executing withdrawal for wallet {WalletId}", walletId);
+            _failuresCounter.Add(1, new KeyValuePair<string, object?>("operation", "withdrawal"));
             throw;
         }
     }
@@ -215,6 +372,7 @@ public class TransactionService : ITransactionService
         string? correlationId = null,
         CancellationToken cancellationToken = default)
     {
+        var sw = Stopwatch.StartNew();
         // Check for existing transaction with same idempotency key
         if (!string.IsNullOrEmpty(idempotencyKey))
         {
@@ -233,10 +391,12 @@ public class TransactionService : ITransactionService
                 // Determine which is debit and which is credit based on amount sign
                 if (existingTransaction.Amount < 0)
                 {
+                    _latencyMs.Record(sw.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("operation", "transfer"));
                     return (existingTransaction, relatedTransaction);
                 }
                 else
                 {
+                    _latencyMs.Record(sw.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("operation", "transfer"));
                     return (relatedTransaction, existingTransaction);
                 }
             }
@@ -260,22 +420,62 @@ public class TransactionService : ITransactionService
                 throw new InvalidOperationException("One or both wallets not found");
             }
 
+            // Transfer invariants
+            if (fromWallet.Id == toWallet.Id)
+            {
+                throw new InvalidOperationException("Invalid transfer: source and destination are the same");
+            }
+            if (!string.Equals(fromWallet.Currency, toWallet.Currency, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Invalid transfer: currency mismatch");
+            }
+
             // Validate amount
             if (amount <= 0)
             {
                 throw new ArgumentException("Amount must be positive", nameof(amount));
             }
 
-            // Check if source wallet can be debited
-            if (!fromWallet.CanDebit(amount))
+            // Policy enforcement on source wallet
+            var fromPolicy = await _walletPolicyService.GetPolicyAsync("default", fromWallet.Currency, cancellationToken);
+
+            if (fromWallet.IsLocked)
             {
-                var reason = fromWallet.IsLocked ? $"Source wallet is locked: {fromWallet.LockReason}" : "Insufficient balance";
-                throw new InvalidOperationException(reason);
+                _logger.LogWarning("SECURITY: Attempted transfer from locked source wallet {FromWalletId}. UserId {UserId}. Reason {LockReason}. Code {ErrorCode}",
+                    fromWalletId, fromWallet.UserId, fromWallet.LockReason, "WLT_ACCOUNT_FROZEN");
+                _failuresCounter.Add(1, new KeyValuePair<string, object?>("code", "WLT_ACCOUNT_FROZEN"));
+                throw new InvalidOperationException($"Source wallet is locked: {fromWallet.LockReason}");
+            }
+
+            if (!fromPolicy.AllowNegative && !fromWallet.CanDebit(amount))
+            {
+                _logger.LogWarning("POLICY: Transfer blocked due to insufficient balance. fromWalletId={FromWalletId} code=WLT_NEGATIVE_BLOCKED",
+                    fromWalletId);
+                _failuresCounter.Add(1, new KeyValuePair<string, object?>("code", "WLT_NEGATIVE_BLOCKED"));
+                throw new InvalidOperationException("Insufficient balance");
+            }
+
+            if (fromPolicy.DailyDebitCap.HasValue)
+            {
+                var today = DateTime.UtcNow.Date;
+                var debitedToday = await _context.Transactions
+                    .Where(t => t.WalletId == fromWalletId && t.Amount < 0 && t.CreatedOn >= today)
+                    .SumAsync(t => -t.Amount, cancellationToken);
+                if (debitedToday + amount > fromPolicy.DailyDebitCap.Value)
+                {
+                    _logger.LogWarning("POLICY: Daily debit cap exceeded for transfer. fromWalletId={FromWalletId} attempted={Attempted} debitedToday={DebitedToday} cap={Cap} code=WLT_POLICY_VIOLATION",
+                        fromWalletId, amount, debitedToday, fromPolicy.DailyDebitCap.Value);
+                    _failuresCounter.Add(1, new KeyValuePair<string, object?>("code", "WLT_POLICY_VIOLATION"));
+                    throw new InvalidOperationException("Daily debit cap exceeded");
+                }
             }
 
             // Check if destination wallet is locked
             if (toWallet.IsLocked)
             {
+                _logger.LogWarning("SECURITY: Attempted transfer to locked destination wallet {ToWalletId}. UserId {UserId}. Reason {LockReason}. Code {ErrorCode}",
+                    toWalletId, toWallet.UserId, toWallet.LockReason, "WLT_ACCOUNT_FROZEN");
+                _failuresCounter.Add(1, new KeyValuePair<string, object?>("code", "WLT_ACCOUNT_FROZEN"));
                 throw new InvalidOperationException($"Destination wallet is locked: {toWallet.LockReason}");
             }
 
@@ -342,12 +542,16 @@ public class TransactionService : ITransactionService
             _logger.LogInformation("Transfer of {Amount} completed from wallet {FromWalletId} to wallet {ToWalletId} with transactions {OutTransactionId}/{InTransactionId}", 
                 amount, fromWalletId, toWalletId, outTransaction.Id, inTransaction.Id);
 
+            _transfersCounter.Add(1, new KeyValuePair<string, object?>("type", "TRANSFER"));
+            _latencyMs.Record(sw.Elapsed.TotalMilliseconds, new KeyValuePair<string, object?>("operation", "transfer"));
+
             return (outTransaction, inTransaction);
         }
         catch (Exception ex)
         {
             await transaction.RollbackAsync(cancellationToken);
             _logger.LogError(ex, "Error executing transfer from wallet {FromWalletId} to wallet {ToWalletId}", fromWalletId, toWalletId);
+            _failuresCounter.Add(1, new KeyValuePair<string, object?>("operation", "transfer"));
             throw;
         }
     }
