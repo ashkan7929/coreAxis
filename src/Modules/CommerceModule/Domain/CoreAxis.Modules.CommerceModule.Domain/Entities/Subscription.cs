@@ -132,6 +132,11 @@ public class Subscription : EntityBase
     public virtual ICollection<SubscriptionInvoice> Invoices { get; set; } = new List<SubscriptionInvoice>();
 
     /// <summary>
+    /// Navigation property for subscription payments.
+    /// </summary>
+    public virtual ICollection<SubscriptionPayment> Payments { get; set; } = new List<SubscriptionPayment>();
+
+    /// <summary>
     /// Checks if the subscription is currently in trial period.
     /// </summary>
     public bool IsInTrial()

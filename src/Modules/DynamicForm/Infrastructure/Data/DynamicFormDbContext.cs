@@ -24,6 +24,9 @@ public class DynamicFormDbContext : DbContext
     public DbSet<FormVersion> FormVersions { get; set; }
     public DbSet<FormAccessPolicy> FormAccessPolicies { get; set; }
     public DbSet<FormAuditLog> FormAuditLogs { get; set; }
+    public DbSet<DataSource> DataSources { get; set; }
+    public DbSet<ProductFormulaBinding> ProductFormulaBindings { get; set; }
+    public DbSet<Quote> Quotes { get; set; }
     public DbSet<OutboxMessage> OutboxMessages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

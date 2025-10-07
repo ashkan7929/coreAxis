@@ -50,8 +50,7 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
 
             builder.Property(fd => fd.Version)
                 .IsRequired()
-                .HasMaxLength(20)
-                .HasDefaultValue("1.0.0");
+                .HasDefaultValue(1);
 
             builder.Property(fd => fd.IsPublished)
                 .IsRequired()

@@ -1,4 +1,5 @@
 using CoreAxis.Modules.DynamicForm.Infrastructure.Data;
+using CoreAxis.SharedKernel.Observability;
 using CoreAxis.Modules.WalletModule.Api;
 using CoreAxis.Modules.ProductOrderModule.Api;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,9 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddDbContext<DynamicFormDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Observability: register ProblemDetails services (extensible/no-op for now)
+builder.Services.AddCoreAxisProblemDetails();
+
 // Add WalletModule
 builder.Services.AddWalletModuleApi(builder.Configuration);
 
@@ -38,6 +42,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+// Insert Correlation middleware early so headers/context propagate to downstream components
+app.UseCoreAxisCorrelation();
+// Map exceptions uniformly to RFC7807 Problem+JSON with correlation
+app.UseCoreAxisProblemDetails();
 app.UseAuthorization();
 app.MapControllers();
 

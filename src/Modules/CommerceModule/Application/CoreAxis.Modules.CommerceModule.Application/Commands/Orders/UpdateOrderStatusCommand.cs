@@ -1,6 +1,8 @@
 using CoreAxis.Modules.CommerceModule.Application.DTOs;
 using CoreAxis.Modules.CommerceModule.Application.Interfaces;
+using CoreAxis.Modules.CommerceModule.Domain.Entities;
 using MediatR;
+using CoreAxis.Modules.CommerceModule.Domain.Enums;
 using Microsoft.Extensions.Logging;
 
 namespace CoreAxis.Modules.CommerceModule.Application.Commands.Orders;
@@ -31,23 +33,44 @@ public class UpdateOrderStatusCommandHandler : IRequestHandler<UpdateOrderStatus
     {
         try
         {
-            var order = await _orderRepository.GetByIdWithItemsAsync(request.OrderId);
+            var order = await _orderRepository.GetByIdWithDetailsAsync(request.OrderId);
             if (order == null)
             {
                 throw new InvalidOperationException($"Order with ID {request.OrderId} not found.");
             }
 
             var previousStatus = order.Status;
-            order.Status = request.Status;
-            order.UpdatedAt = DateTime.UtcNow;
+
+            if (!Enum.TryParse<OrderStatus>(request.Status, true, out var newStatus))
+                throw new InvalidOperationException($"Invalid order status: {request.Status}");
+
+            switch (newStatus)
+            {
+                case OrderStatus.Confirmed:
+                    order.Confirm();
+                    break;
+                case OrderStatus.Shipped:
+                    order.MarkAsShipped();
+                    break;
+                case OrderStatus.Delivered:
+                    order.MarkAsDelivered();
+                    break;
+                case OrderStatus.Cancelled:
+                    order.Cancel();
+                    break;
+                default:
+                    order.Status = newStatus;
+                    break;
+            }
+
+            order.LastModifiedOn = DateTime.UtcNow;
 
             if (!string.IsNullOrEmpty(request.Notes))
             {
-                order.Notes = string.IsNullOrEmpty(order.Notes) ? request.Notes : $"{order.Notes}\n{request.Notes}";
+                order.SpecialInstructions = string.IsNullOrEmpty(order.SpecialInstructions)
+                    ? request.Notes
+                    : $"{order.SpecialInstructions}\n{request.Notes}";
             }
-
-            // Handle status-specific logic
-            await HandleStatusChange(order, previousStatus, request.Status);
 
             await _orderRepository.UpdateAsync(order);
             await _orderRepository.SaveChangesAsync();
@@ -58,37 +81,54 @@ public class UpdateOrderStatusCommandHandler : IRequestHandler<UpdateOrderStatus
             return new OrderDto
             {
                 Id = order.Id,
-                UserId = order.UserId,
+                UserId = order.CustomerId,
                 OrderNumber = order.OrderNumber,
-                Status = order.Status,
+                Status = order.Status.ToString(),
                 TotalAmount = order.TotalAmount,
                 Currency = order.Currency,
                 DiscountAmount = order.DiscountAmount,
                 TaxAmount = order.TaxAmount,
-                FinalAmount = order.FinalAmount,
-                Notes = order.Notes,
+                FinalAmount = order.TotalAmount,
+                Notes = order.SpecialInstructions,
                 OrderDate = order.OrderDate,
-                ShippingDate = order.ShippingDate,
-                DeliveryDate = order.DeliveryDate,
-                CreatedAt = order.CreatedAt,
-                UpdatedAt = order.UpdatedAt,
+                ShippingDate = null,
+                DeliveryDate = order.DeliveredAt,
+                CreatedAt = order.CreatedOn,
+                UpdatedAt = order.LastModifiedOn,
                 OrderItems = order.OrderItems?.Select(oi => new OrderItemDto
                 {
                     Id = oi.Id,
                     OrderId = oi.OrderId,
-                    InventoryItemId = oi.InventoryItemId,
-                    AssetCode = oi.AssetCode,
-                    ItemName = oi.ItemName,
-                    Quantity = oi.Quantity,
+                    InventoryItemId = Guid.Empty,
+                    AssetCode = oi.ProductSku,
+                    ItemName = oi.ProductName,
+                    Quantity = (decimal)oi.Quantity,
                     UnitPrice = oi.UnitPrice,
                     TotalPrice = oi.TotalPrice,
-                    Currency = oi.Currency,
+                    Currency = order.Currency,
                     DiscountAmount = oi.DiscountAmount,
-                    Notes = oi.Notes,
-                    CreatedAt = oi.CreatedAt,
-                    UpdatedAt = oi.UpdatedAt
+                    Notes = null,
+                    CreatedAt = oi.CreatedOn,
+                    UpdatedAt = oi.LastModifiedOn
                 }).ToList() ?? new List<OrderItemDto>(),
-                Payment = null,
+                Payment = order.Payments?
+                    .OrderByDescending(p => p.ProcessedAt ?? p.CreatedOn)
+                    .Select(payment => new PaymentDto
+                    {
+                        Id = payment.Id,
+                        OrderId = payment.OrderId,
+                        Amount = payment.Amount,
+                        Currency = payment.Currency,
+                        PaymentMethod = payment.Method.ToString(),
+                        Status = payment.Status.ToString(),
+                        TransactionId = payment.TransactionId,
+                        GatewayResponse = payment.GatewayReference,
+                        ProcessedAt = payment.ProcessedAt,
+                        FailureReason = payment.FailureReason,
+                        CreatedAt = payment.CreatedOn,
+                        UpdatedAt = payment.LastModifiedOn
+                    })
+                    .FirstOrDefault(),
                 AppliedDiscounts = new List<DiscountRuleDto>()
             };
         }
@@ -99,48 +139,5 @@ public class UpdateOrderStatusCommandHandler : IRequestHandler<UpdateOrderStatus
         }
     }
 
-    private async Task HandleStatusChange(Order order, string previousStatus, string newStatus)
-    {
-        switch (newStatus.ToLower())
-        {
-            case "shipped":
-                order.ShippingDate = DateTime.UtcNow;
-                break;
-            case "delivered":
-                order.DeliveryDate = DateTime.UtcNow;
-                break;
-            case "cancelled":
-                // Release reserved inventory
-                if (order.OrderItems != null)
-                {
-                    foreach (var orderItem in order.OrderItems)
-                    {
-                        var inventoryItem = await _inventoryRepository.GetByIdAsync(orderItem.InventoryItemId);
-                        if (inventoryItem != null)
-                        {
-                            inventoryItem.AvailableQuantity += orderItem.Quantity;
-                            inventoryItem.ReservedQuantity -= orderItem.Quantity;
-                            await _inventoryRepository.UpdateAsync(inventoryItem);
-                        }
-                    }
-                }
-                break;
-            case "completed":
-                // Finalize inventory changes - remove from reserved and total
-                if (order.OrderItems != null)
-                {
-                    foreach (var orderItem in order.OrderItems)
-                    {
-                        var inventoryItem = await _inventoryRepository.GetByIdAsync(orderItem.InventoryItemId);
-                        if (inventoryItem != null)
-                        {
-                            inventoryItem.ReservedQuantity -= orderItem.Quantity;
-                            inventoryItem.TotalQuantity -= orderItem.Quantity;
-                            await _inventoryRepository.UpdateAsync(inventoryItem);
-                        }
-                    }
-                }
-                break;
-        }
-    }
+    // Status-specific inventory logic is handled within domain methods or separate workflows.
 }

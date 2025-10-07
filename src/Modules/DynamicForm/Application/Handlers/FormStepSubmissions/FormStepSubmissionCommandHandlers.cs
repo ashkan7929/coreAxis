@@ -6,7 +6,8 @@ using CoreAxis.Modules.DynamicForm.Application.Commands.FormStepSubmissions;
 using CoreAxis.Modules.DynamicForm.Application.DTOs;
 using CoreAxis.Modules.DynamicForm.Domain.Entities;
 using CoreAxis.Modules.DynamicForm.Domain.Repositories;
-using CoreAxis.BuildingBlocks.SharedKernel.Exceptions;
+using CoreAxis.SharedKernel.Exceptions;
+using NotFoundException = CoreAxis.SharedKernel.Exceptions.EntityNotFoundException;
 using Microsoft.Extensions.Logging;
 
 namespace CoreAxis.Modules.DynamicForm.Application.Handlers.FormStepSubmissions

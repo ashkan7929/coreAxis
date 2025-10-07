@@ -18,6 +18,8 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
     public class ExpressionEngine : IExpressionEngine
     {
         private readonly ILogger<ExpressionEngine> _logger;
+        private readonly IDataOrchestrator? _dataOrchestrator;
+        private readonly IRoundingPolicy? _roundingPolicy;
         private readonly Dictionary<string, Func<object[], object>> _functions;
         private readonly HashSet<string> _allowedOperators;
         private readonly HashSet<string> _securityBlacklist;
@@ -25,6 +27,38 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
         public ExpressionEngine(ILogger<ExpressionEngine> logger)
         {
             _logger = logger;
+            _dataOrchestrator = null;
+            _roundingPolicy = null;
+            _functions = InitializeFunctions();
+            _allowedOperators = InitializeOperators();
+            _securityBlacklist = InitializeSecurityBlacklist();
+        }
+
+        public ExpressionEngine(ILogger<ExpressionEngine> logger, IDataOrchestrator dataOrchestrator)
+        {
+            _logger = logger;
+            _dataOrchestrator = dataOrchestrator;
+            _roundingPolicy = null;
+            _functions = InitializeFunctions();
+            _allowedOperators = InitializeOperators();
+            _securityBlacklist = InitializeSecurityBlacklist();
+        }
+
+        public ExpressionEngine(ILogger<ExpressionEngine> logger, IRoundingPolicy roundingPolicy)
+        {
+            _logger = logger;
+            _dataOrchestrator = null;
+            _roundingPolicy = roundingPolicy;
+            _functions = InitializeFunctions();
+            _allowedOperators = InitializeOperators();
+            _securityBlacklist = InitializeSecurityBlacklist();
+        }
+
+        public ExpressionEngine(ILogger<ExpressionEngine> logger, IDataOrchestrator dataOrchestrator, IRoundingPolicy roundingPolicy)
+        {
+            _logger = logger;
+            _dataOrchestrator = dataOrchestrator;
+            _roundingPolicy = roundingPolicy;
             _functions = InitializeFunctions();
             _allowedOperators = InitializeOperators();
             _securityBlacklist = InitializeSecurityBlacklist();
@@ -46,6 +80,9 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                         "Expression contains unsafe operations",
                         stopwatch.ElapsedMilliseconds);
                 }
+
+                // Attempt to enrich context with external data via orchestrator (if available)
+                await TryPopulateExternalDataAsync(context, cancellationToken);
 
                 // Timeout protection
                 using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -75,6 +112,59 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 return ExpressionEvaluationResult.Failure(
                     $"Evaluation error: {ex.Message}",
                     stopwatch.ElapsedMilliseconds);
+            }
+        }
+
+        private async Task TryPopulateExternalDataAsync(ExpressionEvaluationContext context, CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (_dataOrchestrator is null)
+                {
+                    return;
+                }
+
+                // Look for externalDataSources hints in Variables or FormData
+                object? sourcesObj = null;
+                if (context.Variables.TryGetValue("externalDataSources", out var v))
+                {
+                    sourcesObj = v;
+                }
+                else if (context.FormData.TryGetValue("externalDataSources", out var f))
+                {
+                    sourcesObj = f;
+                }
+
+                // Build hint context for orchestrator
+                var orchestratorContext = new Dictionary<string, object?>
+                {
+                    ["externalDataSources"] = sourcesObj,
+                    ["tenantId"] = context.TenantId,
+                    ["sessionId"] = context.SessionId,
+                    ["userContext"] = context.UserContext,
+                    ["formData"] = context.FormData
+                };
+
+                var externalResult = await _dataOrchestrator.GetExternalDataAsync(orchestratorContext, cancellationToken);
+                if (!externalResult.IsSuccess)
+                {
+                    _logger.LogWarning("Failed to populate external data: {Error}", externalResult.Error);
+                    return;
+                }
+
+                // Inject external data into variables with prefix to avoid collisions
+                foreach (var kv in externalResult.Value)
+                {
+                    var varName = $"external_{kv.Key}";
+                    context.AddVariable(varName, kv.Value!);
+                }
+
+                // Also make the full externalData dictionary available if needed
+                context.AddVariable("externalData", externalResult.Value);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while populating external data for expression context");
             }
         }
 
@@ -503,7 +593,12 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 ["SUBTRACT"] = args => Convert.ToDecimal(args[0]) - Convert.ToDecimal(args[1]),
                 ["MULTIPLY"] = args => Convert.ToDecimal(args[0]) * Convert.ToDecimal(args[1]),
                 ["DIVIDE"] = args => Convert.ToDecimal(args[0]) / Convert.ToDecimal(args[1]),
-                ["ROUND"] = args => Math.Round(Convert.ToDecimal(args[0]), Convert.ToInt32(args[1])),
+                ["ROUND"] = args =>
+                {
+                    var value = Convert.ToDecimal(args[0]);
+                    var precision = Convert.ToInt32(args[1]);
+                    return _roundingPolicy?.NormalizeMoney(value, precision) ?? Math.Round(value, precision);
+                },
                 ["ABS"] = args => Math.Abs(Convert.ToDecimal(args[0])),
                 ["MIN"] = args => Math.Min(Convert.ToDecimal(args[0]), Convert.ToDecimal(args[1])),
                 ["MAX"] = args => Math.Max(Convert.ToDecimal(args[0]), Convert.ToDecimal(args[1])),

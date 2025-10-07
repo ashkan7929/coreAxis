@@ -37,6 +37,14 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Interfaces
         Task<FormulaDefinition> GetByNameAsync(string name, string tenantId, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Gets a formula definition by its name across tenants.
+        /// </summary>
+        /// <param name="name">The formula name.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The formula definition if found; otherwise, null.</returns>
+        Task<FormulaDefinition> GetByNameAsync(string name, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Gets all formula definitions for a specific tenant.
         /// </summary>
         /// <param name="tenantId">The tenant identifier.</param>

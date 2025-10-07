@@ -60,6 +60,9 @@ public static class DependencyInjection
         services.AddScoped<IFormSecurityService, FormSecurityService>();
         services.AddScoped<IFormIntegrationService, FormIntegrationService>();
         services.AddScoped<IFormulaService, FormulaService>();
+        services.AddScoped<IDataOrchestrator, DataOrchestrator>();
+        services.AddScoped<IRoundingPolicy, RoundingPolicy>();
+        services.AddScoped<IQuoteService, QuoteService>();
 
         // Add Infrastructure Services
         services.AddScoped<IApiManager, ApiManager>();

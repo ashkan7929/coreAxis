@@ -4,6 +4,7 @@ using CoreAxis.Modules.DynamicForm.Application.DTOs;
 using CoreAxis.Modules.DynamicForm.Application.Queries.Forms;
 using CoreAxis.Modules.DynamicForm.Application.Queries.Submissions;
 using CoreAxis.SharedKernel;
+using CoreAxis.SharedKernel.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +15,7 @@ namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
+[RequirePermission("Forms", "manage_access")]
 public class FormsController : ControllerBase
 {
     private readonly IMediator _mediator;

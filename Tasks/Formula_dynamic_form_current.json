@@ -1,0 +1,46 @@
+{
+    "project": "CoreAxis",
+    "module": "DynamicForm+Formula",
+    "goal": "Versioned dynamic forms + secure formula evaluation for pricing.",
+    "present": {
+        "entities": [
+            "Form",
+            "FormVersion",
+            "FormField",
+            "FormStep",
+            "FormSubmission",
+            "FormStepSubmission",
+            "FormulaDefinition",
+            "FormulaVersion",
+            "FormulaEvaluationLog"
+        ],
+        "services": [
+            "FormSchemaValidator",
+            "ValidationEngine",
+            "ExpressionEngine",
+            "FormulaService",
+            "DependencyGraph",
+            "DynamicOptionsManager"
+        ],
+        "controllers": [
+            "FormsController",
+            "SubmissionsController",
+            "FormStepsController",
+            "FormStepSubmissionsController",
+            "FormEventsController",
+            "FormulaController"
+        ],
+        "ef_config": true,
+        "validation": true,
+        "formula_eval": "ExpressionEngine + FormulaService",
+        "versioning": "Form & Formula versions available",
+        "outbox_hook": "configured for module"
+    },
+    "gaps": [
+        "External data fetch via ApiManager not wired",
+        "Quote (TTL=20m) service not implemented",
+        "Global rounding/precision policy not centralized",
+        "Admin CRUD for publishing versions may need hardening",
+        "ProblemDetails codes not standardized for pricing errors"
+    ]
+}

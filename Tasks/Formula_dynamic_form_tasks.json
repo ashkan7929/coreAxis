@@ -1,0 +1,65 @@
+{
+    "module": "DynamicForm+Formula",
+    "principles": [
+        "API-only, no UI",
+        "No I/O inside formulas; external data only via ApiManager",
+        "Immutable published versions (no edit after publish)",
+        "RFC7807 error codes + correlation everywhere"
+    ],
+    "tasks": [
+        {
+            "id": "FDF-1",
+            "title": "Wire external data sources via ApiManager",
+            "description": "Add DataSource entity (Name, ServiceName, EndpointName, CacheTtlSeconds, Enabled). Implement a DataOrchestrator that, given productId/formulaVersion, calls ApiManager, applies short TTL cache, and returns an externalData map usable by ExpressionEngine.",
+            "status": "Completed"
+        },
+        {
+            "id": "FDF-2",
+            "title": "Formula version resolver (publish/effective dates)",
+            "description": "Ensure FormulaService selects the latest Published & Active version within EffectiveFrom/To, with optional explicit version pinning in evaluate endpoints. Block edits on Published versions.",
+            "status": "Completed"
+        },
+        {
+            "id": "FDF-3",
+            "title": "Pricing pipeline endpoint",
+            "description": "Add POST /pricing/calculate that: (1) loads product/form schema, (2) validates formData, (3) resolves formula version, (4) fetches externalData via DataOrchestrator, (5) evaluates ExpressionEngine, (6) returns PricingResultDto {finalPrice, breakdown, formulaVersion, usedData}.",
+            "status": "Completed"
+        },
+        {
+            "id": "FDF-4",
+            "title": "Quote service (TTL=20m)",
+            "description": "Add POST /quote/calc creating Quote {quoteId, productId, inputsSnapshot, externalDataSnapshot, formulaVersion, currency, finalPrice, expiresAt=now+20m}. Add GET /quote/{id} for validation. Enforce one quote→one order later.",
+            "status": "Completed"
+        },
+        {
+            "id": "FDF-5",
+            "title": "Rounding & precision policy",
+            "description": "Centralize decimal precision and rounding policy (HalfUp/Bankers). Ensure ExpressionEngine and FormulaService use it consistently; return money fields normalized.",
+            "status": "Completed"
+        },
+        {
+            "id": "FDF-6",
+            "title": "Admin endpoints hardening",
+            "description": "Add/confirm Admin CRUD for Form/Formula with RequirePermission('Forms.*','Formulas.*'). Add publish/unpublish actions, validate unique (ProductId, Version), and forbid edits on Published.",
+            "status": "Completed"
+        },
+        {
+            "id": "FDF-7",
+            "title": "Error model standardization",
+            "description": "Map common failures to codes: PRC_INVALID_FORM, PRC_NO_FORMULA, PRC_DATASOURCE_FAIL, PRC_EVAL_ERROR, PRC_ROUNDING. All as ProblemDetails with correlationId.",
+            "status": "Completed"
+        },
+        {
+            "id": "FDF-8",
+            "title": "Metrics & logs for pricing",
+            "description": "Structured logs with correlationId for each step (validate/eval/datasource). Emit basic metrics: calc latency, datasource cache hit, errors by code.",
+            "status": "Completed"
+        }
+    ],
+    "acceptance": [
+        "GET form schema for product; POST /pricing/calculate returns finalPrice & breakdown.",
+        "External data used only through ApiManager with cache.",
+        "POST /quote/calc issues 20m TTL quotes with full snapshot.",
+        "Published versions immutable; errors are RFC7807 with codes."
+    ]
+}

@@ -15,6 +15,8 @@ public class FormulaVersion : EntityBase
     public bool IsPublished { get; private set; }
     public DateTime? PublishedAt { get; private set; }
     public Guid? PublishedBy { get; private set; }
+    public DateTime? EffectiveFrom { get; private set; }
+    public DateTime? EffectiveTo { get; private set; }
     public string? ValidationRules { get; private set; }
     public string? Dependencies { get; private set; }
     public string? Metadata { get; private set; }
@@ -67,6 +69,10 @@ public class FormulaVersion : EntityBase
 
     public void UpdateDescription(string? description)
     {
+        if (IsPublished)
+        {
+            throw new InvalidOperationException("Cannot edit description of a published formula version");
+        }
         Description = description;
         LastModifiedOn = DateTime.UtcNow;
 
@@ -75,6 +81,10 @@ public class FormulaVersion : EntityBase
 
     public void SetValidationRules(string? validationRules)
     {
+        if (IsPublished)
+        {
+            throw new InvalidOperationException("Cannot edit validation rules of a published formula version");
+        }
         ValidationRules = validationRules;
         LastModifiedOn = DateTime.UtcNow;
 
@@ -143,6 +153,23 @@ public class FormulaVersion : EntityBase
         LastModifiedOn = DateTime.UtcNow;
 
         AddDomainEvent(new FormulaVersionUnpublishedEvent(Id, FormulaDefinitionId));
+    }
+
+    public void SetEffectivePeriod(DateTime? from, DateTime? to)
+    {
+        if (from.HasValue && to.HasValue && from.Value > to.Value)
+            throw new InvalidOperationException("EffectiveFrom cannot be after EffectiveTo");
+
+        EffectiveFrom = from;
+        EffectiveTo = to;
+        LastModifiedOn = DateTime.UtcNow;
+    }
+
+    public bool IsEffectiveAt(DateTime dateUtc)
+    {
+        var fromOk = !EffectiveFrom.HasValue || EffectiveFrom.Value <= dateUtc;
+        var toOk = !EffectiveTo.HasValue || EffectiveTo.Value >= dateUtc;
+        return fromOk && toOk;
     }
 
     public void RecordExecution(double executionTimeMs, bool success, string? error = null)

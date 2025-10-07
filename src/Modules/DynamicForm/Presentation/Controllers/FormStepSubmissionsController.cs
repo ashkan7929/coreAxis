@@ -9,7 +9,8 @@ using System.Threading.Tasks;
 using CoreAxis.Modules.DynamicForm.Application.Commands.FormStepSubmissions;
 using CoreAxis.Modules.DynamicForm.Application.Queries.FormStepSubmissions;
 using CoreAxis.Modules.DynamicForm.Application.DTOs;
-using CoreAxis.BuildingBlocks.SharedKernel.Exceptions;
+using CoreAxis.SharedKernel.Exceptions;
+using NotFoundException = CoreAxis.SharedKernel.Exceptions.EntityNotFoundException;
 
 namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers
 {

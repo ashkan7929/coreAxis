@@ -40,6 +40,19 @@ public class FormulaVersionRepository : Repository<FormulaVersion>, IFormulaVers
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<FormulaVersion?> GetLatestPublishedEffectiveVersionAsync(Guid formulaDefinitionId, DateTime asOfDate, CancellationToken cancellationToken = default)
+    {
+        return await _context.Set<FormulaVersion>()
+            .Where(v => v.FormulaDefinitionId == formulaDefinitionId
+                        && v.IsPublished
+                        && (v.EffectiveFrom == null || v.EffectiveFrom <= asOfDate)
+                        && (v.EffectiveTo == null || v.EffectiveTo >= asOfDate))
+            .OrderByDescending(v => v.IsActive)
+            .ThenByDescending(v => v.EffectiveFrom)
+            .ThenByDescending(v => v.VersionNumber)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<IEnumerable<FormulaVersion>> GetPublishedVersionsAsync(Guid formulaDefinitionId, CancellationToken cancellationToken = default)
     {
         return await _context.Set<FormulaVersion>()

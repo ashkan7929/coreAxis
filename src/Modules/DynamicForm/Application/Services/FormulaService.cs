@@ -24,6 +24,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
         private readonly IFormulaVersionRepository _formulaVersionRepository;
         private readonly IFormulaEvaluationLogRepository _evaluationLogRepository;
         private readonly IExpressionEngine _expressionEngine;
+        private readonly IRoundingPolicy _roundingPolicy;
         private readonly ILogger<FormulaService> _logger;
 
         public FormulaService(
@@ -31,12 +32,14 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
             IFormulaVersionRepository formulaVersionRepository,
             IFormulaEvaluationLogRepository evaluationLogRepository,
             IExpressionEngine expressionEngine,
+            IRoundingPolicy roundingPolicy,
             ILogger<FormulaService> logger)
         {
             _formulaDefinitionRepository = formulaDefinitionRepository ?? throw new ArgumentNullException(nameof(formulaDefinitionRepository));
             _formulaVersionRepository = formulaVersionRepository ?? throw new ArgumentNullException(nameof(formulaVersionRepository));
             _evaluationLogRepository = evaluationLogRepository ?? throw new ArgumentNullException(nameof(evaluationLogRepository));
             _expressionEngine = expressionEngine ?? throw new ArgumentNullException(nameof(expressionEngine));
+            _roundingPolicy = roundingPolicy ?? throw new ArgumentNullException(nameof(roundingPolicy));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -44,6 +47,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
         public async Task<Result<FormulaEvaluationResult>> EvaluateFormulaAsync(
             Guid formulaId,
             Dictionary<string, object> inputs,
+            Dictionary<string, object>? context,
             CancellationToken cancellationToken = default)
         {
             try
@@ -58,7 +62,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 }
 
                 var formulaVersion = latestVersionResult.Value;
-                return await EvaluateFormulaVersionInternalAsync(formulaVersion, inputs, cancellationToken);
+                return await EvaluateFormulaVersionInternalAsync(formulaVersion, inputs, context, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -68,28 +72,67 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
         }
 
         /// <inheritdoc />
-        public async Task<Result<FormulaEvaluationResult>> EvaluateFormulaByNameAsync(
+        public async Task<Result<FormulaEvaluationResult>> EvaluateFormulaAsync(
             string formulaName,
-            Guid tenantId,
+            int? version,
             Dictionary<string, object> inputs,
+            Dictionary<string, object>? context,
             CancellationToken cancellationToken = default)
         {
             try
             {
-                _logger.LogDebug("Evaluating formula {FormulaName} for tenant {TenantId}", formulaName, tenantId);
+                _logger.LogDebug("Evaluating formula {FormulaName} (version: {Version})", formulaName, version?.ToString() ?? "latest");
 
                 // Get formula definition by name
-                var formulaDefinition = await _formulaDefinitionRepository.GetByNameAsync(formulaName, tenantId, cancellationToken);
+                var formulaDefinition = await _formulaDefinitionRepository.GetByNameAsync(formulaName, cancellationToken);
                 if (formulaDefinition == null)
                 {
-                    return Result<FormulaEvaluationResult>.Failure($"Formula '{formulaName}' not found for tenant {tenantId}");
+                    return Result<FormulaEvaluationResult>.Failure($"Formula '{formulaName}' not found");
                 }
 
-                return await EvaluateFormulaAsync(formulaDefinition.Id, inputs, cancellationToken);
+                if (version.HasValue)
+                {
+                    // Evaluate a specific pinned version; must be published, active, and within effective window
+                    var pinnedVersion = await _formulaVersionRepository.GetByFormulaDefinitionIdAndVersionAsync(formulaDefinition.Id, version.Value, cancellationToken);
+                    if (pinnedVersion == null)
+                    {
+                        return Result<FormulaEvaluationResult>.Failure($"Formula version {version.Value} not found for '{formulaName}'");
+                    }
+
+                    if (!pinnedVersion.IsPublished)
+                    {
+                        return Result<FormulaEvaluationResult>.Failure($"Pinned version {version.Value} is not published");
+                    }
+
+                    var now = DateTime.UtcNow;
+                    var effective = (pinnedVersion.EffectiveFrom == null || pinnedVersion.EffectiveFrom <= now)
+                                 && (pinnedVersion.EffectiveTo == null || pinnedVersion.EffectiveTo >= now);
+
+                    if (!effective)
+                    {
+                        return Result<FormulaEvaluationResult>.Failure($"Pinned version {version.Value} is outside effective window");
+                    }
+
+                    if (!pinnedVersion.IsActive)
+                    {
+                        return Result<FormulaEvaluationResult>.Failure($"Pinned version {version.Value} is not active");
+                    }
+
+                    return await EvaluateFormulaVersionInternalAsync(pinnedVersion, inputs, context, cancellationToken);
+                }
+
+                // No version pinned: resolve latest effective published & active
+                var latestVersionResult = await GetLatestPublishedVersionAsync(formulaDefinition.Id, cancellationToken);
+                if (!latestVersionResult.IsSuccess)
+                {
+                    return Result<FormulaEvaluationResult>.Failure(latestVersionResult.Error);
+                }
+
+                return await EvaluateFormulaVersionInternalAsync(latestVersionResult.Value, inputs, context, cancellationToken);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error evaluating formula {FormulaName} for tenant {TenantId}", formulaName, tenantId);
+                _logger.LogError(ex, "Error evaluating formula {FormulaName}", formulaName);
                 return Result<FormulaEvaluationResult>.Failure($"Error evaluating formula: {ex.Message}");
             }
         }
@@ -99,6 +142,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
             Guid formulaId,
             int version,
             Dictionary<string, object> inputs,
+            Dictionary<string, object>? context,
             CancellationToken cancellationToken = default)
         {
             try
@@ -106,13 +150,33 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 _logger.LogDebug("Evaluating formula {FormulaId} version {Version}", formulaId, version);
 
                 // Get specific version
-                var formulaVersion = await _formulaVersionRepository.GetByFormulaAndVersionAsync(formulaId, version, cancellationToken);
+                var formulaVersion = await _formulaVersionRepository.GetByFormulaDefinitionIdAndVersionAsync(formulaId, version, cancellationToken);
                 if (formulaVersion == null)
                 {
                     return Result<FormulaEvaluationResult>.Failure($"Formula version {version} not found for formula {formulaId}");
                 }
 
-                return await EvaluateFormulaVersionInternalAsync(formulaVersion, inputs, cancellationToken);
+                // Enforce published and effective window
+                if (!formulaVersion.IsPublished)
+                {
+                    return Result<FormulaEvaluationResult>.Failure($"Formula version {version} is not published");
+                }
+
+                var now = DateTime.UtcNow;
+                var effective = (formulaVersion.EffectiveFrom == null || formulaVersion.EffectiveFrom <= now)
+                             && (formulaVersion.EffectiveTo == null || formulaVersion.EffectiveTo >= now);
+
+                if (!effective)
+                {
+                    return Result<FormulaEvaluationResult>.Failure($"Formula version {version} is outside effective window");
+                }
+
+                if (!formulaVersion.IsActive)
+                {
+                    return Result<FormulaEvaluationResult>.Failure($"Formula version {version} is not active");
+                }
+
+                return await EvaluateFormulaVersionInternalAsync(formulaVersion, inputs, context, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -139,10 +203,10 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                     return Result<FormulaVersion>.Failure($"Formula {formulaId} is not published");
                 }
 
-                var latestVersion = await _formulaVersionRepository.GetLatestByFormulaIdAsync(formulaId, cancellationToken);
+                var latestVersion = await _formulaVersionRepository.GetLatestPublishedEffectiveVersionAsync(formulaId, DateTime.UtcNow, cancellationToken);
                 if (latestVersion == null)
                 {
-                    return Result<FormulaVersion>.Failure($"No versions found for formula {formulaId}");
+                    return Result<FormulaVersion>.Failure($"No effective published version found for formula {formulaId}");
                 }
 
                 return Result<FormulaVersion>.Success(latestVersion);
@@ -192,6 +256,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
         /// <inheritdoc />
         public async Task<Result<bool>> ValidateExpressionAsync(
             string expression,
+            Dictionary<string, object>? context,
             CancellationToken cancellationToken = default)
         {
             try
@@ -205,8 +270,8 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 var formulaExpression = new FormulaExpression(expression, ExecutionTimeCategory.Runtime);
                 
                 // Try to evaluate with empty context to check syntax
-                var context = new ExpressionEvaluationContext(new Dictionary<string, object>());
-                var result = await _expressionEngine.EvaluateAsync(formulaExpression, context, cancellationToken);
+                var evalContext = BuildEvaluationContext(new Dictionary<string, object>(), context);
+                var result = await _expressionEngine.EvaluateAsync(formulaExpression, evalContext, cancellationToken);
                 
                 return Result<bool>.Success(result.IsSuccess);
             }
@@ -296,6 +361,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
         private async Task<Result<FormulaEvaluationResult>> EvaluateFormulaVersionInternalAsync(
             FormulaVersion formulaVersion,
             Dictionary<string, object> inputs,
+            Dictionary<string, object>? context,
             CancellationToken cancellationToken)
         {
             var stopwatch = Stopwatch.StartNew();
@@ -304,13 +370,20 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
             try
             {
                 // Create evaluation context
-                var context = new ExpressionEvaluationContext(inputs ?? new Dictionary<string, object>());
+                var evalContext = BuildEvaluationContext(inputs, context);
                 
                 // Get formula expression
                 var formulaExpression = formulaVersion.GetFormulaExpression();
                 
                 // Evaluate the expression
-                var evaluationResult = await _expressionEngine.EvaluateAsync(formulaExpression, context, cancellationToken);
+                var evaluationResult = await _expressionEngine.EvaluateAsync(formulaExpression, evalContext, cancellationToken);
+
+                // Normalize monetary decimals using rounding policy
+                object? normalizedValue = evaluationResult.Value;
+                if (normalizedValue is decimal dv)
+                {
+                    normalizedValue = _roundingPolicy.NormalizeMoney(dv);
+                }
                 
                 stopwatch.Stop();
                 
@@ -320,7 +393,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                     formulaVersion.FormulaDefinitionId,
                     formulaVersion.VersionNumber,
                     inputs,
-                    evaluationResult.Value,
+                    normalizedValue,
                     evaluationResult.IsSuccess,
                     evaluationResult.ErrorMessage,
                     stopwatch.ElapsedMilliseconds,
@@ -331,7 +404,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 
                 var result = new FormulaEvaluationResult
                 {
-                    Value = evaluationResult.Value,
+                    Value = normalizedValue!,
                     FormulaVersion = formulaVersion.VersionNumber,
                     EvaluationDurationMs = stopwatch.ElapsedMilliseconds,
                     EvaluationLogId = evaluationLogId,
@@ -378,6 +451,31 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 
                 return Result<FormulaEvaluationResult>.Failure($"Error evaluating formula: {ex.Message}");
             }
+        }
+
+        private ExpressionEvaluationContext BuildEvaluationContext(
+            Dictionary<string, object> inputs,
+            Dictionary<string, object>? context)
+        {
+            var evalContext = new ExpressionEvaluationContext();
+
+            // Populate variables with inputs
+            if (inputs != null)
+            {
+                foreach (var kvp in inputs)
+                {
+                    evalContext.AddVariable(kvp.Key, kvp.Value);
+                }
+                evalContext.FormData = inputs;
+            }
+
+            // Store provided context (if any)
+            if (context != null)
+            {
+                evalContext.UserContext = context;
+            }
+
+            return evalContext;
         }
     }
 }

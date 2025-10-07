@@ -2,6 +2,7 @@ using CoreAxis.Modules.ApiManager.Application.Contracts;
 using CoreAxis.Modules.DynamicForm.Domain.Entities;
 using CoreAxis.Modules.DynamicForm.Domain.Interfaces;
 using CoreAxis.Modules.DynamicForm.Domain.ValueObjects;
+using FieldOption = CoreAxis.Modules.DynamicForm.Domain.ValueObjects.FieldOption;
 using CoreAxis.SharedKernel;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;

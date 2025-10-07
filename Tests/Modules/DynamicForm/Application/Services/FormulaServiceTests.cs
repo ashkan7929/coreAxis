@@ -65,11 +65,11 @@ public class FormulaServiceTests
             .ReturnsAsync(formulaDefinition);
 
         _formulaVersionRepositoryMock
-            .Setup(x => x.GetLatestPublishedVersionAsync(formulaId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetLatestPublishedEffectiveVersionAsync(formulaId, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(formulaVersion);
 
         _expressionEngineMock
-            .Setup(x => x.EvaluateAsync(It.IsAny<string>(), It.IsAny<ExpressionEvaluationContext>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.EvaluateAsync(It.IsAny<FormulaExpression>(), It.IsAny<ExpressionEvaluationContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(evaluationResult);
 
         _evaluationLogRepositoryMock
@@ -137,11 +137,11 @@ public class FormulaServiceTests
             .ReturnsAsync(formulaDefinition);
 
         _formulaVersionRepositoryMock
-            .Setup(x => x.GetByVersionNumberAsync(formulaDefinition.Id, version, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetByFormulaDefinitionIdAndVersionAsync(formulaDefinition.Id, version, It.IsAny<CancellationToken>()))
             .ReturnsAsync(formulaVersion);
 
         _expressionEngineMock
-            .Setup(x => x.EvaluateAsync(It.IsAny<string>(), It.IsAny<ExpressionEvaluationContext>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.EvaluateAsync(It.IsAny<FormulaExpression>(), It.IsAny<ExpressionEvaluationContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(evaluationResult);
 
         _evaluationLogRepositoryMock
@@ -172,7 +172,7 @@ public class FormulaServiceTests
             .ReturnsAsync(formulaDefinition);
 
         _formulaVersionRepositoryMock
-            .Setup(x => x.GetLatestPublishedVersionAsync(formulaId, It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetLatestPublishedEffectiveVersionAsync(formulaId, It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(formulaVersion);
 
         // Act
@@ -216,7 +216,7 @@ public class FormulaServiceTests
         var context = new Dictionary<string, object>();
 
         _expressionEngineMock
-            .Setup(x => x.EvaluateAsync(expression, It.IsAny<ExpressionEvaluationContext>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.EvaluateAsync(It.IsAny<FormulaExpression>(), It.IsAny<ExpressionEvaluationContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ExpressionEvaluationResult { IsSuccess = true, Value = 0 });
 
         // Act
@@ -235,7 +235,7 @@ public class FormulaServiceTests
         var context = new Dictionary<string, object>();
 
         _expressionEngineMock
-            .Setup(x => x.EvaluateAsync(expression, It.IsAny<ExpressionEvaluationContext>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.EvaluateAsync(It.IsAny<FormulaExpression>(), It.IsAny<ExpressionEvaluationContext>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ExpressionEvaluationResult { IsSuccess = false, ErrorMessage = "Invalid syntax" });
 
         // Act

@@ -89,7 +89,7 @@ public class SubscriptionPaymentConfiguration : IEntityTypeConfiguration<Subscri
 
         // Relationships
         builder.HasOne(x => x.Subscription)
-            .WithMany(x => x.PaymentHistory)
+            .WithMany(x => x.Payments)
             .HasForeignKey(x => x.SubscriptionId)
             .OnDelete(DeleteBehavior.Cascade);
     }

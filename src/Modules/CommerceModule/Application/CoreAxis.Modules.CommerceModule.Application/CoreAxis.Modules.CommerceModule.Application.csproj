@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../Domain/CoreAxis.Modules.CommerceModule.Domain/CoreAxis.Modules.CommerceModule.Domain.csproj" />
-    <ProjectReference Include="../../../BuildingBlocks/SharedKernel/CoreAxis.SharedKernel/CoreAxis.SharedKernel.csproj" />
+    <ProjectReference Include="../../../../BuildingBlocks/SharedKernel/CoreAxis.SharedKernel/CoreAxis.SharedKernel.csproj" />
   </ItemGroup>
 
   <ItemGroup>

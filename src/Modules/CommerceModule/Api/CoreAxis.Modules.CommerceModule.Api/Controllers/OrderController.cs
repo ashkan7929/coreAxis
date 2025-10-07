@@ -146,8 +146,9 @@ public class OrderController : ControllerBase
                 }).ToList()
             };
 
-            // Calculate pricing with discounts
-            var pricingResult = await _pricingService.CalculateOrderPricingAsync(order);
+            // Calculate pricing using snapshot-based pricing service
+            var snapshot = MapToSnapshot(order);
+            var pricingResult = await _pricingService.ApplyDiscountsAsync(snapshot, null, null, HttpContext.RequestAborted);
             order.SubtotalAmount = pricingResult.SubtotalAmount;
             order.DiscountAmount = pricingResult.DiscountAmount;
             order.TaxAmount = pricingResult.TaxAmount;
@@ -387,6 +388,26 @@ public class OrderController : ControllerBase
                 UnitPrice = item.UnitPrice,
                 TotalPrice = item.TotalPrice
             }).ToList() ?? new List<OrderItemDto>()
+        };
+    }
+
+    private static OrderSnapshot MapToSnapshot(Order order)
+    {
+        return new OrderSnapshot
+        {
+            OrderId = order.Id,
+            CustomerId = order.CustomerId,
+            SubtotalAmount = order.SubtotalAmount,
+            Currency = order.Currency,
+            Metadata = order.Metadata,
+            Items = order.Items?.Select(item => new OrderItemSnapshot
+            {
+                ProductId = item.ProductId,
+                Quantity = item.Quantity,
+                UnitPrice = item.UnitPrice,
+                TotalPrice = item.TotalPrice,
+                CategoryIds = item.CategoryIds
+            }).ToList() ?? new List<OrderItemSnapshot>()
         };
     }
 

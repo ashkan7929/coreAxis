@@ -122,6 +122,11 @@ public class Payment : EntityBase
     public virtual ICollection<RefundRequest> RefundRequests { get; set; } = new List<RefundRequest>();
 
     /// <summary>
+    /// Gets or sets the collection of processed refunds for this payment.
+    /// </summary>
+    public virtual ICollection<Refund> Refunds { get; set; } = new List<Refund>();
+
+    /// <summary>
     /// Gets or sets the collection of split payment allocations.
     /// </summary>
     public virtual ICollection<SplitPaymentAllocation> SplitAllocations { get; set; } = new List<SplitPaymentAllocation>();

@@ -6,6 +6,7 @@ using CoreAxis.Modules.ApiManager.Application.Contracts;
 using CoreAxis.Modules.ApiManager.Domain;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

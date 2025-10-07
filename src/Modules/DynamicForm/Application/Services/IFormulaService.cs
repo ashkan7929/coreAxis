@@ -19,25 +19,29 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
         /// </summary>
         /// <param name="formulaId">The formula definition identifier.</param>
         /// <param name="inputs">The input variables for formula evaluation.</param>
+        /// <param name="context">Optional evaluation context.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The evaluation result containing value, formula version, and metadata.</returns>
         Task<Result<FormulaEvaluationResult>> EvaluateFormulaAsync(
             Guid formulaId,
             Dictionary<string, object> inputs,
+            Dictionary<string, object>? context,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Evaluates a formula by name within a tenant.
+        /// Evaluates a formula by name with optional version pinning.
         /// </summary>
         /// <param name="formulaName">The formula name.</param>
-        /// <param name="tenantId">The tenant identifier.</param>
+        /// <param name="version">Optional version to pin. If null, uses latest effective published & active.</param>
         /// <param name="inputs">The input variables for formula evaluation.</param>
+        /// <param name="context">Optional evaluation context.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The evaluation result containing value, formula version, and metadata.</returns>
-        Task<Result<FormulaEvaluationResult>> EvaluateFormulaByNameAsync(
+        Task<Result<FormulaEvaluationResult>> EvaluateFormulaAsync(
             string formulaName,
-            Guid tenantId,
+            int? version,
             Dictionary<string, object> inputs,
+            Dictionary<string, object>? context,
             CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -46,12 +50,14 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
         /// <param name="formulaId">The formula definition identifier.</param>
         /// <param name="version">The formula version number.</param>
         /// <param name="inputs">The input variables for formula evaluation.</param>
+        /// <param name="context">Optional evaluation context.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The evaluation result containing value, formula version, and metadata.</returns>
         Task<Result<FormulaEvaluationResult>> EvaluateFormulaVersionAsync(
             Guid formulaId,
             int version,
             Dictionary<string, object> inputs,
+            Dictionary<string, object>? context,
             CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -80,6 +86,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
         /// <returns>The validation result.</returns>
         Task<Result<bool>> ValidateExpressionAsync(
             string expression,
+            Dictionary<string, object>? context,
             CancellationToken cancellationToken = default);
 
         /// <summary>

@@ -83,7 +83,7 @@ public class SubscriptionConfiguration : IEntityTypeConfiguration<Subscription>
             .HasDatabaseName("IX_Subscriptions_UserPlanStatus");
 
         // Relationships
-        builder.HasMany(x => x.PaymentHistory)
+        builder.HasMany(x => x.Payments)
             .WithOne(x => x.Subscription)
             .HasForeignKey(x => x.SubscriptionId)
             .OnDelete(DeleteBehavior.Cascade);

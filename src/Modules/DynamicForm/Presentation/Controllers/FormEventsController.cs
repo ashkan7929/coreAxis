@@ -2,6 +2,7 @@ using CoreAxis.Modules.DynamicForm.Application.Commands.Forms;
 using CoreAxis.Modules.DynamicForm.Application.Queries.Forms;
 using CoreAxis.Modules.DynamicForm.Application.Services;
 using CoreAxis.SharedKernel;
+using CoreAxis.SharedKernel.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -20,6 +21,7 @@ namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers
     [ApiController]
     [Route("api/dynamic-forms/events")]
     [Authorize]
+    [RequirePermission("Forms", "manage_access")]
     public class FormEventsController : ControllerBase
     {
         private readonly IMediator _mediator;

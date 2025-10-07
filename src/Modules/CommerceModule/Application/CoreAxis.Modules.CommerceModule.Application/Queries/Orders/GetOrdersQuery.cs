@@ -46,60 +46,55 @@ public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, (List<Order
             var orderDtos = orders.Select(order => new OrderDto
             {
                 Id = order.Id,
-                UserId = order.UserId,
+                UserId = order.CustomerId,
                 OrderNumber = order.OrderNumber,
-                Status = order.Status,
+                Status = order.Status.ToString(),
                 TotalAmount = order.TotalAmount,
                 Currency = order.Currency,
-                ShippingAddress = order.ShippingAddress,
-                BillingAddress = order.BillingAddress,
+                DiscountAmount = order.DiscountAmount,
+                TaxAmount = order.TaxAmount,
+                FinalAmount = order.TotalAmount,
+                Notes = order.SpecialInstructions,
                 OrderDate = order.OrderDate,
-                ShippedDate = order.ShippedDate,
-                DeliveredDate = order.DeliveredDate,
-                Notes = order.Notes,
-                CreatedAt = order.CreatedAt,
-                UpdatedAt = order.UpdatedAt,
-                Items = order.Items?.Select(item => new OrderItemDto
+                ShippingDate = null,
+                DeliveryDate = order.DeliveredAt,
+                CreatedAt = order.CreatedOn,
+                UpdatedAt = order.LastModifiedOn,
+                OrderItems = order.OrderItems?.Select(item => new OrderItemDto
                 {
                     Id = item.Id,
                     OrderId = item.OrderId,
-                    InventoryItemId = item.InventoryItemId,
-                    Quantity = item.Quantity,
+                    InventoryItemId = Guid.Empty,
+                    AssetCode = item.ProductSku,
+                    ItemName = item.ProductName,
+                    Quantity = (decimal)item.Quantity,
                     UnitPrice = item.UnitPrice,
                     TotalPrice = item.TotalPrice,
-                    Currency = item.Currency,
-                    CreatedAt = item.CreatedAt
+                    Currency = order.Currency,
+                    DiscountAmount = item.DiscountAmount,
+                    Notes = null,
+                    CreatedAt = item.CreatedOn,
+                    UpdatedAt = item.LastModifiedOn
                 }).ToList() ?? new List<OrderItemDto>(),
-                Payments = order.Payments?.Select(payment => new PaymentDto
-                {
-                    Id = payment.Id,
-                    OrderId = payment.OrderId,
-                    Amount = payment.Amount,
-                    Currency = payment.Currency,
-                    PaymentMethod = payment.PaymentMethod,
-                    Status = payment.Status,
-                    TransactionId = payment.TransactionId,
-                    GatewayResponse = payment.GatewayResponse,
-                    ProcessedAt = payment.ProcessedAt,
-                    FailureReason = payment.FailureReason,
-                    CreatedAt = payment.CreatedAt,
-                    UpdatedAt = payment.UpdatedAt
-                }).ToList() ?? new List<PaymentDto>(),
-                DiscountRules = order.DiscountRules?.Select(discount => new DiscountRuleDto
-                {
-                    Id = discount.Id,
-                    Name = discount.Name,
-                    DiscountType = discount.DiscountType,
-                    DiscountValue = discount.DiscountValue,
-                    MinimumAmount = discount.MinimumAmount,
-                    MaximumDiscount = discount.MaximumDiscount,
-                    Currency = discount.Currency,
-                    IsActive = discount.IsActive,
-                    ValidFrom = discount.ValidFrom,
-                    ValidTo = discount.ValidTo,
-                    CreatedAt = discount.CreatedAt,
-                    UpdatedAt = discount.UpdatedAt
-                }).ToList() ?? new List<DiscountRuleDto>()
+                Payment = order.Payments?
+                    .OrderByDescending(p => p.ProcessedAt ?? p.CreatedOn)
+                    .Select(payment => new PaymentDto
+                    {
+                        Id = payment.Id,
+                        OrderId = payment.OrderId,
+                        Amount = payment.Amount,
+                        Currency = payment.Currency,
+                        PaymentMethod = payment.Method.ToString(),
+                        Status = payment.Status.ToString(),
+                        TransactionId = payment.TransactionId,
+                        GatewayResponse = payment.GatewayReference,
+                        ProcessedAt = payment.ProcessedAt,
+                        FailureReason = payment.FailureReason,
+                        CreatedAt = payment.CreatedOn,
+                        UpdatedAt = payment.LastModifiedOn
+                    })
+                    .FirstOrDefault(),
+                AppliedDiscounts = new List<DiscountRuleDto>()
             }).ToList();
 
             _logger.LogInformation("Retrieved {Count} orders out of {TotalCount} total orders", 

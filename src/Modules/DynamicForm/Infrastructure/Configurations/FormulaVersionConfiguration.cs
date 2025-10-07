@@ -46,6 +46,12 @@ public class FormulaVersionConfiguration : IEntityTypeConfiguration<FormulaVersi
         builder.Property(x => x.PublishedBy)
             .IsRequired(false);
 
+        builder.Property(x => x.EffectiveFrom)
+            .IsRequired(false);
+
+        builder.Property(x => x.EffectiveTo)
+            .IsRequired(false);
+
         builder.Property(x => x.ValidationRules)
             .HasMaxLength(5000);
 
@@ -117,6 +123,9 @@ public class FormulaVersionConfiguration : IEntityTypeConfiguration<FormulaVersi
         builder.HasIndex(x => x.PublishedAt)
             .HasDatabaseName("IX_FormulaVersions_PublishedAt");
 
+        builder.HasIndex(x => new { x.FormulaDefinitionId, x.IsPublished, x.EffectiveFrom, x.EffectiveTo })
+            .HasDatabaseName("IX_FormulaVersions_Published_EffectiveWindow");
+
         builder.HasIndex(x => x.LastExecutedAt)
             .HasDatabaseName("IX_FormulaVersions_LastExecutedAt");
 
@@ -141,6 +150,7 @@ public class FormulaVersionConfiguration : IEntityTypeConfiguration<FormulaVersi
         builder.HasCheckConstraint("CK_FormulaVersions_AverageExecutionTime", "[AverageExecutionTime] IS NULL OR [AverageExecutionTime] >= 0");
         builder.HasCheckConstraint("CK_FormulaVersions_PublishedConstraint", "([IsPublished] = 0) OR ([IsPublished] = 1 AND [PublishedAt] IS NOT NULL AND [PublishedBy] IS NOT NULL)");
         builder.HasCheckConstraint("CK_FormulaVersions_ActiveConstraint", "([IsActive] = 0) OR ([IsActive] = 1 AND [IsPublished] = 1)");
+        builder.HasCheckConstraint("CK_FormulaVersions_EffectiveRange", "([EffectiveFrom] IS NULL) OR ([EffectiveTo] IS NULL) OR ([EffectiveFrom] <= [EffectiveTo])");
 
         // Ignore Domain Events
         builder.Ignore(x => x.DomainEvents);
