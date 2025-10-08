@@ -92,7 +92,7 @@ public class CommissionSettlementHostedService : BackgroundService
                         var wallet = await walletRepo.GetByUserAndTypeAsync(commission.UserId, commissionWalletType.Id, stoppingToken);
                         if (wallet == null)
                         {
-                            wallet = new Wallet(commission.UserId, commissionWalletType.Id, isActive: true);
+                            wallet = new Wallet(commission.UserId, commissionWalletType.Id);
                             await walletRepo.AddAsync(wallet, stoppingToken);
                             await walletRepo.SaveChangesAsync(stoppingToken);
                             _logger.LogInformation("Created commission wallet for user {UserId}", commission.UserId);

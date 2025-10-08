@@ -42,9 +42,12 @@ public class CommissionProcessingHostedService : BackgroundService
                 using var scope = _serviceProvider.CreateScope();
                 var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
+                var processedByConfig = _configuration.GetValue<string>("MLMModule:CommissionProcessing:ProcessedBy");
+                var processedBy = Guid.TryParse(processedByConfig, out var parsedProcessedBy) ? parsedProcessedBy : Guid.Empty;
+
                 var command = new ProcessPendingCommissionsCommand
                 {
-                    ProcessedBy = nameof(CommissionProcessingHostedService),
+                    ProcessedBy = processedBy,
                     BatchSize = batchSize,
                     Notes = "Scheduled processing"
                 };
