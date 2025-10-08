@@ -1,0 +1,97 @@
+{
+    "project": "CoreAxis",
+    "module": "MLM",
+    "goal": "Generate multi-level commissions on OrderFinalized, manage rule sets and referrals, expose admin/user APIs.",
+    "code_layout": {
+        "root": "src/Modules/MLMModule",
+        "projects": {
+            "API": "CoreAxis.Modules.MLMModule.API",
+            "Application": "CoreAxis.Modules.MLMModule.Application",
+            "Domain": "CoreAxis.Modules.MLMModule.Domain",
+            "Infrastructure": "CoreAxis.Modules.MLMModule.Infrastructure",
+            "Presentation": "CoreAxis.Modules.MLMModule.Presentation"
+        }
+    },
+    "domain": {
+        "entities": [
+            "CommissionRuleSet (Code, Name, LatestVersion, IsActive, IsDefault, MaxLevels, MinimumPurchaseAmount, RequireActiveUpline, Levels[])",
+            "CommissionRuleVersion (versioned)",
+            "CommissionLevel (per-level %/caps)",
+            "ProductRuleBinding (bind rule sets to products)",
+            "UserReferral (upline/downline structure + status)",
+            "CommissionTransaction (UserId, SourcePaymentId, ProductId?, RuleSetId/Code, RuleVersion, Level, Amount, SourceAmount, Percentage, Status=Pending/Approved/Rejected/Paid, IsSettled, WalletTransactionId?)"
+        ],
+        "enums": [
+            "CommissionStatus",
+            "ReferralStatus"
+        ],
+        "events": [
+            "CommissionGeneratedEvent",
+            "CommissionApprovedEvent",
+            "CommissionRejectedEvent",
+            "CommissionPaidEvent",
+            "CommissionExpiredEvent",
+            "PaymentConfirmedEvent"
+        ]
+    },
+    "application": {
+        "services": [
+            "CommissionCalculationService (creates Pending commissions on OrderFinalized; idempotent by SourcePaymentId)",
+            "CommissionManagementService (list/filter, approve/reject/pay/update notes)"
+        ],
+        "commands_queries": [
+            "CommissionRuleCommands/Queries (CRUD, versioning)",
+            "CommissionTransactionCommands/Queries (Approve, Reject, Pay, ProcessPendingCommissions, UpdateNotes)",
+            "UserReferralCommands/Queries (join, get info, get downline)"
+        ],
+        "validators": [
+            "Approve/Reject/Pay/ProcessPending validators (FluentValidation)"
+        ]
+    },
+    "integration": {
+        "incoming": "OrderFinalizedIntegrationEventHandler (on EventBus) → uses CommissionCalculationService to create Pending commissions (idempotent check by SourcePaymentId).",
+        "outgoing": "Domain events for commission status changes (no Wallet credit integration wired yet)."
+    },
+    "api": {
+        "api_controllers": [
+            "CommissionRuleController (Authorize + RequirePermission for admin ops)",
+            "CommissionTransactionController (get/list/approve/reject/pay/process-pending)",
+            "UserReferralController (join/get/downline)"
+        ],
+        "presentation_controllers": [
+            "CommissionManagementController (admin-style endpoints under /api/mlm/commissions)",
+            "MLMController (misc admin ops)"
+        ],
+        "reports_export": "NOT PRESENT (no /api/admin/mlm/reports... export endpoints found)"
+    },
+    "infrastructure": {
+        "dbcontext": "MLMModuleDbContext + migrations present",
+        "repositories": [
+            "CommissionRuleSetRepository",
+            "CommissionTransactionRepository",
+            "UserReferralRepository",
+            "OutboxRepository"
+        ],
+        "event_handlers": [
+            "OrderFinalizedIntegrationEventHandler"
+        ],
+        "idempotency": "CommissionCalculationService checks existing commissions by SourcePaymentId before creating new"
+    },
+    "security_observability": {
+        "authz": "Controllers use [Authorize], some admin actions use [RequirePermission]",
+        "errors": "ProblemDetails via SharedKernel pipeline",
+        "logs": "Structured logging calls exist in services/handlers",
+        "metrics": "Basic logs; explicit exporter counters not found for MLM"
+    },
+    "gaps": [
+        "No settlement job (Pending → Booked/Paid) with Wallet crediting",
+        "No Wallet integration (no call to Wallet credit on settlement; no WalletTransactionId set)",
+        "No admin report + CSV/JSON export endpoints for commissions",
+        "No explicit outbox integration event like CommissionBooked for BI/reporting",
+        "ProcessPendingCommissions exists as command, but no HostedService/scheduler wiring to run it periodically",
+        "RuleSet/Product binding usage paths present but need enforcement tests (ensure default vs product-specific binding resolution in runtime)",
+        "No rate limiting on sensitive admin operations (optional)",
+        "Metrics limited (no p95/p99 latency, no counters for generated/approved/paid by level/product)"
+    ],
+    "state_summary": "MLM can receive OrderFinalized and create Pending commissions (idempotent). Admin/user APIs for CRUD/approval exist. Settlement to Wallet and reporting/exports are still missing."
+}

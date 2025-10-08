@@ -319,3 +319,45 @@ public class GetCommissionsByDateRangeQueryHandler : IRequestHandler<GetCommissi
         };
     }
 }
+
+public class GetAllCommissionsQueryHandler : IRequestHandler<GetAllCommissionsQuery, IEnumerable<CommissionTransactionDto>>
+{
+    private readonly ICommissionTransactionRepository _commissionRepository;
+
+    public GetAllCommissionsQueryHandler(ICommissionTransactionRepository commissionRepository)
+    {
+        _commissionRepository = commissionRepository;
+    }
+
+    public async Task<IEnumerable<CommissionTransactionDto>> Handle(GetAllCommissionsQuery request, CancellationToken cancellationToken)
+    {
+        var skip = (request.PageNumber - 1) * request.PageSize;
+        var commissions = await _commissionRepository.GetAllAsync(skip, request.PageSize, cancellationToken);
+        return commissions.Select(MapToDto);
+    }
+
+    private static CommissionTransactionDto MapToDto(Domain.Entities.CommissionTransaction commission)
+    {
+        return new CommissionTransactionDto
+        {
+            Id = commission.Id,
+            UserId = commission.UserId,
+            SourcePaymentId = commission.SourcePaymentId,
+            ProductId = commission.ProductId,
+            CommissionRuleSetId = commission.CommissionRuleSetId,
+            Level = commission.Level,
+            Amount = commission.Amount,
+            SourceAmount = commission.SourceAmount,
+            Percentage = commission.Percentage,
+            Status = commission.Status,
+            IsSettled = commission.IsSettled,
+            WalletTransactionId = commission.WalletTransactionId,
+            Notes = commission.Notes,
+            CreatedOn = commission.CreatedOn,
+            ApprovedAt = commission.ApprovedAt,
+            PaidAt = commission.PaidAt,
+            RejectedAt = commission.RejectedAt,
+            RejectionReason = commission.RejectionReason
+        };
+    }
+}

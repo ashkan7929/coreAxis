@@ -47,3 +47,9 @@ public class GetCommissionsByDateRangeQuery : IRequest<IEnumerable<CommissionTra
     public Guid? UserId { get; set; }
     public CommissionStatus? Status { get; set; }
 }
+
+public class GetAllCommissionsQuery : IRequest<IEnumerable<CommissionTransactionDto>>
+{
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 50;
+}

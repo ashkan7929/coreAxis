@@ -5,8 +5,13 @@ using CoreAxis.Modules.MLMModule.Infrastructure;
 using CoreAxis.Modules.MLMModule.Infrastructure.EventHandlers;
 using CoreAxis.SharedKernel.Contracts.Events;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using CoreAxis.SharedKernel.Observability;
+using System.Threading.RateLimiting;
 
 namespace CoreAxis.Modules.MLMModule.API
 {
@@ -39,12 +44,61 @@ namespace CoreAxis.Modules.MLMModule.API
             services.AddControllers()
                 .AddApplicationPart(typeof(MLMModule).Assembly);
 
+            // Wire ProblemDetails services for uniform error responses
+            CoreAxis.SharedKernel.Observability.ProblemDetailsExtensions.AddCoreAxisProblemDetails(services);
+
             // Register infrastructure services
             services.AddMLMModuleInfrastructure(configuration);
 
             // Register application services
             services.AddScoped<IMLMService, MLMService>();
             services.AddScoped<ICommissionCalculationService, CommissionCalculationService>();
+
+            // Configure rate limiter policy for sensitive admin actions (approve/reject/mark-paid)
+            services.AddRateLimiter(options =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+                options.OnRejected = async (context, cancellationToken) =>
+                {
+                    var retryAfter = context.Lease.TryGetMetadata("RetryAfter", out var ra) && ra is TimeSpan ts
+                        ? ts.TotalSeconds
+                        : 60; // fallback
+
+                    context.HttpContext.Response.Headers["Retry-After"] = Math.Ceiling(retryAfter).ToString();
+                    var problem = new ProblemDetails
+                    {
+                        Type = "https://coreaxis.dev/problems/mlm/rate_limited",
+                        Title = "Too Many Requests",
+                        Status = StatusCodes.Status429TooManyRequests,
+                        Detail = "Rate limit exceeded for MLM admin action. Please retry later."
+                    };
+                    problem.Extensions["code"] = "MLM_RATE_LIMITED";
+                    problem.Extensions["policy"] = "mlm-actions";
+                    await context.HttpContext.Response.WriteAsJsonAsync(problem, cancellationToken);
+                };
+
+                var userLimit = int.TryParse(configuration["MLM:RateLimiting:UserLimitPerMinute"], out var ul) ? ul : 30;
+                var windowMinutes = int.TryParse(configuration["MLM:RateLimiting:WindowMinutes"], out var wm) ? wm : 1;
+
+                options.AddPolicy("mlm-actions", httpContext =>
+                {
+                    var userId = httpContext.User?.FindFirst("sub")?.Value
+                                 ?? httpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                                 ?? httpContext.Connection.RemoteIpAddress?.ToString()
+                                 ?? "anonymous";
+
+                    return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter<string>(
+                        userId,
+                        _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = userLimit,
+                            Window = TimeSpan.FromMinutes(windowMinutes),
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                            QueueLimit = 0,
+                            AutoReplenishment = true
+                        });
+                });
+            });
         }
 
         /// <summary>
@@ -60,8 +114,11 @@ namespace CoreAxis.Modules.MLMModule.API
             // Subscribe to PaymentConfirmed.v1 event
             eventBus.Subscribe<PaymentConfirmed, PaymentConfirmedEventHandler>();
 
-            // Configure any module-specific middleware here if needed
-            // For now, the MLMModule doesn't require specific middleware configuration
+            // Insert correlation and ProblemDetails middlewares for consistent observability
+            app.UseCoreAxisCorrelation();
+            app.UseCoreAxisProblemDetails();
+            // Enable rate limiting middleware so [EnableRateLimiting("mlm-actions")] works
+            app.UseRateLimiter();
         }
     }
 }

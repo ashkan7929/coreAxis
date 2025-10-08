@@ -6,6 +6,8 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CoreAxis.SharedKernel.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Text;
 using System.Security.Claims;
 
 namespace CoreAxis.Modules.MLMModule.API.Controllers;
@@ -152,6 +154,7 @@ public class CommissionTransactionController : ControllerBase
     /// </summary>
     [HttpPost("{id}/approve")]
     [RequirePermission("Commissions", "Approve")]
+    [EnableRateLimiting("mlm-actions")]
     public async Task<ActionResult<CommissionTransactionDto>> ApproveCommission(Guid id, [FromBody] ApproveCommissionDto request)
     {
         var command = new ApproveCommissionCommand
@@ -170,6 +173,7 @@ public class CommissionTransactionController : ControllerBase
     /// </summary>
     [HttpPost("{id}/reject")]
     [RequirePermission("Commissions", "Reject")]
+    [EnableRateLimiting("mlm-actions")]
     public async Task<ActionResult<CommissionTransactionDto>> RejectCommission(Guid id, [FromBody] RejectCommissionDto request)
     {
         var command = new RejectCommissionCommand
@@ -188,6 +192,7 @@ public class CommissionTransactionController : ControllerBase
     /// </summary>
     [HttpPost("{id}/mark-paid")]
     [RequirePermission("Commissions", "MarkPaid")]
+    [EnableRateLimiting("mlm-actions")]
     public async Task<ActionResult<CommissionTransactionDto>> MarkCommissionAsPaid(Guid id, [FromBody] MarkCommissionAsPaidDto request)
     {
         var command = new MarkCommissionAsPaidCommand
@@ -199,6 +204,83 @@ public class CommissionTransactionController : ControllerBase
         };
 
         var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Admin commissions report with optional filters and CSV/JSON output
+    /// </summary>
+    [HttpGet("admin/report")]
+    [RequirePermission("Commissions", "Read")]
+    public async Task<IActionResult> GetAdminReport(
+        [FromQuery] Guid? userId,
+        [FromQuery] CommissionStatus? status,
+        [FromQuery] DateTime? fromDate,
+        [FromQuery] DateTime? toDate,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] string format = "json")
+    {
+        IEnumerable<CommissionTransactionDto> result;
+
+        // Prefer most specific query based on provided filters
+        if (userId.HasValue)
+        {
+            var query = new GetUserCommissionsQuery
+            {
+                UserId = userId.Value,
+                Filter = new CommissionFilterDto
+                {
+                    Status = status,
+                    FromDate = fromDate,
+                    ToDate = toDate,
+                    PageNumber = page,
+                    PageSize = pageSize
+                }
+            };
+            result = await _mediator.Send(query);
+        }
+        else if (status.HasValue)
+        {
+            var query = new GetCommissionsByStatusQuery
+            {
+                Status = status.Value,
+                PageNumber = page,
+                PageSize = pageSize
+            };
+            result = await _mediator.Send(query);
+        }
+        else if (fromDate.HasValue && toDate.HasValue)
+        {
+            var query = new GetCommissionsByDateRangeQuery
+            {
+                FromDate = fromDate.Value,
+                ToDate = toDate.Value
+            };
+            result = await _mediator.Send(query);
+        }
+        else
+        {
+            // Fallback to all commissions paged
+            var query = new GetAllCommissionsQuery
+            {
+                PageNumber = page,
+                PageSize = pageSize
+            };
+            result = await _mediator.Send(query);
+        }
+
+        if (string.Equals(format, "csv", StringComparison.OrdinalIgnoreCase))
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Id,UserId,SourcePaymentId,ProductId,RuleSetId,Level,Amount,SourceAmount,Percentage,Status,IsSettled,WalletTransactionId,CreatedOn,ApprovedAt,PaidAt,RejectedAt");
+            foreach (var c in result)
+            {
+                sb.AppendLine($"{c.Id},{c.UserId},{c.SourcePaymentId},{c.ProductId},{c.CommissionRuleSetId},{c.Level},{c.Amount},{c.SourceAmount},{c.Percentage},{c.Status},{c.IsSettled},{c.WalletTransactionId},{c.CreatedOn:o},{c.ApprovedAt:o},{c.PaidAt:o},{c.RejectedAt:o}");
+            }
+            return File(Encoding.UTF8.GetBytes(sb.ToString()), "text/csv", $"commissions_{DateTime.UtcNow:yyyyMMddHHmmss}.csv");
+        }
+
         return Ok(result);
     }
 

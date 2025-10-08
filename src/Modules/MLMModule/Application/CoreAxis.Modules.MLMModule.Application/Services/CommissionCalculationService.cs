@@ -244,9 +244,9 @@ public class CommissionCalculationService : ICommissionCalculationService
     {
         var commissions = new List<CommissionTransaction>();
         
-        // Get active commission levels from the latest version
+        // Get latest published version (precedence: published versions only)
         var latestVersion = ruleSet.Versions
-            .Where(v => v.IsActive)
+            .Where(v => v.IsPublished)
             .OrderByDescending(v => v.Version)
             .FirstOrDefault();
 
@@ -366,9 +366,9 @@ public class CommissionCalculationService : ICommissionCalculationService
     {
         var calculations = new List<CommissionCalculationDto>();
         
-        // Get active commission levels from the latest version
+        // Get latest published version (precedence: published versions only)
         var latestVersion = ruleSet.Versions
-            .Where(v => v.IsActive)
+            .Where(v => v.IsPublished)
             .OrderByDescending(v => v.Version)
             .FirstOrDefault();
 

@@ -4,6 +4,7 @@ using CoreAxis.Modules.MLMModule.Domain.Events;
 using CoreAxis.Modules.MLMModule.Domain.Repositories;
 using CoreAxis.Modules.MLMModule.Infrastructure.Data;
 using CoreAxis.Modules.MLMModule.Infrastructure.EventHandlers;
+using CoreAxis.Modules.MLMModule.Infrastructure.Background;
 using CoreAxis.Modules.MLMModule.Infrastructure.Repositories;
 using CoreAxis.Modules.MLMModule.Infrastructure.Services;
 using CoreAxis.SharedKernel.Contracts.Events;
@@ -37,6 +38,10 @@ public static class DependencyInjection
         services.AddScoped<IIntegrationEventHandler<PaymentConfirmed>, PaymentConfirmedEventHandler>();
         services.AddScoped<IIntegrationEventHandler<OrderFinalized>, OrderFinalizedIntegrationEventHandler>();
         services.AddScoped<IDomainEventHandler<CommissionApprovedEvent>, CommissionApprovedEventHandler>();
+
+        // Register background hosted services
+        services.AddHostedService<CommissionProcessingHostedService>();
+        services.AddHostedService<CommissionSettlementHostedService>();
 
         return services;
     }

@@ -1,0 +1,67 @@
+{
+    "module": "MLM",
+    "principles": [
+        "Do not break existing request/response schemas.",
+        "All money effects via Wallet; settlement uses idempotent keys.",
+        "Use Outbox/EventBus for cross-module notifications.",
+        "All admin/report errors in RFC7807 with machine-readable codes and correlation."
+    ],
+    "tasks": [
+        {
+            "id": "MLM-1",
+            "title": "Settlement job (Pending → Booked/Paid) with Wallet credit",
+            "description": "Implement a HostedService (CommissionSettlementHostedService). Periodically select eligible Pending commissions (status=Pending, window passed, prerequisites met), mark as Booked/Paid, and call Wallet credit API with idempotency key `commission:{sourcePaymentId}:{userId}:L{level}`. Persist WalletTransactionId inside CommissionTransaction.",
+            "status": "Completed"
+        },
+        {
+            "id": "MLM-2",
+            "title": "CommissionBooked integration event (Outbox)",
+            "description": "After successful settlement/credit, publish `CommissionBooked` (or `CommissionSettled`) to Outbox/EventBus with fields {commissionId, userId, orderId/sourcePaymentId, level, amount, planVersion, productId, settledAt}.",
+            "status": "Completed"
+        },
+        {
+            "id": "MLM-3",
+            "title": "Admin reports + CSV/JSON export",
+            "description": "Expose GET /admin/mlm/report with optional filters (userId, status, fromDate, toDate) and output format (json/csv). Use repository pagination and DTO mapping.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "MLM-4",
+            "title": "Scheduler wiring for ProcessPendingCommissions",
+            "description": "Wire `ProcessPendingCommissionsCommand` to a periodic scheduler (e.g., BackgroundService or Quartz). Support batch size, jitter, and backoff. Ensure idempotent processing and resilient retries.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "MLM-5",
+            "title": "Rule binding enforcement (runtime)",
+            "description": "In CommissionCalculationService, ensure rule selection precedence: product-specific binding > default active rule set. Add unit/integration tests for min purchase and active upline checks.",
+            "status": "Completed"
+        },
+        {
+            "id": "MLM-6",
+            "title": "ProblemDetails codes & rate limiting (admin ops)",
+            "description": "Standardize codes: `MLM_INVALID_RULESET`, `MLM_NOT_ELIGIBLE`, `MLM_ALREADY_PROCESSED`, `MLM_SETTLEMENT_FAILED`. Apply lightweight rate limit on sensitive admin endpoints (approve/reject/pay) to avoid abuse.",
+            "status": "انجام شده"
+        },
+        {
+            "id": "MLM-7",
+            "title": "Metrics & dashboards hooks",
+            "description": "Expose counters/gauges: commissions_generated_total, commissions_pending, commissions_booked_total, settlement_latency_ms, failures_by_code, per-level distribution. No UI required—export via existing telemetry.",
+            "status": "Completed"
+        }
+    ],
+    "acceptance": [
+        "OrderFinalized ⇒ Pending commissions generated once (idempotent by SourcePaymentId).",
+        "Settlement job periodically books/credits Wallet and stores WalletTransactionId.",
+        "Admin can export filtered commission reports in CSV/JSON with the specified columns.",
+        "Outbox emits CommissionBooked with necessary fields.",
+        "Rule selection precedence and eligibility checks verified by tests.",
+        "ProblemDetails codes and minimal rate limiting applied to admin ops.",
+        "Metrics available for dashboards (Ops visibility)."
+    ],
+    "non_goals_now": [
+        "UI pages (admin UI can come later).",
+        "On-chain payments or external bank payouts.",
+        "Complex A/B rule engines (current versioning is sufficient)."
+    ]
+}
