@@ -6,6 +6,8 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.Net.Mime;
+using Microsoft.AspNetCore.Http;
 
 namespace CoreAxis.Modules.ProductOrderModule.Api.Controllers;
 
@@ -22,9 +24,36 @@ public class OrderController : ControllerBase
     }
 
     /// <summary>
-    /// Place a new order
+    /// Place a new order.
     /// </summary>
+    /// <remarks>
+    /// Headers:
+    /// - `Idempotency-Key` (optional GUID) to ensure safe retries.
+    /// - `X-Correlation-ID` (optional GUID) for tracing.
+    ///
+    /// Request body:
+    /// ```json
+    /// {
+    ///   "assetCode": "PRD-001",
+    ///   "totalAmount": 149.99,
+    ///   "orderLines": [
+    ///     { "productId": "3fa85f64-5717-4562-b3fc-2c963f66afa6", "quantity": 2, "unitPrice": 74.995 }
+    ///   ]
+    /// }
+    /// ```
+    ///
+    /// Responses:
+    /// - 201 Created → returns `OrderDto` with `Location` header to `GET /api/order/{id}`.
+    /// - 400 BadRequest → validation errors.
+    /// - 401 Unauthorized → user not authenticated.
+    /// - 500 InternalServerError.
+    /// </remarks>
     [HttpPost]
+    [Produces(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(typeof(OrderDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HasPermission("ORDER", "PLACE")]
     public async Task<ActionResult<OrderDto>> PlaceOrder([FromBody] PlaceOrderDto request)
     {
@@ -46,9 +75,17 @@ public class OrderController : ControllerBase
     }
 
     /// <summary>
-    /// Get order by ID
+    /// Get order by ID.
     /// </summary>
+    /// <remarks>
+    /// Returns `404` when the order is not found or does not belong to the current user.
+    /// </remarks>
     [HttpGet("{id}")]
+    [Produces(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(typeof(OrderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HasPermission("ORDER", "READ")]
     public async Task<ActionResult<OrderDto>> GetOrder(Guid id)
     {
@@ -63,9 +100,23 @@ public class OrderController : ControllerBase
     }
 
     /// <summary>
-    /// Get orders for current user
+    /// Get orders for current user (paged).
     /// </summary>
+    /// <remarks>
+    /// Query:
+    /// - `page` (default 1)
+    /// - `pageSize` (default 20)
+    ///
+    /// Responses:
+    /// - 200 OK → list of `OrderDto`.
+    /// - 401 Unauthorized.
+    /// - 500 InternalServerError.
+    /// </remarks>
     [HttpGet]
+    [Produces(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(typeof(IEnumerable<OrderDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HasPermission("ORDER", "READ")]
     public async Task<ActionResult<IEnumerable<OrderDto>>> GetUserOrders(
         [FromQuery] int page = 1,
@@ -84,9 +135,21 @@ public class OrderController : ControllerBase
     }
 
     /// <summary>
-    /// Cancel an order
+    /// Cancel an order.
     /// </summary>
+    /// <remarks>
+    /// Responses:
+    /// - 204 NoContent → canceled.
+    /// - 404 NotFound → order not found.
+    /// - 401 Unauthorized.
+    /// - 500 InternalServerError.
+    /// </remarks>
     [HttpPost("{id}/cancel")]
+    [Produces(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HasPermission("ORDER", "CANCEL")]
     public async Task<ActionResult> CancelOrder(Guid id)
     {
@@ -102,9 +165,21 @@ public class OrderController : ControllerBase
     }
 
     /// <summary>
-    /// Get order lines for an order
+    /// Get order lines for an order.
     /// </summary>
+    /// <remarks>
+    /// Responses:
+    /// - 200 OK → list of `OrderLineDto`.
+    /// - 404 NotFound → order not found.
+    /// - 401 Unauthorized.
+    /// - 500 InternalServerError.
+    /// </remarks>
     [HttpGet("{id}/lines")]
+    [Produces(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(typeof(IEnumerable<OrderLineDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HasPermission("ORDER", "READ")]
     public async Task<ActionResult<IEnumerable<OrderLineDto>>> GetOrderLines(Guid id)
     {

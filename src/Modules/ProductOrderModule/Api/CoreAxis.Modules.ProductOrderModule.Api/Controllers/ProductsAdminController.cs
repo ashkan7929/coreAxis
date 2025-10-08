@@ -14,6 +14,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using CoreAxis.Modules.ProductOrderModule.Application.Services;
+using System.Net.Mime;
 
 namespace CoreAxis.Modules.ProductOrderModule.Api.Controllers;
 
@@ -39,7 +40,25 @@ public class ProductsAdminController : ControllerBase
         _idempotencyService = idempotencyService;
     }
 
+    /// <summary>
+    /// Get an admin view of a product by ID.
+    /// </summary>
+    /// <remarks>
+    /// Example:
+    ///
+    /// GET `/api/admin/products/{id}`
+    ///
+    /// Responses:
+    /// - 200 OK → returns full `ProductAdminDto`.
+    /// - 404 NotFound → Problem+JSON with `code=PRODUCT_NOT_FOUND`.
+    /// - 500 InternalServerError.
+    /// </remarks>
+    /// <param name="id">Product identifier (Guid).</param>
     [HttpGet("{id:guid}")]
+    [Produces(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(typeof(ProductAdminDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HasPermission("Products", "Read")]
     public async Task<ActionResult<ProductAdminDto>> GetById(Guid id)
     {
@@ -57,7 +76,37 @@ public class ProductsAdminController : ControllerBase
         return Ok(MapToAdminDto(product));
     }
 
+    /// <summary>
+    /// Create a new product (admin).
+    /// </summary>
+    /// <remarks>
+    /// Headers:
+    /// - `Idempotency-Key` (optional GUID) to safely retry.
+    ///
+    /// Request body:
+    /// ```json
+    /// {
+    ///   "code": "SKU-001",
+    ///   "name": "Product 1",
+    ///   "status": "Active",
+    ///   "priceFrom": 99.99,
+    ///   "currency": "USD",
+    ///   "attributes": { "color": "blue" }
+    /// }
+    /// ```
+    ///
+    /// Responses:
+    /// - 201 Created → `ProductAdminDto` with `Location` header to `GET /api/admin/products/{id}`.
+    /// - 400 BadRequest → validation errors (Problem+JSON, `code=PRODUCT_INVALID`).
+    /// - 409 Conflict → duplicate product code (Problem+JSON, `code=DUPLICATE_PRODUCT_CODE`).
+    /// - 500 InternalServerError.
+    /// </remarks>
     [HttpPost]
+    [Produces(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(typeof(ProductAdminDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HasPermission("Products", "Write")]
     public async Task<ActionResult<ProductAdminDto>> Create([FromBody] CreateProductRequest request)
     {
@@ -116,7 +165,25 @@ public class ProductsAdminController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = product.Id }, dto);
     }
 
+    /// <summary>
+    /// Update an existing product (admin).
+    /// </summary>
+    /// <remarks>
+    /// Headers:
+    /// - `Idempotency-Key` (optional GUID) to safely retry.
+    ///
+    /// Responses:
+    /// - 200 OK → updated `ProductAdminDto`.
+    /// - 400 BadRequest → validation errors (Problem+JSON).
+    /// - 404 NotFound → product not found.
+    /// - 500 InternalServerError.
+    /// </remarks>
     [HttpPut("{id:guid}")]
+    [Produces(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(typeof(ProductAdminDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HasPermission("Products", "Write")]
     public async Task<ActionResult<ProductAdminDto>> Update(Guid id, [FromBody] UpdateProductRequest request)
     {
@@ -178,7 +245,22 @@ public class ProductsAdminController : ControllerBase
         return Ok(MapToAdminDto(product));
     }
 
+    /// <summary>
+    /// Delete a product (admin).
+    /// </summary>
+    /// <remarks>
+    /// Deletes/deactivates the product. Returns no content when successful.
+    ///
+    /// Responses:
+    /// - 204 NoContent → deleted.
+    /// - 404 NotFound → product not found.
+    /// - 500 InternalServerError.
+    /// </remarks>
     [HttpDelete("{id:guid}")]
+    [Produces(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     [HasPermission("Products", "Delete")]
     public async Task<IActionResult> Delete(Guid id)
     {
