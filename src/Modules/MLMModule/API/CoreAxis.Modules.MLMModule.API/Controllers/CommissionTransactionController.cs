@@ -9,6 +9,7 @@ using CoreAxis.SharedKernel.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Text;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 
 namespace CoreAxis.Modules.MLMModule.API.Controllers;
 
@@ -29,6 +30,8 @@ public class CommissionTransactionController : ControllerBase
     /// </summary>
     [HttpGet("{id}")]
     [RequirePermission("Commissions", "Read")]
+    [ProducesResponseType(typeof(CommissionTransactionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CommissionTransactionDto>> GetCommission(Guid id)
     {
         var query = new GetCommissionByIdQuery { CommissionId = id };
@@ -45,6 +48,7 @@ public class CommissionTransactionController : ControllerBase
     /// </summary>
     [HttpGet("user/{userId}")]
     [RequirePermission("Commissions", "Read")]
+    [ProducesResponseType(typeof(IEnumerable<CommissionTransactionDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<CommissionTransactionDto>>> GetUserCommissions(
         Guid userId, 
         [FromQuery] int page = 1, 
@@ -64,6 +68,7 @@ public class CommissionTransactionController : ControllerBase
     /// </summary>
     [HttpGet("status/{status}")]
     [RequirePermission("Commissions", "Read")]
+    [ProducesResponseType(typeof(IEnumerable<CommissionTransactionDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<CommissionTransactionDto>>> GetCommissionsByStatus(
         CommissionStatus status, 
         [FromQuery] int page = 1, 
@@ -84,6 +89,7 @@ public class CommissionTransactionController : ControllerBase
     /// </summary>
     [HttpGet("source-payment/{sourcePaymentId}")]
     [RequirePermission("Commissions", "Read")]
+    [ProducesResponseType(typeof(IEnumerable<CommissionTransactionDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<CommissionTransactionDto>>> GetCommissionsBySourcePayment(Guid sourcePaymentId)
     {
         var query = new GetCommissionsBySourcePaymentQuery { SourcePaymentId = sourcePaymentId };
@@ -96,6 +102,7 @@ public class CommissionTransactionController : ControllerBase
     /// </summary>
     [HttpGet("user/{userId}/summary")]
     [RequirePermission("Commissions", "Read")]
+    [ProducesResponseType(typeof(CommissionSummaryDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<CommissionSummaryDto>> GetCommissionSummary(
         Guid userId, 
         [FromQuery] DateTime? startDate = null, 
@@ -116,6 +123,7 @@ public class CommissionTransactionController : ControllerBase
     /// </summary>
     [HttpGet("pending-approval")]
     [RequirePermission("Commissions", "Read")]
+    [ProducesResponseType(typeof(IEnumerable<CommissionTransactionDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<CommissionTransactionDto>>> GetPendingCommissionsForApproval(
         [FromQuery] int page = 1, 
         [FromQuery] int pageSize = 10)
@@ -134,6 +142,7 @@ public class CommissionTransactionController : ControllerBase
     /// </summary>
     [HttpGet("date-range")]
     [RequirePermission("Commissions", "Read")]
+    [ProducesResponseType(typeof(IEnumerable<CommissionTransactionDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<CommissionTransactionDto>>> GetCommissionsByDateRange(
         [FromQuery] DateTime startDate, 
         [FromQuery] DateTime endDate, 
@@ -155,6 +164,8 @@ public class CommissionTransactionController : ControllerBase
     [HttpPost("{id}/approve")]
     [RequirePermission("Commissions", "Approve")]
     [EnableRateLimiting("mlm-actions")]
+    [ProducesResponseType(typeof(CommissionTransactionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<ActionResult<CommissionTransactionDto>> ApproveCommission(Guid id, [FromBody] ApproveCommissionDto request)
     {
         var command = new ApproveCommissionCommand
@@ -174,6 +185,8 @@ public class CommissionTransactionController : ControllerBase
     [HttpPost("{id}/reject")]
     [RequirePermission("Commissions", "Reject")]
     [EnableRateLimiting("mlm-actions")]
+    [ProducesResponseType(typeof(CommissionTransactionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<ActionResult<CommissionTransactionDto>> RejectCommission(Guid id, [FromBody] RejectCommissionDto request)
     {
         var command = new RejectCommissionCommand
@@ -193,6 +206,8 @@ public class CommissionTransactionController : ControllerBase
     [HttpPost("{id}/mark-paid")]
     [RequirePermission("Commissions", "MarkPaid")]
     [EnableRateLimiting("mlm-actions")]
+    [ProducesResponseType(typeof(CommissionTransactionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<ActionResult<CommissionTransactionDto>> MarkCommissionAsPaid(Guid id, [FromBody] MarkCommissionAsPaidDto request)
     {
         var command = new MarkCommissionAsPaidCommand
@@ -212,6 +227,7 @@ public class CommissionTransactionController : ControllerBase
     /// </summary>
     [HttpGet("admin/report")]
     [RequirePermission("Commissions", "Read")]
+    [ProducesResponseType(typeof(IEnumerable<CommissionTransactionDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAdminReport(
         [FromQuery] Guid? userId,
         [FromQuery] CommissionStatus? status,

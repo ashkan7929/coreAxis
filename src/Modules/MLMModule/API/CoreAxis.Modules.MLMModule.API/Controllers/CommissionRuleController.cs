@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CoreAxis.SharedKernel.Authorization;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 
 namespace CoreAxis.Modules.MLMModule.API.Controllers;
 
@@ -26,6 +27,10 @@ public class CommissionRuleController : ControllerBase
     /// </summary>
     [HttpPost]
     [RequirePermission("CommissionRules", "Create")]
+    [ProducesResponseType(typeof(CommissionRuleSetDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<CommissionRuleSetDto>> CreateCommissionRuleSet([FromBody] CreateCommissionRuleSetDto request)
     {
         var command = new CreateCommissionRuleSetCommand
@@ -47,6 +52,8 @@ public class CommissionRuleController : ControllerBase
     /// </summary>
     [HttpGet("{id}")]
     [RequirePermission("CommissionRules", "Read")]
+    [ProducesResponseType(typeof(CommissionRuleSetDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CommissionRuleSetDto>> GetCommissionRuleSet(Guid id)
     {
         var query = new GetCommissionRuleSetByIdQuery { RuleSetId = id };
@@ -63,6 +70,8 @@ public class CommissionRuleController : ControllerBase
     /// </summary>
     [HttpGet("default")]
     [RequirePermission("CommissionRules", "Read")]
+    [ProducesResponseType(typeof(CommissionRuleSetDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CommissionRuleSetDto>> GetDefaultCommissionRuleSet()
     {
         var query = new GetDefaultCommissionRuleSetQuery();
@@ -79,6 +88,8 @@ public class CommissionRuleController : ControllerBase
     /// </summary>
     [HttpGet("product/{productId}")]
     [RequirePermission("CommissionRules", "Read")]
+    [ProducesResponseType(typeof(CommissionRuleSetDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CommissionRuleSetDto>> GetCommissionRuleSetByProduct(Guid productId)
     {
         var query = new GetCommissionRuleSetByProductQuery { ProductId = productId };
@@ -95,6 +106,7 @@ public class CommissionRuleController : ControllerBase
     /// </summary>
     [HttpGet("active")]
     [RequirePermission("CommissionRules", "Read")]
+    [ProducesResponseType(typeof(IEnumerable<CommissionRuleSetDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<CommissionRuleSetDto>>> GetActiveCommissionRuleSets()
     {
         var query = new GetActiveCommissionRuleSetsQuery();
@@ -107,6 +119,7 @@ public class CommissionRuleController : ControllerBase
     /// </summary>
     [HttpGet]
     [RequirePermission("CommissionRules", "Read")]
+    [ProducesResponseType(typeof(IEnumerable<CommissionRuleSetDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<CommissionRuleSetDto>>> GetAllCommissionRuleSets()
     {
         var query = new GetAllCommissionRuleSetsQuery();
@@ -119,6 +132,7 @@ public class CommissionRuleController : ControllerBase
     /// </summary>
     [HttpGet("product-bindings")]
     [RequirePermission("CommissionRules", "Read")]
+    [ProducesResponseType(typeof(IEnumerable<ProductRuleBindingDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<ProductRuleBindingDto>>> GetProductRuleBindings()
     {
         var query = new GetProductRuleBindingsQuery();
@@ -131,6 +145,7 @@ public class CommissionRuleController : ControllerBase
     /// </summary>
     [HttpGet("product-bindings/product/{productId}")]
     [RequirePermission("CommissionRules", "Read")]
+    [ProducesResponseType(typeof(IEnumerable<ProductRuleBindingDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<ProductRuleBindingDto>>> GetProductRuleBindingsByProduct(Guid productId)
     {
         var query = new GetProductRuleBindingsByProductQuery { ProductId = productId };
@@ -143,6 +158,8 @@ public class CommissionRuleController : ControllerBase
     /// </summary>
     [HttpPut("{id}")]
     [RequirePermission("CommissionRules", "Update")]
+    [ProducesResponseType(typeof(CommissionRuleSetDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CommissionRuleSetDto>> UpdateCommissionRuleSet(Guid id, [FromBody] UpdateCommissionRuleSetDto request)
     {
         var command = new UpdateCommissionRuleSetCommand
@@ -166,6 +183,7 @@ public class CommissionRuleController : ControllerBase
     /// </summary>
     [HttpPost("{id}/activate")]
     [RequirePermission("CommissionRules", "Update")]
+    [ProducesResponseType(typeof(CommissionRuleSetDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<CommissionRuleSetDto>> ActivateCommissionRuleSet(Guid id)
     {
         var command = new ActivateCommissionRuleSetCommand { RuleSetId = id };
@@ -178,6 +196,7 @@ public class CommissionRuleController : ControllerBase
     /// </summary>
     [HttpPost("{id}/deactivate")]
     [RequirePermission("CommissionRules", "Update")]
+    [ProducesResponseType(typeof(CommissionRuleSetDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<CommissionRuleSetDto>> DeactivateCommissionRuleSet(Guid id)
     {
         var command = new DeactivateCommissionRuleSetCommand { RuleSetId = id };
@@ -190,6 +209,7 @@ public class CommissionRuleController : ControllerBase
     /// </summary>
     [HttpPost("{id}/set-default")]
     [RequirePermission("CommissionRules", "Update")]
+    [ProducesResponseType(typeof(CommissionRuleSetDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<CommissionRuleSetDto>> SetDefaultCommissionRuleSet(Guid id)
     {
         var command = new SetDefaultCommissionRuleSetCommand 
@@ -205,6 +225,7 @@ public class CommissionRuleController : ControllerBase
     /// </summary>
     [HttpDelete("{id}")]
     [RequirePermission("CommissionRules", "Delete")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<ActionResult> DeleteCommissionRuleSet(Guid id)
     {
         var command = new DeleteCommissionRuleSetCommand { RuleSetId = id };
@@ -217,6 +238,8 @@ public class CommissionRuleController : ControllerBase
     /// </summary>
     [HttpPost("product-bindings")]
     [RequirePermission("CommissionRules", "Create")]
+    [ProducesResponseType(typeof(ProductRuleBindingDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<ProductRuleBindingDto>> AddProductRuleBinding([FromBody] CreateProductRuleBindingDto request)
     {
         var command = new AddProductRuleBindingCommand
