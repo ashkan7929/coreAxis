@@ -65,9 +65,23 @@ public class RegistryController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Export the current API registry (services, security profiles, methods and parameters).
+    /// </summary>
+    /// <remarks>
+    /// Responses:
+    /// - 200: Returns a JSON document describing the registry snapshot.
+    /// - 401: Unauthorized.
+    /// - 403: Forbidden (missing ApiManager Admin permission).
+    /// - 500: Internal error.
+    /// </remarks>
     [HttpGet("export")]
     [OutputCache(Duration = 60, VaryByHeaderNames = new[] { "Authorization" })]
     [HasPermission("ApiManager", "Admin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Export(CancellationToken ct)
     {
         try
@@ -167,8 +181,28 @@ public class RegistryController : ControllerBase
         public string? DefaultValue { get; set; }
     }
 
+    /// <summary>
+    /// Import an API registry document and upsert services, methods and parameters.
+    /// </summary>
+    /// <remarks>
+    /// Notes:
+    /// - Secret-like fields (e.g., password, token, apikey) must be null or omitted.
+    /// - Security profile configs are sanitized and matched by value; new profiles are created if needed.
+    ///
+    /// Responses:
+    /// - 200: Import succeeded and returns a summary of changes.
+    /// - 400: Invalid payload or secret-like values present.
+    /// - 401: Unauthorized.
+    /// - 403: Forbidden (missing ApiManager Admin permission).
+    /// - 500: Internal error.
+    /// </remarks>
     [HttpPost("import")]
     [HasPermission("ApiManager", "Admin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Import([FromBody] RegistryImportModel model, CancellationToken ct)
     {
         if (model == null || model.WebServices == null || model.WebServices.Count == 0)

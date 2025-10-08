@@ -25,8 +25,30 @@ public class LogsController : ControllerBase
     /// <summary>
     /// Get API call logs with optional filtering
     /// </summary>
+    /// <remarks>
+    /// Sample request:
+    ///
+    /// GET /api/admin/apim/logs?webServiceId={id}&methodId={id}&succeeded=true&fromDate=2025-01-01&toDate=2025-01-31&pageNumber=1&pageSize=50
+    ///
+    /// Query parameters:
+    /// - webServiceId: Filter by web service ID.
+    /// - methodId: Filter by method ID.
+    /// - succeeded: Filter by success status.
+    /// - fromDate/toDate: Filter by date range (UTC).
+    /// - pageNumber/pageSize: Pagination controls.
+    ///
+    /// Responses:
+    /// - 200: Returns paged call logs.
+    /// - 401: Unauthorized.
+    /// - 403: Forbidden (missing ApiManager Read permission).
+    /// - 500: Internal error.
+    /// </remarks>
     [HttpGet]
     [HasPermission("ApiManager", "Read")]
+    [ProducesResponseType(typeof(GetCallLogsResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<GetCallLogsResult>> GetCallLogs(
         [FromQuery] Guid? webServiceId = null,
         [FromQuery] Guid? methodId = null,

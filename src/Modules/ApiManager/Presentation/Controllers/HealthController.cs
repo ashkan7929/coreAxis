@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
 using CoreAxis.Modules.ApiManager.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -54,8 +55,10 @@ namespace CoreAxis.Modules.ApiManager.Presentation.Controllers
         /// Gets the health status of the API Manager module.
         /// </summary>
         /// <returns>The health status.</returns>
-        [HttpGet]
-        public async Task<IActionResult> Get()
+    [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> Get()
         {
             var healthReport = await _healthCheckService.CheckHealthAsync();
             
@@ -75,8 +78,10 @@ namespace CoreAxis.Modules.ApiManager.Presentation.Controllers
         /// Tests the database connection.
         /// </summary>
         /// <returns>The connection test result.</returns>
-        [HttpGet("test-db")]
-        public async Task<IActionResult> TestDatabaseConnection()
+    [HttpGet("test-db")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> TestDatabaseConnection()
         {
             try
             {
@@ -112,8 +117,10 @@ namespace CoreAxis.Modules.ApiManager.Presentation.Controllers
         /// </summary>
         /// <param name="withProbes">Run cheap HEAD/GET probes against a few services.</param>
         /// <param name="maxProbeCount">Max number of services to probe.</param>
-        [HttpGet("ready")]
-        public async Task<IActionResult> Ready([FromQuery] bool withProbes = false, [FromQuery] int maxProbeCount = 3)
+    [HttpGet("ready")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> Ready([FromQuery] bool withProbes = false, [FromQuery] int maxProbeCount = 3)
         {
             var readiness = new ReadinessStatus();
 

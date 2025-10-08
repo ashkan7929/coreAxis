@@ -27,8 +27,25 @@ public class WebServicesController : ControllerBase
     /// <summary>
     /// Get all web services with optional filtering and pagination
     /// </summary>
+    /// <remarks>
+    /// Sample request:
+    ///
+    /// GET /api/admin/apim/services?ownerTenantId={tenantId}&amp;isActive=true&amp;pageNumber=1&amp;pageSize=20
+    ///
+    /// Responses:
+    /// - 200: Returns a paged list of web services.
+    /// - 400: Invalid query parameters.
+    /// - 401: Unauthorized.
+    /// - 403: Forbidden (missing ApiManager Read permission).
+    /// - 500: Internal error.
+    /// </remarks>
     [HttpGet]
     [HasPermission("ApiManager", "Read")]
+    [ProducesResponseType(typeof(GetWebServicesResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<GetWebServicesResult>> GetWebServices(
         [FromQuery] string? ownerTenantId = null,
         [FromQuery] bool? isActive = null,
@@ -56,8 +73,25 @@ public class WebServicesController : ControllerBase
     /// <summary>
     /// Get web service details by ID
     /// </summary>
+    /// <remarks>
+    /// Sample request:
+    ///
+    /// GET /api/admin/apim/services/{id}
+    ///
+    /// Responses:
+    /// - 200: Returns the web service details.
+    /// - 404: Web service not found.
+    /// - 401: Unauthorized.
+    /// - 403: Forbidden (missing ApiManager Read permission).
+    /// - 500: Internal error.
+    /// </remarks>
     [HttpGet("{id:guid}")]
     [HasPermission("ApiManager", "Read")]
+    [ProducesResponseType(typeof(WebServiceDetailsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<WebServiceDetailsDto>> GetWebService(
         Guid id,
         CancellationToken cancellationToken = default)
@@ -97,8 +131,33 @@ public class WebServicesController : ControllerBase
     /// <summary>
     /// Create a new web service
     /// </summary>
+    /// <remarks>
+    /// Sample request body:
+    ///
+    /// {
+    ///   "name": "PricingService",
+    ///   "description": "Provides price quotes",
+    ///   "baseUrl": "https://api.example.com",
+    ///   "securityProfileId": "00000000-0000-0000-0000-000000000000",
+    ///   "ownerTenantId": "tenant-001"
+    /// }
+    ///
+    /// Responses:
+    /// - 201: Created with location header.
+    /// - 400: Invalid argument.
+    /// - 409: Duplicate service.
+    /// - 401: Unauthorized.
+    /// - 403: Forbidden (missing ApiManager Create permission).
+    /// - 500: Internal error.
+    /// </remarks>
     [HttpPost]
     [HasPermission("ApiManager", "Create")]
+    [ProducesResponseType(typeof(CreateWebServiceResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<CreateWebServiceResponse>> CreateWebService(
         [FromBody] CreateWebServiceRequest request,
         CancellationToken cancellationToken = default)
@@ -158,9 +217,36 @@ public class WebServicesController : ControllerBase
     /// <summary>
     /// Create a new method for a web service
     /// </summary>
+    /// <remarks>
+    /// Sample request:
+    ///
+    /// POST /api/admin/apim/services/{webServiceId}/methods
+    /// {
+    ///   "name": "GetQuote",
+    ///   "description": "Retrieve price quote",
+    ///   "path": "/quotes",
+    ///   "httpMethod": "GET",
+    ///   "timeoutMs": 3000,
+    ///   "parameters": [ { "name":"symbol","location":"Query","dataType":"string","isRequired":true } ]
+    /// }
+    ///
+    /// Responses:
+    /// - 201: Created method.
+    /// - 400: Invalid argument.
+    /// - 409: Duplicate method or path.
+    /// - 401: Unauthorized.
+    /// - 403: Forbidden (missing ApiManager Create permission).
+    /// - 500: Internal error.
+    /// </remarks>
     [HttpPost("{webServiceId:guid}/methods")]
     [HttpPost("{webServiceId:guid}/endpoints")]
     [HasPermission("ApiManager", "Create")]
+    [ProducesResponseType(typeof(CreateWebServiceMethodResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<CreateWebServiceMethodResponse>> CreateWebServiceMethod(
         Guid webServiceId,
         [FromBody] CreateWebServiceMethodRequest request,
@@ -236,8 +322,30 @@ public class WebServicesController : ControllerBase
     /// <summary>
     /// Test/invoke a web service method
     /// </summary>
+    /// <remarks>
+    /// Sample request:
+    ///
+    /// POST /api/admin/apim/services/methods/{methodId}/invoke
+    /// {
+    ///   "parameters": { "symbol": "EURUSD" }
+    /// }
+    ///
+    /// Responses:
+    /// - 200: Invocation response.
+    /// - 400: Validation or invocation error.
+    /// - 404: Method not found.
+    /// - 401: Unauthorized.
+    /// - 403: Forbidden (missing ApiManager Execute permission).
+    /// - 500: Internal error.
+    /// </remarks>
     [HttpPost("methods/{methodId:guid}/invoke")]
     [HasPermission("ApiManager", "Execute")]
+    [ProducesResponseType(typeof(InvokeApiMethodResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<InvokeApiMethodResponse>> InvokeMethod(
         Guid methodId,
         [FromBody] InvokeApiMethodRequest request,

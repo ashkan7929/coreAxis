@@ -35,6 +35,37 @@ public class RuntimeFacadeController : ControllerBase
     [HttpPost("call")]
     [EnableRateLimiting("apim-call")]
     [HasPermission("ApiManager", "Execute")]
+    /// <summary>
+    /// Invoke downstream API via runtime facade using either MethodId or (ServiceName, HttpMethod, Path).
+    /// </summary>
+    /// <remarks>
+    /// Sample request:
+    ///
+    /// {
+    ///   "serviceName": "PricingService",
+    ///   "httpMethod": "GET",
+    ///   "path": "/quotes",
+    ///   "parameters": { "symbol": "EURUSD" }
+    /// }
+    ///
+    /// or
+    ///
+    /// { "methodId": "00000000-0000-0000-0000-000000000000", "parameters": { "symbol": "EURUSD" } }
+    ///
+    /// Responses:
+    /// - 200: Downstream success; returns downstream body and status code.
+    /// - 400: Invalid request body or missing arguments.
+    /// - 401: Unauthorized.
+    /// - 403: Forbidden (missing ApiManager Execute permission).
+    /// - 502: Downstream error mapped to Bad Gateway.
+    /// - 500: Internal error.
+    /// </remarks>
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status502BadGateway)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Call([FromBody] RuntimeCallRequest request, CancellationToken cancellationToken)
     {
         if (request == null)
