@@ -2,6 +2,46 @@
 
 The AuthModule provides comprehensive authentication and authorization functionality for the CoreAxis application. It implements a sophisticated role-based access control (RBAC) system with granular permissions, security features, and comprehensive audit logging.
 
+## Scope
+- Provides authentication (password and OTP), authorization (RBAC + granular permissions), and audit logging.
+- Exposes RESTful APIs for user, role, and permission management.
+- Centralizes auth concerns for all modules via the API Gateway.
+
+## Roadmap
+- Add refresh tokens and token revocation list.
+- Implement passwordless WebAuthn support.
+- Expand OTP providers with pluggable gateways and rate limiting.
+- Add fine-grained resource-based authorization policies.
+- Introduce multi-tenant scoping for users, roles, and permissions.
+
+## Limitations
+- Password login is considered legacy; prefer OTP-based authentication.
+- External registry checks (Shahkar/Civil) depend on third-party availability.
+- System roles are protected and cannot be modified in certain operations.
+- XML comments require build configuration to include documentation files.
+
+---
+
+## Technical Details
+
+### Domain
+- Core entities: `User`, `Role`, `Permission`, `Page`, `Action`, `AccessLog`, `OtpCode`.
+- Business rules: account lockout, login attempt tracking, permission inheritance.
+
+### API
+- Key endpoints: `/api/auth`, `/api/users`, `/api/roles`, `/api/permissions`.
+- All endpoints documented with XML comments and response metadata for Swagger.
+
+### Schema
+- Tables for users, roles, permissions, user-roles, role-permissions, access logs, OTP codes.
+- SQL Server by default; in-memory fallback for development.
+
+### Code Snippets
+- Register services: `services.AddAuthModuleApi(configuration);`
+- Retrieve a user: `GET /api/users/{id}`
+- Assign a role: `POST /api/users/{id}/roles`
+- Create a permission: `POST /api/permissions`
+
 ## 🚀 Key Features
 
 ### 🔐 Authentication & Security
