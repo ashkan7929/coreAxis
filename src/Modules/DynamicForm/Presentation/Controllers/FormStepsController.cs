@@ -44,6 +44,24 @@ namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers
         /// <param name="includeInactive">Include inactive steps.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Form step details.</returns>
+        /// <remarks>
+        /// Functionality: Retrieves a specific step of a form including metadata and ordering.
+        ///
+        /// Sample response (200):
+        /// ```json
+        /// {
+        ///   "id": "c2ad1b7e-55ef-4c5e-9a61-2c95c1f2b123",
+        ///   "formId": "6c2b6f1d-3c48-4d9c-9e6b-0e79f67d1234",
+        ///   "stepNumber": 2,
+        ///   "title": "Personal Details",
+        ///   "isRequired": true
+        /// }
+        /// ```
+        ///
+        /// Errors:
+        /// - 404 Not Found: Step not found.
+        /// - 500 Internal Server Error: Unexpected server error.
+        /// </remarks>
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(FormStepDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -88,6 +106,25 @@ namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers
         /// <param name="orderByStepNumber">Order by step number.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>List of form steps.</returns>
+        /// <remarks>
+        /// Functionality: Returns all steps for a given form with optional filters.
+        ///
+        /// Query parameters:
+        /// - `formId` (required): Target form ID.
+        /// - `tenantId` (required): Tenant context.
+        /// - `includeInactive`: Include inactive steps.
+        /// - `requiredOnly`: Only include required steps.
+        /// - `skippableOnly`: Only include skippable steps.
+        /// - `orderByStepNumber`: Sort by step number.
+        ///
+        /// Sample response (200):
+        /// ```json
+        /// [ { "id": "...", "stepNumber": 1, "title": "Start" } ]
+        /// ```
+        ///
+        /// Errors:
+        /// - 500 Internal Server Error: Unexpected server error.
+        /// </remarks>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<FormStepDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -128,6 +165,25 @@ namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers
         /// <param name="command">Form step creation data.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Created form step.</returns>
+        /// <remarks>
+        /// Functionality: Creates a new step with ordering, requirements, and skippable settings.
+        ///
+        /// Sample request:
+        /// ```json
+        /// {
+        ///   "formId": "6c2b6f1d-3c48-4d9c-9e6b-0e79f67d1234",
+        ///   "stepNumber": 3,
+        ///   "title": "Attachments",
+        ///   "isRequired": false,
+        ///   "isSkippable": true
+        /// }
+        /// ```
+        ///
+        /// Responses:
+        /// - 201 Created: Returns created step.
+        /// - 400 Bad Request: Validation errors.
+        /// - 500 Internal Server Error: Unexpected server error.
+        /// </remarks>
         [HttpPost]
         [ProducesResponseType(typeof(FormStepDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(string[]), StatusCodes.Status400BadRequest)]
@@ -155,6 +211,23 @@ namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers
         /// <param name="command">Form step update data.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Updated form step.</returns>
+        /// <remarks>
+        /// Functionality: Updates an existing step's metadata.
+        ///
+        /// Sample request:
+        /// ```json
+        /// {
+        ///   "title": "Personal Details (Updated)",
+        ///   "isRequired": true
+        /// }
+        /// ```
+        ///
+        /// Responses:
+        /// - 200 OK: Updated step.
+        /// - 400 Bad Request: Validation errors.
+        /// - 404 Not Found: Step not found.
+        /// - 500 Internal Server Error: Unexpected server error.
+        /// </remarks>
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(FormStepDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(string[]), StatusCodes.Status400BadRequest)]
@@ -191,6 +264,19 @@ namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers
         /// <param name="hardDelete">Perform hard delete (permanent removal).</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Deletion result.</returns>
+        /// <remarks>
+        /// Functionality: Deletes a step either softly or permanently.
+        ///
+        /// Query parameters:
+        /// - `tenantId` (required): Tenant context.
+        /// - `deletedBy` (required): Actor performing deletion.
+        /// - `hardDelete` (optional): If true, removes permanently.
+        ///
+        /// Responses:
+        /// - 200 OK: Returns boolean success.
+        /// - 404 Not Found: Step not found.
+        /// - 500 Internal Server Error: Unexpected server error.
+        /// </remarks>
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

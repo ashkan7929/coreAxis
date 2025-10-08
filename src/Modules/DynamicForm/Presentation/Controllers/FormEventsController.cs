@@ -41,6 +41,26 @@ namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers
         /// <param name="request">The event trigger request.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The event execution results.</returns>
+        /// <remarks>
+        /// Functionality: Triggers dynamic form events (onLoad, onChange, onSubmit) and returns handler results.
+        ///
+        /// Sample request:
+        /// ```json
+        /// {
+        ///   "formId": "6c2b6f1d-3c48-4d9c-9e6b-0e79f67d1234",
+        ///   "eventType": "OnChange",
+        ///   "tenantId": "tenant-001",
+        ///   "changedField": "email",
+        ///   "formData": { "email": "user@example.com" },
+        ///   "metadata": { "source": "web" }
+        /// }
+        /// ```
+        ///
+        /// Responses:
+        /// - 200 OK: Returns a list of event handler results.
+        /// - 400 Bad Request: Invalid event or missing required fields.
+        /// - 500 Internal Server Error: Unexpected error during event execution.
+        /// </remarks>
         [HttpPost("trigger")]
         [ProducesResponseType(typeof(List<FormEventResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
@@ -86,6 +106,24 @@ namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers
         /// <param name="formId">The form ID.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The form event handlers information.</returns>
+        /// <remarks>
+        /// Functionality: Retrieves metadata about registered event handlers for a given form.
+        ///
+        /// Sample response (200):
+        /// ```json
+        /// {
+        ///   "formId": "6c2b6f1d-3c48-4d9c-9e6b-0e79f67d1234",
+        ///   "handlers": [
+        ///     { "event": "OnChange", "name": "EmailValidator", "description": "Validate email format" }
+        ///   ]
+        /// }
+        /// ```
+        ///
+        /// Errors:
+        /// - 400 Bad Request: Invalid formId.
+        /// - 404 Not Found: No handlers registered.
+        /// - 500 Internal Server Error: Unexpected server error.
+        /// </remarks>
         [HttpGet("{formId:guid}/handlers")]
         [ProducesResponseType(typeof(FormEventHandlersDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]

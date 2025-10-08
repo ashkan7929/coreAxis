@@ -60,7 +60,18 @@ try
     ExpandEnvironmentVariables(builder.Configuration);
 
     // Add services to the container.
-    builder.Services.AddControllers();
+    // Make DynamicForm optional at runtime to avoid hard failure if assembly is missing
+    var mvcBuilder = builder.Services.AddControllers();
+    try
+    {
+        var dynamicFormAssembly = System.Reflection.Assembly.Load("CoreAxis.Modules.DynamicForm.API");
+        mvcBuilder.AddApplicationPart(dynamicFormAssembly);
+        Console.WriteLine("[Startup] DynamicForm API loaded via ApplicationPart.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] DynamicForm API not available: {ex.Message}. Continuing without it.");
+    }
     
     // Add Localization
     builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
@@ -118,12 +129,17 @@ try
             }
         });
 
-        // Include XML comments when available for richer docs
-        var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
-        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-        if (File.Exists(xmlPath))
+        // Include XML comments from all assemblies copied to output for richer docs
+        foreach (var xml in Directory.GetFiles(AppContext.BaseDirectory, "*.xml", SearchOption.TopDirectoryOnly))
         {
-            c.IncludeXmlComments(xmlPath);
+            try
+            {
+                c.IncludeXmlComments(xml, includeControllerXmlComments: true);
+            }
+            catch
+            {
+                // ignore malformed XML docs
+            }
         }
     });
 

@@ -33,6 +33,25 @@ public class FormsController : ControllerBase
     /// <param name="command">Form creation data</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Created form</returns>
+    /// <remarks>
+    /// Functionality: Creates a dynamic form with metadata, fields, and access policies.
+    ///
+    /// Sample request:
+    /// ```json
+    /// {
+    ///   "name": "insurance-form",
+    ///   "tenantId": "b4a4b6f2-9f1b-4c3d-b2a2-9c0b1f42c111",
+    ///   "title": "Insurance Application",
+    ///   "fields": [ { "name": "fullName", "type": "text", "required": true } ],
+    ///   "isActive": true
+    /// }
+    /// ```
+    ///
+    /// Responses:
+    /// - 201 Created: Returns the created form resource.
+    /// - 400 Bad Request: Validation errors for malformed input.
+    /// - 500 Internal Server Error: Unexpected server error.
+    /// </remarks>
     [HttpPost]
     [ProducesResponseType(typeof(FormDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(string[]), StatusCodes.Status400BadRequest)]
@@ -65,6 +84,24 @@ public class FormsController : ControllerBase
     /// <param name="includeSubmissions">Include form submissions</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Form details</returns>
+    /// <remarks>
+    /// Functionality: Retrieves a single form by its unique identifier.
+    ///
+    /// Sample response (200):
+    /// ```json
+    /// {
+    ///   "id": "6c2b6f1d-3c48-4d9c-9e6b-0e79f67d1234",
+    ///   "name": "insurance-form",
+    ///   "title": "Insurance Application",
+    ///   "isActive": true,
+    ///   "fields": []
+    /// }
+    /// ```
+    ///
+    /// Errors:
+    /// - 404 Not Found: Form with given ID not found.
+    /// - 500 Internal Server Error: Unexpected server error.
+    /// </remarks>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(FormDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -108,6 +145,15 @@ public class FormsController : ControllerBase
     /// <param name="includeFields">Include form fields</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Form details</returns>
+    /// <remarks>
+    /// Functionality: Retrieves a form by its `name` within a specific tenant.
+    ///
+    /// Sample request: GET /api/forms/by-name/insurance-form?tenantId={tenantId}&includeFields=true
+    ///
+    /// Errors:
+    /// - 404 Not Found: Form with given name not found in tenant.
+    /// - 500 Internal Server Error: Unexpected server error.
+    /// </remarks>
     [HttpGet("by-name/{name}")]
     [ProducesResponseType(typeof(FormDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -156,6 +202,7 @@ public class FormsController : ControllerBase
     /// <returns>Paginated list of forms</returns>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<FormDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string[]), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetForms(
         [FromQuery] Guid? tenantId = null,
@@ -200,6 +247,23 @@ public class FormsController : ControllerBase
     /// <param name="id">Form ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Form schema</returns>
+    /// <remarks>
+    /// Functionality: Retrieves the schema of a form including field definitions, dependencies, and validation rules.
+    ///
+    /// Sample response (200):
+    /// ```json
+    /// {
+    ///   "formId": "6c2b6f1d-3c48-4d9c-9e6b-0e79f67d1234",
+    ///   "fields": [ { "name": "fullName", "type": "text" } ],
+    ///   "dependencies": [],
+    ///   "validationRules": []
+    /// }
+    /// ```
+    ///
+    /// Errors:
+    /// - 404 Not Found: Form not found.
+    /// - 500 Internal Server Error: Unexpected server error.
+    /// </remarks>
     [HttpGet("{id:guid}/schema")]
     [ProducesResponseType(typeof(FormSchemaDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -234,6 +298,23 @@ public class FormsController : ControllerBase
     /// <param name="command">Form update data</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Updated form</returns>
+    /// <remarks>
+    /// Functionality: Updates form metadata or fields.
+    ///
+    /// Sample request:
+    /// ```json
+    /// {
+    ///   "title": "Insurance Application v2",
+    ///   "isActive": true
+    /// }
+    /// ```
+    ///
+    /// Responses:
+    /// - 200 OK: Returns the updated form.
+    /// - 400 Bad Request: Validation errors.
+    /// - 404 Not Found: Form not found.
+    /// - 500 Internal Server Error: Unexpected server error.
+    /// </remarks>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(FormDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(string[]), StatusCodes.Status400BadRequest)]

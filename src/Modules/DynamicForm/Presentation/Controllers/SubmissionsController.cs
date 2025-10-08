@@ -119,6 +119,7 @@ public class SubmissionsController : ControllerBase
     /// </remarks>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<FormSubmissionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string[]), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetSubmissions(
         [FromQuery] Guid? formId = null,

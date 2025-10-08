@@ -44,6 +44,24 @@ namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers
         /// <param name="includeFormStep">Include form step details.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Form step submission details.</returns>
+        /// <remarks>
+        /// Functionality: Retrieves a specific form step submission, optionally including step metadata.
+        ///
+        /// Sample response (200):
+        /// ```json
+        /// {
+        ///   "id": "f1ed6f9b-1b2a-4d62-a3f4-8cde1234abcd",
+        ///   "formSubmissionId": "22222222-2222-2222-2222-222222222222",
+        ///   "stepId": "c2ad1b7e-55ef-4c5e-9a61-2c95c1f2b123",
+        ///   "status": "Completed",
+        ///   "submittedAt": "2025-01-08T10:00:00Z"
+        /// }
+        /// ```
+        ///
+        /// Errors:
+        /// - 404 Not Found: Submission not found.
+        /// - 500 Internal Server Error: Unexpected server error.
+        /// </remarks>
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(FormStepSubmissionDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -87,6 +105,21 @@ namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers
         /// <param name="orderByStepNumber">Order by step number.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>List of form step submissions.</returns>
+        /// <remarks>
+        /// Functionality: Lists step submissions for a form submission with optional filters.
+        ///
+        /// Query parameters:
+        /// - `formSubmissionId` (required)
+        /// - `tenantId` (required)
+        /// - `includeFormStep`
+        /// - `statusFilter`
+        /// - `orderByStepNumber`
+        ///
+        /// Sample response (200):
+        /// ```json
+        /// [ { "id": "...", "status": "InProgress" } ]
+        /// ```
+        /// </remarks>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<FormStepSubmissionDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -128,6 +161,17 @@ namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers
         /// <param name="includeValidationErrors">Include validation error analytics.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Form step submission analytics.</returns>
+        /// <remarks>
+        /// Functionality: Returns analytics including timings and validation errors per step.
+        ///
+        /// Sample response (200):
+        /// ```json
+        /// {
+        ///   "averageTimeSeconds": 45,
+        ///   "validationErrors": [ { "field": "email", "count": 3 } ]
+        /// }
+        /// ```
+        /// </remarks>
         [HttpGet("analytics")]
         [ProducesResponseType(typeof(FormStepSubmissionAnalyticsDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -164,6 +208,23 @@ namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers
         /// <param name="command">Form step submission creation data.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Created form step submission.</returns>
+        /// <remarks>
+        /// Functionality: Creates a submission for a specific step within a form submission.
+        ///
+        /// Sample request:
+        /// ```json
+        /// {
+        ///   "formSubmissionId": "22222222-2222-2222-2222-222222222222",
+        ///   "stepId": "c2ad1b7e-55ef-4c5e-9a61-2c95c1f2b123",
+        ///   "data": { "attachmentId": "file-123" }
+        /// }
+        /// ```
+        ///
+        /// Responses:
+        /// - 201 Created
+        /// - 400 Bad Request
+        /// - 500 Internal Server Error
+        /// </remarks>
         [HttpPost]
         [ProducesResponseType(typeof(FormStepSubmissionDto), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(string[]), StatusCodes.Status400BadRequest)]
@@ -191,6 +252,23 @@ namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers
         /// <param name="command">Form step submission update data.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Updated form step submission.</returns>
+        /// <remarks>
+        /// Functionality: Updates a step submission's data or status.
+        ///
+        /// Sample request:
+        /// ```json
+        /// {
+        ///   "data": { "attachmentId": "file-456" },
+        ///   "status": "Completed"
+        /// }
+        /// ```
+        ///
+        /// Responses:
+        /// - 200 OK
+        /// - 400 Bad Request
+        /// - 404 Not Found
+        /// - 500 Internal Server Error
+        /// </remarks>
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(FormStepSubmissionDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(string[]), StatusCodes.Status400BadRequest)]
@@ -225,6 +303,23 @@ namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers
         /// <param name="command">Form step submission completion data.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Completed form step submission.</returns>
+        /// <remarks>
+        /// Functionality: Marks a step submission as completed and triggers any completion logic.
+        ///
+        /// Sample request:
+        /// ```json
+        /// {
+        ///   "status": "Completed",
+        ///   "completedBy": "user-123"
+        /// }
+        /// ```
+        ///
+        /// Responses:
+        /// - 200 OK
+        /// - 400 Bad Request
+        /// - 404 Not Found
+        /// - 500 Internal Server Error
+        /// </remarks>
         [HttpPost("{id:guid}/complete")]
         [ProducesResponseType(typeof(FormStepSubmissionDto), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(string[]), StatusCodes.Status400BadRequest)]

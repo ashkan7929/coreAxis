@@ -1,323 +1,205 @@
-# Dynamic Form Module
+# 📋 Dynamic Form Module
 
-A comprehensive module for creating, managing, and processing dynamic forms with advanced validation, dependency management, and submission handling capabilities.
+The Dynamic Form Module enables creation, management, and processing of complex, multi‑step forms with validation, conditional logic, and robust submission workflows. This document mirrors the Wallet Module style: high‑level scope, limits, roadmap, domain, API, schema, snippets, and operational notes.
 
-## Features
+---
 
-### Core Features
-- **Dynamic Form Creation**: Create forms with various field types and configurations
-- **Advanced Validation Engine**: Support for complex validation rules and cross-field validation
-- **Dependency Management**: Handle field dependencies and conditional logic
-- **Submission Processing**: Manage form submissions with validation and processing workflows
-- **Form Versioning**: Track form changes and maintain version history
-- **Access Control**: Role-based access control for forms and submissions
-- **Audit Logging**: Complete audit trail for all form operations
+## 🔹 Scope
+- Rich form builder: fields, steps, and conditional visibility.
+- Validation engine: sync/async rules, cross‑field and step‑level checks.
+- Submission lifecycle: create, update, complete, analytics.
+- Form events: trigger handlers for automation and integrations.
+- Expressions: formula evaluation for calculated fields.
+- XML Swagger docs: detailed remarks and response codes per action.
 
-### Advanced Features
-- **Analytics and Reporting**: Comprehensive analytics for form usage and performance
-- **Import/Export**: Support for multiple formats (JSON, XML, CSV, Excel, PDF)
-- **Templates**: Pre-built form templates for common use cases
-- **Workflows**: Configurable workflows for form processing
-- **Notifications**: Multi-channel notification system (Email, SMS, Push, In-App)
-- **Caching**: Multi-level caching for optimal performance
-- **Security**: Field-level security, encryption, and protection mechanisms
-- **Integration APIs**: REST APIs, webhooks, and external service integration
+## 🔹 Limitations
+- Workflow orchestration beyond step completion is basic.
+- External data lookups require custom handlers or adapters.
+- Bulk operations are limited for extremely large datasets.
 
-## Supported Field Types
+## 🔹 Roadmap
+- Visual rule builder for conditional logic.
+- Pluggable data sources for `lookup` fields.
+- Advanced analytics dashboards and export pipelines.
+- Versioned form schemas with migration helpers.
 
-### Basic Fields
-- `text` - Single line text input
-- `textarea` - Multi-line text input
-- `number` - Numeric input
-- `email` - Email address input
-- `password` - Password input
-- `url` - URL input
-- `tel` - Telephone number input
+---
 
-### Date/Time Fields
-- `date` - Date picker
-- `time` - Time picker
-- `datetime` - Date and time picker
-- `month` - Month picker
-- `week` - Week picker
+## 🔹 Domain
+- Entities: `Form`, `FormStep`, `FormSubmission`, `FormStepSubmission`.
+- Aggregates: Form (owns steps), FormSubmission (owns step submissions).
+- Events: `FormCreated`, `FormStepAdded`, `FormSubmitted`, `FormStepCompleted`.
+- Policies: step order integrity, validation before completion, idempotent writes.
 
-### Selection Fields
-- `checkbox` - Single checkbox
-- `radio` - Radio button group
-- `select` - Dropdown selection
-- `multiselect` - Multiple selection dropdown
+---
 
-### File Fields
-- `file` - File upload
-- `image` - Image upload with preview
+## 🔹 API
 
-### Advanced Fields
-- `color` - Color picker
-- `range` - Range slider
-- `hidden` - Hidden field
-- `section` - Form section divider
-- `html` - Custom HTML content
-- `calculated` - Calculated field based on expressions
-- `lookup` - Lookup field with external data source
-- `signature` - Digital signature capture
-- `rating` - Star rating input
-- `matrix` - Matrix/grid input
-- `repeater` - Repeatable field groups
-- `conditional` - Conditionally visible fields
+All endpoints return structured responses and Problem+JSON errors where applicable. Selected endpoints support idempotency and correlation headers.
 
-## Validation Rules
+### Forms
+- `GET /api/forms` — List/filter forms
+  - Query: `name?`, `tenantId?`, `businessId?`, `cursor?`, `limit?`
+  - Responses: `200 OK`
 
-### Basic Validation
-- `required` - Field is required
-- `minLength` - Minimum text length
-- `maxLength` - Maximum text length
-- `min` - Minimum numeric value
-- `max` - Maximum numeric value
-- `pattern` - Regular expression pattern
+- `GET /api/forms/{id}` — Get form by id
+  - Responses: `200 OK`, `404 NotFound`
 
-### Type-Specific Validation
-- `email` - Valid email format
-- `url` - Valid URL format
-- `numeric` - Numeric value
-- `integer` - Integer value
-- `date` - Valid date
-- `time` - Valid time
+- `POST /api/forms` — Create form
+  - Body: `{ name, title, description?, tenantId, businessId, schemaJson }`
+  - Responses: `201 Created`, `400 BadRequest`
 
-### Advanced Validation
-- `custom` - Custom validation logic
-- `conditional` - Conditional validation rules
-- `crossField` - Cross-field validation
-- `async` - Asynchronous validation
-- `fileType` - File type validation
-- `fileSize` - File size validation
-- `imageSize` - Image dimension validation
+- `PUT /api/forms/{id}` — Update form
+  - Responses: `200 OK`, `404 NotFound`, `400 BadRequest`
 
-## Expression Engine
+- `DELETE /api/forms/{id}` — Delete form
+  - Responses: `204 NoContent`, `404 NotFound`
 
-The module includes a powerful expression engine that supports:
+### Form Steps
+- `GET /api/forms/{formId}/steps` — List steps for a form
+  - Responses: `200 OK`, `404 NotFound`
 
-### Expression Types
-- **Arithmetic**: `+`, `-`, `*`, `/`, `%`, `^`
-- **Logical**: `AND`, `OR`, `NOT`
-- **Comparison**: `=`, `!=`, `<`, `>`, `<=`, `>=`
-- **String**: `CONCAT`, `SUBSTRING`, `LENGTH`, `UPPER`, `LOWER`
-- **Date**: `NOW`, `TODAY`, `DATEADD`, `DATEDIFF`
-- **Conditional**: `IF`, `SWITCH`, `CASE`
-- **Lookup**: `LOOKUP`, `VLOOKUP`
-- **Aggregate**: `SUM`, `AVG`, `COUNT`, `MIN`, `MAX`
+- `GET /api/forms/steps/{id}` — Get step by id
+  - Responses: `200 OK`, `404 NotFound`
 
-### Expression Examples
-```javascript
-// Simple calculation
-"price * quantity"
+- `POST /api/forms/{formId}/steps` — Create step
+  - Body: `{ title, order, schemaJson, isOptional? }`
+  - Responses: `201 Created`, `400 BadRequest`, `404 NotFound`
 
-// Conditional logic
-"IF(age >= 18, 'Adult', 'Minor')"
+- `PUT /api/forms/steps/{id}` — Update step
+  - Responses: `200 OK`, `404 NotFound`, `400 BadRequest`
 
-// Date calculation
-"DATEDIFF(birthDate, TODAY(), 'years')"
+- `DELETE /api/forms/steps/{id}` — Delete step
+  - Responses: `204 NoContent`, `404 NotFound`
 
-// String manipulation
-"CONCAT(firstName, ' ', lastName)"
+### Submissions
+- `GET /api/submissions` — List/filter submissions
+  - Query: `formId?`, `userId?`, `status?`, `cursor?`, `limit?`
+  - Responses: `200 OK`, `400 BadRequest`
 
-// Lookup from external source
-"LOOKUP('countries', countryCode, 'name')"
+- `GET /api/submissions/{id}` — Get submission by id
+  - Responses: `200 OK`, `404 NotFound`
+
+- `POST /api/submissions` — Create submission
+  - Body: `{ formId, userId, dataJson, validateBeforeSubmit? }`
+  - Responses: `201 Created`, `400 BadRequest`
+
+- `PUT /api/submissions/{id}` — Update submission
+  - Responses: `200 OK`, `404 NotFound`, `400 BadRequest`
+
+- `DELETE /api/submissions/{id}` — Delete submission
+  - Responses: `204 NoContent`, `404 NotFound`
+
+### Form Step Submissions
+- `GET /api/form-step-submissions/{id}` — Get step submission by id
+  - Responses: `200 OK`, `404 NotFound`
+
+- `GET /api/form-step-submissions/by-submission/{formSubmissionId}` — List step submissions for submission
+  - Responses: `200 OK`, `404 NotFound`
+
+- `POST /api/form-step-submissions` — Create step submission
+  - Body: `{ formSubmissionId, formStepId, dataJson }`
+  - Responses: `201 Created`, `400 BadRequest`
+
+- `PUT /api/form-step-submissions/{id}` — Update step submission
+  - Responses: `200 OK`, `404 NotFound`, `400 BadRequest`
+
+- `POST /api/form-step-submissions/{id}/complete` — Complete a step submission
+  - Responses: `200 OK`, `404 NotFound`, `400 BadRequest`, `422 UnprocessableEntity`
+
+### Events
+- `POST /api/form-events/trigger` — Trigger an event handler
+  - Body: `{ eventName, payload }`
+  - Responses: `200 OK`, `400 BadRequest`
+
+- `GET /api/form-events/handlers` — List available handlers
+  - Responses: `200 OK`
+
+### Formula
+- `POST /api/formula/evaluate` — Evaluate expression
+  - Body: `{ expression, contextJson }`
+  - Responses: `200 OK`, `400 BadRequest`
+
+---
+
+## 🔹 Schema
+
+### Core Entities
+- `Form`: `{ id, name, title, description?, tenantId, businessId, schemaJson, createdAt }`
+- `FormStep`: `{ id, formId, title, order, schemaJson, isOptional? }`
+- `FormSubmission`: `{ id, formId, userId, status, dataJson, createdAt, updatedAt }`
+- `FormStepSubmission`: `{ id, formSubmissionId, formStepId, status, dataJson, createdAt, updatedAt }`
+
+### DTOs (common)
+- `CreateFormRequest`, `UpdateFormRequest`
+- `CreateFormStepRequest`, `UpdateFormStepRequest`
+- `CreateSubmissionRequest`, `UpdateSubmissionRequest`
+- `CreateFormStepSubmissionRequest`, `UpdateFormStepSubmissionRequest`
+- `PagedResult<T>` with `items` and `cursor`
+
+---
+
+## 🔹 Code Snippets
+
+### Register module (API layer)
+```csharp
+services.AddDynamicFormModule(configuration);
 ```
 
-## API Endpoints
-
-### Forms API
+### Sample: Create Form
 ```http
-GET    /api/forms                    # Get forms with filtering
-GET    /api/forms/{id}               # Get form by ID
-GET    /api/forms/by-name/{name}     # Get form by name
-POST   /api/forms                    # Create new form
-PUT    /api/forms/{id}               # Update form
-DELETE /api/forms/{id}               # Delete form
-GET    /api/forms/{id}/schema        # Get form schema
-POST   /api/forms/{id}/validate      # Validate form data
-POST   /api/forms/{id}/submit        # Submit form
-GET    /api/forms/{id}/submissions   # Get form submissions
-GET    /api/forms/{id}/stats         # Get form statistics
+POST /api/forms
+Content-Type: application/json
+
+{
+  "name": "contact",
+  "title": "Contact Us",
+  "tenantId": "00000000-0000-0000-0000-000000000001",
+  "businessId": "00000000-0000-0000-0000-000000000002",
+  "schemaJson": {
+    "fields": [
+      { "id": "name", "type": "text", "label": "Full Name", "required": true },
+      { "id": "email", "type": "email", "label": "Email", "required": true },
+      { "id": "message", "type": "textarea", "label": "Message", "required": true }
+    ]
+  }
+}
 ```
 
-### Submissions API
+Response (201 Created)
+```json
+{
+  "id": "0d9e6bca-...",
+  "name": "contact",
+  "title": "Contact Us"
+}
+```
+
+### Sample: Complete Step Submission
 ```http
-GET    /api/submissions              # Get submissions with filtering
-GET    /api/submissions/{id}         # Get submission by ID
-POST   /api/submissions              # Create new submission
-PUT    /api/submissions/{id}         # Update submission
-DELETE /api/submissions/{id}         # Delete submission
-POST   /api/submissions/validate     # Validate submission data
-GET    /api/submissions/stats        # Get submission statistics
-PATCH  /api/submissions/bulk-status  # Bulk update submission status
+POST /api/form-step-submissions/0d9e6bca-.../complete
+Content-Type: application/json
+
+{
+  "validate": true
+}
 ```
 
-## Configuration
-
-### Basic Configuration
+Response (200 OK)
 ```json
 {
-  "DynamicForm": {
-    "MaxFormSize": 1000,
-    "MaxSubmissionSize": 5000,
-    "MaxFieldsPerForm": 100,
-    "MaxSubmissionsPerForm": 10000,
-    "EnableAuditLog": true,
-    "EnableVersioning": true,
-    "EnableCaching": true,
-    "DefaultLanguage": "en",
-    "SupportedLanguages": ["en", "fa"]
-  }
+  "id": "0d9e6bca-...",
+  "status": "Completed"
 }
 ```
 
-### Validation Configuration
-```json
-{
-  "DynamicForm": {
-    "Validation": {
-      "EnableStrictValidation": true,
-      "EnableAsyncValidation": true,
-      "EnableCrossFieldValidation": true,
-      "MaxValidationErrors": 50,
-      "ValidationTimeout": 30,
-      "CacheValidationResults": true
-    }
-  }
-}
-```
+---
 
-### Cache Configuration
-```json
-{
-  "DynamicForm": {
-    "Cache": {
-      "EnableDistributedCache": true,
-      "EnableMemoryCache": true,
-      "DefaultCacheExpiry": 3600,
-      "FormCacheExpiry": 1800,
-      "SchemaCacheExpiry": 3600,
-      "CacheKeyPrefix": "DF:"
-    }
-  }
-}
-```
-
-### Security Configuration
-```json
-{
-  "DynamicForm": {
-    "Security": {
-      "EnableEncryption": false,
-      "EnableFieldLevelSecurity": true,
-      "EnableAccessControl": true,
-      "EnableRateLimiting": true,
-      "MaxRequestsPerMinute": 100,
-      "AllowedFileTypes": [".pdf", ".doc", ".jpg", ".png"],
-      "MaxFileSize": 10
-    }
-  }
-}
-```
-
-## Usage Examples
-
-### Creating a Form
-```csharp
-var createFormCommand = new CreateFormCommand
-{
-    Name = "Contact Form",
-    Title = "Contact Us",
-    Description = "Please fill out this form to contact us",
-    TenantId = tenantId,
-    BusinessId = businessId,
-    SchemaJson = JsonSerializer.Serialize(new
-    {
-        fields = new[]
-        {
-            new
-            {
-                id = "name",
-                type = "text",
-                label = "Full Name",
-                required = true,
-                validation = new { minLength = 2, maxLength = 100 }
-            },
-            new
-            {
-                id = "email",
-                type = "email",
-                label = "Email Address",
-                required = true,
-                validation = new { email = true }
-            },
-            new
-            {
-                id = "message",
-                type = "textarea",
-                label = "Message",
-                required = true,
-                validation = new { minLength = 10, maxLength = 1000 }
-            }
-        }
-    })
-};
-
-var result = await mediator.Send(createFormCommand);
-```
-
-### Submitting Form Data
-```csharp
-var submitCommand = new CreateSubmissionCommand
-{
-    FormId = formId,
-    UserId = userId,
-    Data = JsonSerializer.Serialize(new
-    {
-        name = "John Doe",
-        email = "john.doe@example.com",
-        message = "Hello, I would like to get in touch with you."
-    }),
-    ValidateBeforeSubmit = true
-};
-
-var result = await mediator.Send(submitCommand);
-```
-
-### Validating Form Data
-```csharp
-var validateCommand = new ValidateFormCommand
-{
-    FormId = formId,
-    Data = JsonSerializer.Serialize(formData),
-    Language = "en"
-};
-
-var validationResult = await mediator.Send(validateCommand);
-if (!validationResult.Data.IsValid)
-{
-    foreach (var error in validationResult.Data.Errors)
-    {
-        Console.WriteLine($"Field {error.FieldId}: {error.Message}");
-    }
-}
-```
-
-## Integration
-
-### Adding to Startup
-```csharp
-public void ConfigureServices(IServiceCollection services)
-{
-    // Add Dynamic Form Module
-    services.AddDynamicFormModule(Configuration);
-}
-
-public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
-{
-    // Use Dynamic Form Module
-    app.UseDynamicFormModule();
+## 🔹 Operational Notes
+- Provide `X-Correlation-ID` when invoking event triggers for traceability.
+- Use cursor pagination (`cursor`, `limit`) for long listings.
+- Validate step data before completion to avoid `422` responses.
+- Swagger XML remarks are enabled across controllers for rich documentation.
 }
 ```
 

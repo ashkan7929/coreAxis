@@ -33,9 +33,20 @@
     <ProjectReference Include="..\..\Modules\AuthModule\API\CoreAxis.Modules.AuthModule.API\CoreAxis.Modules.AuthModule.API.csproj" />
     <ProjectReference Include="..\..\Modules\AuthModule\Infrastructure\CoreAxis.Modules.AuthModule.Infrastructure\CoreAxis.Modules.AuthModule.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\ApiManager\Api\CoreAxis.Modules.ApiManager.Api\CoreAxis.Modules.ApiManager.API.csproj" />
+    <!-- DynamicForm API temporarily decoupled due to build errors; loaded at runtime if available -->
     <ProjectReference Include="..\..\EventBus\CoreAxis.EventBus\CoreAxis.EventBus.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\SharedKernel\CoreAxis.SharedKernel\CoreAxis.SharedKernel.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\BuildingBlocks\CoreAxis.BuildingBlocks\CoreAxis.BuildingBlocks.csproj" />
   </ItemGroup>
+
+  <!-- Copy XML docs from referenced projects to gateway output so Swagger can load them -->
+  <Target Name="CopyXmlDocs" AfterTargets="Build">
+    <ItemGroup>
+      <XmlDocs Include="@(ProjectReference -> '%(RootDir)%(Directory)bin\\$(Configuration)\\$(TargetFramework)\\%(Filename).xml')" />
+      <!-- Only copy files that actually exist to avoid build failures -->
+      <ExistingXmlDocs Include="@(XmlDocs)" Condition="Exists('%(XmlDocs.Identity)')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ExistingXmlDocs)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+  </Target>
 
 </Project>
