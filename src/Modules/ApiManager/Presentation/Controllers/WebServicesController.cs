@@ -11,8 +11,7 @@ using Microsoft.Extensions.Logging;
 namespace CoreAxis.Modules.ApiManager.Presentation.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
-[Route("admin/apim/services")]
+[Route("api/admin/apim/services")]
 [Authorize]
 public class WebServicesController : ControllerBase
 {

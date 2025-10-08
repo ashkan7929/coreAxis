@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace CoreAxis.Modules.ApiManager.Presentation.Controllers;
 
 [ApiController]
-[Route("admin/apim/logs")]
+[Route("api/admin/apim/logs")]
 [Authorize]
 public class LogsController : ControllerBase
 {

@@ -5,7 +5,7 @@
 - Export CSV: `GET /api/admin/audit/export?format=csv&page=1&size=1000`
 
 ## APIM Logs
-- `GET /admin/apim/logs?service=Pricing&from=...&to=...`
+- `GET /api/admin/apim/logs?service=Pricing&from=...&to=...`
 
 ## Wallet & MLM
 - Wallet accounts: `GET /api/wallet/accounts`

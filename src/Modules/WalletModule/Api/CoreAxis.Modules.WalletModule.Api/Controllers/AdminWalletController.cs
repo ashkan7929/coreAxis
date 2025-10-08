@@ -11,7 +11,6 @@ using CoreAxis.SharedKernel.Authorization;
 namespace CoreAxis.Modules.WalletModule.Api.Controllers;
 
 [ApiController]
-[Route("admin/wallet")] // Admin endpoints for wallet operations (legacy)
 [Route("api/admin/wallet")] // Preferred admin API route
 [Authorize]
 public class AdminWalletController : ControllerBase
