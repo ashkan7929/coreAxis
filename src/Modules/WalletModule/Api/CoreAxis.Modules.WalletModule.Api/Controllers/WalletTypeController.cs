@@ -4,6 +4,7 @@ using CoreAxis.Modules.WalletModule.Domain.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 using CoreAxis.Modules.WalletModule.Infrastructure.Data;
 
 namespace CoreAxis.Modules.WalletModule.Api.Controllers;
@@ -23,10 +24,18 @@ public class WalletTypeController : ControllerBase
     }
 
     /// <summary>
-    /// Get all available wallet types
+    /// Get all available wallet types.
     /// </summary>
+    /// <remarks>
+    /// Returns the list of active wallet types that can be used when creating wallets.
+    ///
+    /// Status codes:
+    /// - 200 OK: Successful retrieval
+    /// </remarks>
     [HttpGet]
     [AllowAnonymous]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(IEnumerable<WalletTypeDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<WalletTypeDto>>> GetWalletTypes()
     {
         var walletTypes = await _walletTypeRepository.GetActiveAsync();
@@ -42,10 +51,22 @@ public class WalletTypeController : ControllerBase
     }
 
     /// <summary>
-    /// Initialize default wallet types (for development/testing)
+    /// Initialize default wallet types (for development/testing).
     /// </summary>
+    /// <remarks>
+    /// Populates the database with a standard set of wallet types.
+    ///
+    /// Status codes:
+    /// - 200 OK: Initialization succeeded
+    /// - 400 Bad Request: Wallet types already exist
+    /// - 500 Internal Server Error: Unexpected error
+    /// </remarks>
     [HttpPost("initialize")]
     [AllowAnonymous]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult> InitializeDefaultWalletTypes()
     {
         try
@@ -113,7 +134,7 @@ public class WalletTypeController : ControllerBase
     }
 
     /// <summary>
-    /// Test endpoint to verify controller is working
+    /// Test endpoint to verify controller is working.
     /// </summary>
     [HttpGet("test")]
     [AllowAnonymous]
@@ -123,9 +144,26 @@ public class WalletTypeController : ControllerBase
     }
 
     /// <summary>
-    /// Create a new wallet type
+    /// Create a new wallet type.
     /// </summary>
+    /// <remarks>
+    /// Sample request body:
+    /// {
+    ///   "name": "Rewards",
+    ///   "description": "Wallet for reward points"
+    /// }
+    ///
+    /// Status codes:
+    /// - 201 Created: Type created
+    /// - 400 Bad Request: Type with same name exists
+    /// - 401 Unauthorized: Authentication required
+    /// </remarks>
     [HttpPost]
+    [Consumes("application/json")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(WalletTypeDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<WalletTypeDto>> CreateWalletType([FromBody] CreateWalletTypeDto request)
     {
         // Check if wallet type with same name already exists

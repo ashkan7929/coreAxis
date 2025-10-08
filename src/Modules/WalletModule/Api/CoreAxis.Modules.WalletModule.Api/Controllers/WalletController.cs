@@ -36,9 +36,30 @@ public class WalletController : ControllerBase
     }
 
     /// <summary>
-    /// Create a new wallet
+    /// Create a new wallet.
     /// </summary>
+    /// <remarks>
+    /// Creates a wallet for a user with a given type and currency.
+    ///
+    /// Sample request body:
+    ///
+    /// {
+    ///   "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    ///   "walletTypeId": "0d9e6bca-0000-0000-0000-000000000123",
+    ///   "currency": "USD"
+    /// }
+    ///
+    /// Status codes:
+    /// - 201 Created: Wallet created successfully
+    /// - 400 Bad Request: Validation error
+    /// - 401 Unauthorized: Authentication required
+    /// </remarks>
     [HttpPost]
+    [Consumes("application/json")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(WalletDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<WalletDto>> CreateWallet([FromBody] CreateWalletDto request)
     {
         var command = new CreateWalletCommand
@@ -53,11 +74,23 @@ public class WalletController : ControllerBase
     }
 
     /// <summary>
-    /// Get wallet by ID
+    /// Get wallet by ID.
     /// </summary>
+    /// <remarks>
+    /// Retrieves wallet details including balance, currency, and type.
+    ///
+    /// Status codes:
+    /// - 200 OK: Wallet found
+    /// - 401 Unauthorized: Authentication required
+    /// - 404 Not Found: Wallet does not exist
+    /// </remarks>
     [HttpGet("{id}")]
     // [HasPermission("WALLET", "READ")]
-    public async Task<ActionResult<WalletDto>> GetWallet(Guid id)
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(WalletDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<WalletDto>> GetWallet([FromRoute] Guid id)
     {
         try
         {
@@ -88,11 +121,21 @@ public class WalletController : ControllerBase
     }
 
     /// <summary>
-    /// Get wallets for a user
+    /// Get wallets for a user.
     /// </summary>
+    /// <remarks>
+    /// Returns all wallets belonging to the specified user.
+    ///
+    /// Status codes:
+    /// - 200 OK: Successful retrieval
+    /// - 401 Unauthorized: Authentication required
+    /// </remarks>
     [HttpGet("user/{userId}")]
     // [HasPermission("WALLET", "READ")]
-    public async Task<ActionResult<IEnumerable<WalletDto>>> GetUserWallets(Guid userId)
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(IEnumerable<WalletDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<IEnumerable<WalletDto>>> GetUserWallets([FromRoute] Guid userId)
     {
         var query = new GetUserWalletsQuery { UserId = userId };
         var result = await _mediator.Send(query);
@@ -100,9 +143,29 @@ public class WalletController : ControllerBase
     }
 
     /// <summary>
-    /// Wallet statements with cursor-based pagination and CSV/JSON export
+    /// Wallet statements with cursor pagination and CSV/JSON export.
     /// </summary>
+    /// <remarks>
+    /// Returns chronological statements with optional CSV export.
+    ///
+    /// Query parameters:
+    /// - walletId (required)
+    /// - from (optional, UTC)
+    /// - to (optional, UTC)
+    /// - format: `json` (default) or `csv`
+    /// - cursor: opaque pagination token
+    /// - limit: page size (1-500)
+    ///
+    /// Status codes:
+    /// - 200 OK: Successful retrieval
+    /// - 400 Bad Request: Missing walletId
+    /// - 401 Unauthorized: Authentication required
+    /// </remarks>
     [HttpGet("statements")] // GET /api/wallet/statements?walletId=&from=&to=&format=csv|json&cursor=&limit=
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetStatements([FromQuery] Guid walletId, [FromQuery] DateTime? from, [FromQuery] DateTime? to, [FromQuery] string? format = "json", [FromQuery] string? cursor = null, [FromQuery] int? limit = 50, CancellationToken cancellationToken = default)
     {
         if (walletId == Guid.Empty)
@@ -190,11 +253,23 @@ public class WalletController : ControllerBase
     }
 
     /// <summary>
-    /// Get wallet balance
+    /// Get wallet balance.
     /// </summary>
+    /// <remarks>
+    /// Returns the current balance of the wallet along with currency.
+    ///
+    /// Status codes:
+    /// - 200 OK: Wallet found
+    /// - 401 Unauthorized: Authentication required
+    /// - 404 Not Found: Wallet does not exist
+    /// </remarks>
     [HttpGet("{id}/balance")]
     // [HasPermission("WALLET", "READ")]
-    public async Task<ActionResult<WalletBalanceDto>> GetWalletBalance(Guid id)
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(WalletBalanceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<WalletBalanceDto>> GetWalletBalance([FromRoute] Guid id)
     {
         var query = new GetWalletBalanceQuery { WalletId = id };
         var result = await _mediator.Send(query);
@@ -206,12 +281,35 @@ public class WalletController : ControllerBase
     }
 
     /// <summary>
-    /// Deposit money to wallet
+    /// Deposit money to wallet.
     /// </summary>
+    /// <remarks>
+    /// Requires `Idempotency-Key` header to ensure safe retries.
+    /// Optional `X-Correlation-ID` header for tracing.
+    ///
+    /// Sample request body:
+    /// {
+    ///   "amount": 100.00,
+    ///   "description": "Top-up",
+    ///   "reference": "ORD-100045"
+    /// }
+    ///
+    /// Status codes:
+    /// - 200 OK: Deposit processed
+    /// - 400 Bad Request: Validation or policy violation
+    /// - 401 Unauthorized: Authentication required
+    /// - 429 Too Many Requests: Rate limit reached
+    /// </remarks>
     [HttpPost("{id}/deposit")]
     [RateLimit(30, 60)]
     // [HasPermission("WALLET", "DEPOSIT")]
-    public async Task<ActionResult<TransactionResultDto>> Deposit(Guid id, [FromBody] DepositRequestDto request)
+    [Consumes("application/json")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(TransactionResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<ActionResult<TransactionResultDto>> Deposit([FromRoute] Guid id, [FromBody] DepositRequestDto request)
     {
         var idempotencyKey = Request.Headers["Idempotency-Key"].FirstOrDefault();
         if (string.IsNullOrWhiteSpace(idempotencyKey))
@@ -253,12 +351,28 @@ public class WalletController : ControllerBase
     }
 
     /// <summary>
-    /// Withdraw money from wallet
+    /// Withdraw money from wallet.
     /// </summary>
+    /// <remarks>
+    /// Requires `Idempotency-Key` header to ensure safe retries.
+    /// Optional `X-Correlation-ID` header for tracing.
+    ///
+    /// Status codes:
+    /// - 200 OK: Withdraw processed
+    /// - 400 Bad Request: Validation or policy violation
+    /// - 401 Unauthorized: Authentication required
+    /// - 429 Too Many Requests: Rate limit reached
+    /// </remarks>
     [HttpPost("{id}/withdraw")]
     [RateLimit(30, 60)]
     // [HasPermission("WALLET", "WITHDRAW")]
-    public async Task<ActionResult<TransactionResultDto>> Withdraw(Guid id, [FromBody] WithdrawRequestDto request)
+    [Consumes("application/json")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(TransactionResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<ActionResult<TransactionResultDto>> Withdraw([FromRoute] Guid id, [FromBody] WithdrawRequestDto request)
     {
         var idempotencyKey = Request.Headers["Idempotency-Key"].FirstOrDefault();
         if (string.IsNullOrWhiteSpace(idempotencyKey))
@@ -300,12 +414,36 @@ public class WalletController : ControllerBase
     }
 
     /// <summary>
-    /// Transfer money between wallets
+    /// Transfer money between wallets.
     /// </summary>
+    /// <remarks>
+    /// Requires `Idempotency-Key` header. Transfers from `{id}` wallet to `toWalletId`.
+    ///
+    /// Sample request body:
+    /// {
+    ///   "toWalletId": "0d9e6bca-0000-0000-0000-000000000999",
+    ///   "amount": 50.00,
+    ///   "description": "Move funds",
+    ///   "reference": "TR-1001",
+    ///   "metadata": { "source": "app" }
+    /// }
+    ///
+    /// Status codes:
+    /// - 200 OK: Transfer processed
+    /// - 400 Bad Request: Validation or policy violation
+    /// - 401 Unauthorized: Authentication required
+    /// - 429 Too Many Requests: Rate limit reached
+    /// </remarks>
     [HttpPost("{id}/transfer")]
     [RateLimit(30, 60)]
     // [HasPermission("WALLET", "TRANSFER")]
-    public async Task<ActionResult<TransactionResultDto>> Transfer(Guid id, [FromBody] TransferRequestDto request)
+    [Consumes("application/json")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(TransactionResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<ActionResult<TransactionResultDto>> Transfer([FromRoute] Guid id, [FromBody] TransferRequestDto request)
     {
         var userId = GetUserId();
         var idempotencyKey = Request.Headers["Idempotency-Key"].FirstOrDefault();
@@ -351,10 +489,29 @@ public class WalletController : ControllerBase
     }
 
     /// <summary>
-    /// Get wallet transactions
+    /// Get wallet transactions.
     /// </summary>
+    /// <remarks>
+    /// Supports filtering by date range, transaction type, status, and cursor pagination.
+    ///
+    /// Query parameters:
+    /// - startDate, endDate: UTC range
+    /// - transactionTypeId: GUID
+    /// - status: Pending|Completed|Failed
+    /// - cursor, limit
+    ///
+    /// Response headers:
+    /// - X-Next-Cursor: pagination token when more results available
+    ///
+    /// Status codes:
+    /// - 200 OK: Successful retrieval
+    /// - 401 Unauthorized: Authentication required
+    /// </remarks>
     [HttpGet("{id}/transactions")]
     // [HasPermission("WALLET", "READ")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(IEnumerable<TransactionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<IEnumerable<TransactionDto>>> GetTransactions(
         Guid id,
         [FromQuery] DateTime? startDate = null,

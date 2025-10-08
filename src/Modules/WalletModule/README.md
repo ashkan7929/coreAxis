@@ -1,149 +1,201 @@
-# Wallet Module
+# 📦 Wallet Module
 
-The Wallet Module provides comprehensive wallet and transaction management functionality for the CoreAxis application. It follows Clean Architecture principles with clear separation of concerns across Domain, Application, Infrastructure, and API layers.
+The Wallet Module provides comprehensive wallet and transaction management for the CoreAxis platform. It documents high-level scope and roadmap alongside detailed technical specifications and API usage, following Clean Architecture.
 
-## Features
+---
 
-- **Multi-Wallet Support**: Users can have multiple wallets of different types
-- **Transaction Management**: Support for deposits, withdrawals, and transfers
-- **Wallet Providers**: Integration with external wallet providers
-- **Wallet Contracts**: Configurable limits and terms for wallet usage
-- **Multi-Currency Support**: Handle different currencies per wallet
-- **Transaction Types**: Flexible transaction categorization
-- **Audit Trail**: Complete transaction history and tracking
-- **Domain Events**: Event-driven architecture for wallet operations
+## 🔹 Scope
+- Multi-wallet per user with distinct `WalletType`s.  
+- Core operations: `Deposit`, `Withdraw`, `Transfer`.  
+- Balance queries, statements, and transaction history.  
+- Admin capabilities: reconciliation, snapshots, lock/unlock.  
+- Idempotent writes and RFC 7807 Problem+JSON error responses.  
+- Optional correlation and rate-limiting headers on write endpoints.  
 
-## Architecture
+## 🔹 Limitations
+- No direct bank/PSP integrations in-core; supported via extensions.  
+- Crypto payments not implemented yet.  
+- Multi-currency scalability requires stress testing for extreme throughput.  
 
-### Domain Layer
-- **Entities**: Core business entities (Wallet, Transaction, WalletType, etc.)
-- **Events**: Domain events for wallet and transaction operations
-- **Repositories**: Repository interfaces for data access
+## 🔹 Roadmap
+- Crypto wallet integration and chain settlement.  
+- PSP/bank settlement service integration.  
+- Advanced fraud detection and anomaly scoring.  
+- Profile-based multi-wallet orchestration and automated rules.  
 
-### Application Layer
-- **Commands**: CQRS commands for write operations
-- **Queries**: CQRS queries for read operations
-- **Handlers**: Command and query handlers
-- **DTOs**: Data transfer objects for API communication
+---
 
-### Infrastructure Layer
-- **DbContext**: Entity Framework database context
-- **Configurations**: Entity configurations for database mapping
-- **Repositories**: Repository implementations
+## 🔹 Domain
+- Entities: `Wallet`, `Transaction`, `WalletType`, `WalletContract`.  
+- Aggregates: Wallet (owns transactions), Transaction (links to source/destination).  
+- Events: `WalletCreated`, `WalletBalanceChanged`, `TransactionCreated`, `TransactionCompleted`, `TransactionFailed`.  
+- Policies: contract-enforced limits, lock/unlock safety, optimistic concurrency.  
 
-### API Layer
-- **Controllers**: REST API controllers
-- **Dependency Injection**: Service registration
+---
 
-## Key Entities
+## 🔹 API
+
+All endpoints return structured responses and Problem+JSON errors with `code`, descriptive `title`, and optional `traceId`/correlation extensions. For write operations, send `Idempotency-Key` to ensure safe retries.
 
 ### Wallet
-- Represents a user's wallet with balance and currency
-- Linked to a specific wallet type
-- Can be locked/unlocked for security
-- Supports credit/debit operations
+- `POST /api/wallet` — Create wallet  
+  - Body: `{ userId, walletType, currency, metadata? }`  
+  - Responses: `201 Created` with wallet, `400 BadRequest`, `409 Conflict`  
+  - Notes: supports idempotency via header.  
 
-### Transaction
-- Records all wallet operations (deposits, withdrawals, transfers)
-- Maintains transaction status and audit information
-- Links related transactions (e.g., transfer operations)
+- `GET /api/wallet/{id}` — Get wallet by id  
+  - Path: `id` (Guid)  
+  - Responses: `200 OK`, `404 NotFound`  
 
-### WalletType
-- Defines different types of wallets (e.g., Savings, Current, Crypto)
+- `GET /api/wallet/user/{userId}` — List user wallets  
+  - Path: `userId` (Guid)  
+  - Query: `type?`, `currency?`  
+  - Responses: `200 OK`  
 
-### WalletProvider
-- External wallet service providers
-- Configurable API endpoints and capabilities
+- `GET /api/wallet/{id}/balance` — Get balance  
+  - Path: `id` (Guid)  
+  - Responses: `200 OK` → `{ balance, currency }`, `404 NotFound`  
 
-### WalletContract
-- Defines usage limits and terms between users and providers
-- Daily/monthly limits with automatic reset functionality
+- `GET /api/wallet/statements` — Get statements (paged)  
+  - Query: `userId?`, `walletId?`, `from?`, `to?`, `cursor?`, `limit?`  
+  - Responses: `200 OK` → items+cursor, `400 BadRequest`  
 
-## API Endpoints
+### Transactions
+- `POST /api/wallet/{id}/deposit` — Deposit funds  
+  - Path: `id` (Guid)  
+  - Body: `{ amount, description?, reference?, metadata? }`  
+  - Headers: `Idempotency-Key` (GUID)  
+  - Responses: `202 Accepted`, `201 Created` (idempotent), `400`, `409`, `429`  
 
-### Wallet Management
-- `POST /api/wallet` - Create new wallet
-- `GET /api/wallet/{id}` - Get wallet details
-- `GET /api/wallet/user/{userId}` - Get user wallets
-- `GET /api/wallet/{id}/balance` - Get wallet balance
+- `POST /api/wallet/{id}/withdraw` — Withdraw funds  
+  - Path: `id` (Guid)  
+  - Body: `{ amount, description?, reference?, metadata? }`  
+  - Headers: `Idempotency-Key`  
+  - Responses: `202`, `400`, `409`, `422`, `429`  
 
-### Transaction Operations
-- `POST /api/wallet/{id}/deposit` - Deposit to wallet
-- `POST /api/wallet/{id}/withdraw` - Withdraw from wallet
-- `POST /api/wallet/{id}/transfer` - Transfer between wallets
-- `GET /api/wallet/{id}/transactions` - Get wallet transactions
+- `POST /api/wallet/{id}/transfer` — Transfer to another wallet  
+  - Path: `id` (Guid) — source wallet  
+  - Body: `{ toWalletId, amount, description?, reference?, metadata? }`  
+  - Headers: `Idempotency-Key`  
+  - Responses: `202`, `400`, `404`, `409`, `422`, `429`  
 
-### Transaction History
-- `GET /api/transaction/{id}` - Get transaction details
-- `GET /api/transaction` - Get transactions with filters
-- `GET /api/transaction/user/{userId}` - Get user transactions
+- `GET /api/wallet/{id}/transactions` — List wallet transactions  
+  - Path: `id` (Guid)  
+  - Query: `from?`, `to?`, `type?`, `cursor?`, `limit?`  
+  - Responses: `200 OK`  
 
-## Domain Events
+### Transaction Queries
+- `GET /api/transaction/{id}` — Get transaction by id  
+  - Path: `id` (Guid)  
+  - Responses: `200 OK`, `404 NotFound`  
 
-- **WalletCreatedEvent**: Fired when a new wallet is created
-- **WalletBalanceChangedEvent**: Fired when wallet balance changes
-- **TransactionCreatedEvent**: Fired when a transaction is created
-- **TransactionCompletedEvent**: Fired when a transaction completes
-- **TransactionFailedEvent**: Fired when a transaction fails
+- `GET /api/transaction` — Filtered transaction listing  
+  - Query: `walletId?`, `userId?`, `type?`, `status?`, `from?`, `to?`, `cursor?`, `limit?`  
+  - Responses: `200 OK`  
 
-## Usage
+- `GET /api/transaction/user/{userId}` — User transactions  
+  - Path: `userId` (Guid)  
+  - Query: `type?`, `status?`, `from?`, `to?`, `cursor?`, `limit?`  
+  - Responses: `200 OK`  
 
-### Registration
+### Admin
+- `GET /api/admin/wallet/reconcile` — Reconciliation overview  
+  - Responses: `200 OK` → summary counters  
+
+- `GET /api/admin/wallet/reports/reconciliation/export` — Export reconciliation  
+  - Query: `format=csv|json`, `from?`, `to?`  
+  - Responses: `200 OK` (file/JSON), `400 BadRequest`  
+
+- `GET /api/admin/wallet/snapshot/{walletId}` — Cached balance snapshot  
+  - Path: `walletId` (Guid)  
+  - Responses: `200 OK`, `404 NotFound`  
+
+- `POST /api/admin/wallet/{id}/lock` — Lock wallet  
+  - Path: `id` (Guid)  
+  - Body: `{ reason }`  
+  - Responses: `200 OK`, `400`, `404`  
+
+- `POST /api/admin/wallet/{id}/unlock` — Unlock wallet  
+  - Path: `id` (Guid)  
+  - Body: `{ reason }`  
+  - Responses: `200 OK`, `400`, `404`  
+
+---
+
+## 🔹 Schema
+
+### Core Entities
+- `Wallet`: `{ id, userId, type, currency, balance, status, metadata }`  
+- `Transaction`: `{ id, walletId, type, amount, status, createdAt, description?, reference?, metadata? }`  
+- `WalletType`: `{ id, name, description?, isDefault }`  
+
+### DTOs (common)
+- `CreateWalletRequest`  
+- `DepositRequest`, `WithdrawRequest`, `TransferRequest`  
+- `TransactionResponse`, `WalletResponse`, `BalanceResponse`  
+- `StatementPage<T>` with `items` and `cursor`  
+
+---
+
+## 🔹 Code Snippets
+
+### Register module (API layer)
 ```csharp
-// In Program.cs or Startup.cs
 services.AddWalletModuleApi(configuration);
 ```
 
-### Creating a Wallet
-```csharp
-var createWalletDto = new CreateWalletDto
-{
-    UserId = userId,
-    WalletTypeId = walletTypeId,
-    Currency = "USD",
-};
+### Sample: Deposit
+```http
+POST /api/wallet/0d9e6bca-0000-0000-0000-000000000123/deposit
+Idempotency-Key: 123e4567-e89b-12d3-a456-426614174000
+Content-Type: application/json
 
-var wallet = await mediator.Send(new CreateWalletCommand
 {
-    UserId = createWalletDto.UserId,
-    WalletTypeId = createWalletDto.WalletTypeId,
-    Currency = createWalletDto.Currency,
-});
+  "amount": 100.00,
+  "description": "Top-up",
+  "reference": "ORD-100045"
+}
 ```
 
-### Making a Deposit
-```csharp
-var result = await mediator.Send(new DepositCommand
+Response (202 Accepted)
+```json
 {
-    WalletId = walletId,
-    Amount = 100.00m,
-    Description = "Initial deposit",
-    Reference = "DEP001"
-});
+  "transactionId": "8c9a9f40-...",
+  "status": "Pending",
+  "amount": 100.00
+}
 ```
 
-## Database Schema
+### Sample: Transfer
+```http
+POST /api/wallet/0d9e6bca-0000-0000-0000-000000000111/transfer
+Idempotency-Key: 123e4567-e89b-12d3-a456-426614174001
+Content-Type: application/json
 
-The module uses the "wallet" schema with the following tables:
-- `Wallets` - User wallets
-- `WalletTypes` - Wallet type definitions
-- `Transactions` - Transaction records
-- `TransactionTypes` - Transaction type definitions
-- `WalletProviders` - External provider configurations
-- `WalletContracts` - User-provider agreements
+{
+  "toWalletId": "0d9e6bca-0000-0000-0000-000000000999",
+  "amount": 50.00,
+  "description": "Move funds",
+  "reference": "TR-1001",
+  "metadata": { "source": "app" }
+}
+```
 
-## Security Considerations
+Problem+JSON (example)
+```json
+{
+  "type": "https://coreaxis.dev/problems/insufficient-balance",
+  "title": "Insufficient balance",
+  "status": 422,
+  "detail": "Wallet has 20.00; requires 50.00",
+  "code": "INSUFFICIENT_BALANCE",
+  "traceId": "00-...-..."
+}
+```
 
-- All API endpoints require authorization
-- Wallet operations include balance validation
-- Transaction limits enforced through wallet contracts
-- Audit trail maintained for all operations
-- Multi-tenancy support for data isolation
+---
 
-## Error Handling
-
-- Insufficient balance validation
-- Wallet lock status checking
-- Transaction type validation
-- Provider availability verification
-- Comprehensive error messages and logging
+## 🔹 Operational Notes
+- Always provide `Idempotency-Key` for write endpoints to avoid duplicate effects.  
+- Use optional `X-Correlation-ID` for end-to-end tracing.  
+- Prefer cursor pagination (`cursor`, `limit`) for long listings.
