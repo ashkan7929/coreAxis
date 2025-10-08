@@ -81,12 +81,23 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 
-    // Include XML comments
-    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath))
+    // Include XML comments from API and related module assemblies
+    var assemblies = new[]
     {
-        c.IncludeXmlComments(xmlPath);
+        System.Reflection.Assembly.GetExecutingAssembly().GetName().Name,
+        "CoreAxis.Modules.CommerceModule.Application",
+        "CoreAxis.Modules.CommerceModule.Domain",
+        "CoreAxis.Modules.CommerceModule.Infrastructure"
+    };
+
+    foreach (var asm in assemblies.Distinct())
+    {
+        var xmlFile = $"{asm}.xml";
+        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+        if (File.Exists(xmlPath))
+        {
+            c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+        }
     }
 });
 

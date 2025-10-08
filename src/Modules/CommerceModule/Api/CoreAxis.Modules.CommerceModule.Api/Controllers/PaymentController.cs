@@ -118,10 +118,28 @@ public class PaymentController : ControllerBase
     }
 
     /// <summary>
-    /// Processes a payment for an order
+    /// Process a payment for an order.
     /// </summary>
-    /// <param name="processDto">The payment processing data</param>
-    /// <returns>The payment result</returns>
+    /// <param name="processDto">Payment data including order, amount, method, idempotency.</param>
+    /// <returns>Processed payment details.</returns>
+    /// <remarks>
+    /// Use the <c>Idempotency-Key</c> in the payload to avoid duplicate charges.
+    /// 
+    /// Sample request:
+    /// 
+    /// {
+    ///   "orderId": "00000000-0000-0000-0000-000000000001",
+    ///   "amount": 250.00,
+    ///   "paymentMethod": "Card",
+    ///   "idempotencyKey": "123e4567-e89b-12d3-a456-426614174000"
+    /// }
+    /// 
+    /// Possible responses:
+    /// - 200 OK: Payment processed successfully
+    /// - 400 BadRequest: Validation error or invalid order state/amount
+    /// - 404 NotFound: Order not found
+    /// - 500 InternalServerError: Unexpected error
+    /// </remarks>
     [HttpPost("process")]
     [HasPermission("payments", "process")]
     [ProducesResponseType(typeof(PaymentDto), StatusCodes.Status200OK)]
@@ -196,11 +214,29 @@ public class PaymentController : ControllerBase
     }
 
     /// <summary>
-    /// Processes a refund for a payment
+    /// Process a refund for a completed payment.
     /// </summary>
-    /// <param name="paymentId">The payment ID to refund</param>
-    /// <param name="refundDto">The refund data</param>
-    /// <returns>The refund result</returns>
+    /// <param name="paymentId">Payment ID to refund.</param>
+    /// <param name="refundDto">Refund data including amount, reason, idempotency.</param>
+    /// <returns>Processed refund details.</returns>
+    /// <remarks>
+    /// Refund amount must be between 0 and original payment amount.
+    /// Use the <c>Idempotency-Key</c> to avoid duplicate refunds.
+    /// 
+    /// Sample request:
+    /// 
+    /// {
+    ///   "amount": 100.00,
+    ///   "reason": "Customer returned item",
+    ///   "idempotencyKey": "123e4567-e89b-12d3-a456-426614174001"
+    /// }
+    /// 
+    /// Possible responses:
+    /// - 200 OK: Refund processed successfully
+    /// - 400 BadRequest: Validation error or invalid payment state/amount
+    /// - 404 NotFound: Payment not found
+    /// - 500 InternalServerError: Unexpected error
+    /// </remarks>
     [HttpPost("{paymentId:guid}/refund")]
     [HasPermission("payments", "refund")]
     [ProducesResponseType(typeof(RefundDto), StatusCodes.Status200OK)]
