@@ -2,6 +2,7 @@ using CoreAxis.Modules.CommerceModule.Api.DTOs;
 using CoreAxis.Modules.CommerceModule.Application.Interfaces;
 using CoreAxis.Modules.AuthModule.API.Authz;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.Linq;
@@ -33,6 +34,9 @@ public class PricingController : ControllerBase
     /// <returns>Pricing result including base and final pricing</returns>
     [HttpPost("calculate")]
     [HasPermission("pricing", "calculate")]
+    [ProducesResponseType(typeof(PricingResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PricingResultDto>> Calculate([FromBody] PricingCalculateRequestDto request, CancellationToken cancellationToken)
     {
         try

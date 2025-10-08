@@ -5,6 +5,7 @@ using CoreAxis.Modules.CommerceModule.Domain.Entities;
 using CoreAxis.Modules.CommerceModule.Domain.Enums;
 using CoreAxis.Modules.AuthModule.API.Authz;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
@@ -51,6 +52,8 @@ public class OrderController : ControllerBase
     /// <returns>List of orders</returns>
     [HttpGet]
     [HasPermission("orders", "read")]
+    [ProducesResponseType(typeof(IEnumerable<OrderDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<OrderDto>>> GetOrders(
         [FromQuery] Guid? customerId = null,
         [FromQuery] OrderStatus? status = null,
@@ -88,6 +91,9 @@ public class OrderController : ControllerBase
     /// <returns>The order</returns>
     [HttpGet("{id:guid}")]
     [HasPermission("orders", "read")]
+    [ProducesResponseType(typeof(OrderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<OrderDto>> GetOrder(Guid id)
     {
         try
@@ -116,6 +122,9 @@ public class OrderController : ControllerBase
     /// <returns>The created order</returns>
     [HttpPost]
     [HasPermission("orders", "create")]
+    [ProducesResponseType(typeof(OrderDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<OrderDto>> CreateOrder([FromBody] CreateOrderDto createDto)
     {
         try
@@ -188,6 +197,10 @@ public class OrderController : ControllerBase
     /// <returns>The updated order</returns>
     [HttpPut("{id:guid}")]
     [HasPermission("orders", "update")]
+    [ProducesResponseType(typeof(OrderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<OrderDto>> UpdateOrder(Guid id, [FromBody] UpdateOrderDto updateDto)
     {
         try
@@ -248,6 +261,10 @@ public class OrderController : ControllerBase
     /// <returns>The cancelled order</returns>
     [HttpPost("{id:guid}/cancel")]
     [HasPermission("orders", "cancel")]
+    [ProducesResponseType(typeof(OrderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<OrderDto>> CancelOrder(Guid id, [FromBody] CancelOrderDto cancelDto)
     {
         try
@@ -289,6 +306,10 @@ public class OrderController : ControllerBase
     /// <returns>The confirmed order</returns>
     [HttpPost("{id:guid}/confirm")]
     [HasPermission("orders", "confirm")]
+    [ProducesResponseType(typeof(OrderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<OrderDto>> ConfirmOrder(Guid id)
     {
         try
@@ -326,6 +347,10 @@ public class OrderController : ControllerBase
     /// <returns>The fulfilled order</returns>
     [HttpPost("{id:guid}/fulfill")]
     [HasPermission("orders", "fulfill")]
+    [ProducesResponseType(typeof(OrderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<OrderDto>> FulfillOrder(Guid id, [FromBody] FulfillOrderDto fulfillDto)
     {
         try

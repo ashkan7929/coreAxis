@@ -5,6 +5,7 @@ using CoreAxis.Modules.CommerceModule.Domain.Entities;
 using CoreAxis.Modules.CommerceModule.Domain.Enums;
 using CoreAxis.Modules.AuthModule.API.Authz;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
@@ -51,6 +52,8 @@ public class InventoryController : ControllerBase
     /// <returns>List of inventory items</returns>
     [HttpGet]
     [HasPermission("inventory", "read")]
+    [ProducesResponseType(typeof(IEnumerable<InventoryItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<InventoryItemDto>>> GetInventoryItems(
         [FromQuery] Guid? productId = null,
         [FromQuery] string? sku = null,
@@ -88,6 +91,9 @@ public class InventoryController : ControllerBase
     /// <returns>The inventory item</returns>
     [HttpGet("{id:guid}")]
     [HasPermission("inventory", "read")]
+    [ProducesResponseType(typeof(InventoryItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<InventoryItemDto>> GetInventoryItem(Guid id)
     {
         try
@@ -116,6 +122,9 @@ public class InventoryController : ControllerBase
     /// <returns>The created inventory item</returns>
     [HttpPost]
     [HasPermission("inventory", "create")]
+    [ProducesResponseType(typeof(InventoryItemDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<InventoryItemDto>> CreateInventoryItem([FromBody] CreateInventoryItemDto createDto)
     {
         try
@@ -165,6 +174,10 @@ public class InventoryController : ControllerBase
     /// <returns>The updated inventory item</returns>
     [HttpPut("{id:guid}")]
     [HasPermission("inventory", "update")]
+    [ProducesResponseType(typeof(InventoryItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<InventoryItemDto>> UpdateInventoryItem(Guid id, [FromBody] UpdateInventoryItemDto updateDto)
     {
         try
@@ -220,6 +233,10 @@ public class InventoryController : ControllerBase
     /// <returns>No content if successful</returns>
     [HttpDelete("{id:guid}")]
     [HasPermission("inventory", "delete")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult> DeleteInventoryItem(Guid id)
     {
         try
@@ -258,6 +275,9 @@ public class InventoryController : ControllerBase
     /// <returns>The reservation result</returns>
     [HttpPost("reserve")]
     [HasPermission("inventory", "reserve")]
+    [ProducesResponseType(typeof(InventoryReservationDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<InventoryReservationDto>> ReserveInventory([FromBody] ReserveInventoryDto reserveDto)
     {
         try
@@ -314,6 +334,9 @@ public class InventoryController : ControllerBase
     /// <returns>No content if successful</returns>
     [HttpDelete("reservations/{reservationId:guid}")]
     [HasPermission("inventory", "reserve")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult> ReleaseReservation(Guid reservationId)
     {
         try

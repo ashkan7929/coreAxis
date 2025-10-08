@@ -5,6 +5,7 @@ using CoreAxis.Modules.CommerceModule.Domain.Entities;
 using CoreAxis.Modules.CommerceModule.Domain.Enums;
 using CoreAxis.Modules.AuthModule.API.Authz;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
@@ -50,6 +51,8 @@ public class SubscriptionController : ControllerBase
     /// <returns>List of subscriptions</returns>
     [HttpGet]
     [HasPermission("subscriptions", "read")]
+    [ProducesResponseType(typeof(IEnumerable<SubscriptionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<SubscriptionDto>>> GetSubscriptions(
         [FromQuery] Guid? customerId = null,
         [FromQuery] SubscriptionStatus? status = null,
@@ -86,6 +89,9 @@ public class SubscriptionController : ControllerBase
     /// <returns>The subscription</returns>
     [HttpGet("{id:guid}")]
     [HasPermission("subscriptions", "read")]
+    [ProducesResponseType(typeof(SubscriptionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<SubscriptionDto>> GetSubscription(Guid id)
     {
         try
@@ -114,6 +120,9 @@ public class SubscriptionController : ControllerBase
     /// <returns>The created subscription</returns>
     [HttpPost]
     [HasPermission("subscriptions", "create")]
+    [ProducesResponseType(typeof(SubscriptionDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<SubscriptionDto>> CreateSubscription([FromBody] CreateSubscriptionDto createDto)
     {
         try
@@ -169,6 +178,10 @@ public class SubscriptionController : ControllerBase
     /// <returns>The updated subscription</returns>
     [HttpPut("{id:guid}")]
     [HasPermission("subscriptions", "update")]
+    [ProducesResponseType(typeof(SubscriptionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<SubscriptionDto>> UpdateSubscription(Guid id, [FromBody] UpdateSubscriptionDto updateDto)
     {
         try
@@ -225,6 +238,10 @@ public class SubscriptionController : ControllerBase
     /// <returns>The cancelled subscription</returns>
     [HttpPost("{id:guid}/cancel")]
     [HasPermission("subscriptions", "cancel")]
+    [ProducesResponseType(typeof(SubscriptionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<SubscriptionDto>> CancelSubscription(Guid id, [FromBody] CancelSubscriptionDto cancelDto)
     {
         try
@@ -270,6 +287,10 @@ public class SubscriptionController : ControllerBase
     /// <returns>The paused subscription</returns>
     [HttpPost("{id:guid}/pause")]
     [HasPermission("subscriptions", "pause")]
+    [ProducesResponseType(typeof(SubscriptionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<SubscriptionDto>> PauseSubscription(Guid id, [FromBody] PauseSubscriptionDto pauseDto)
     {
         try
@@ -312,6 +333,10 @@ public class SubscriptionController : ControllerBase
     /// <returns>The resumed subscription</returns>
     [HttpPost("{id:guid}/resume")]
     [HasPermission("subscriptions", "resume")]
+    [ProducesResponseType(typeof(SubscriptionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<SubscriptionDto>> ResumeSubscription(Guid id)
     {
         try
@@ -348,6 +373,10 @@ public class SubscriptionController : ControllerBase
     /// <returns>The billing result</returns>
     [HttpPost("{id:guid}/bill")]
     [HasPermission("subscriptions", "bill")]
+    [ProducesResponseType(typeof(PaymentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PaymentDto>> ProcessSubscriptionBilling(Guid id)
     {
         try

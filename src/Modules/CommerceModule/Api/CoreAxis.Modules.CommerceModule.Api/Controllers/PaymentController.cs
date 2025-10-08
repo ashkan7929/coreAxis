@@ -5,6 +5,7 @@ using CoreAxis.Modules.CommerceModule.Domain.Entities;
 using CoreAxis.Modules.CommerceModule.Domain.Enums;
 using CoreAxis.Modules.AuthModule.API.Authz;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
@@ -52,6 +53,8 @@ public class PaymentController : ControllerBase
     /// <returns>List of payments</returns>
     [HttpGet]
     [HasPermission("payments", "read")]
+    [ProducesResponseType(typeof(IEnumerable<PaymentDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<PaymentDto>>> GetPayments(
         [FromQuery] Guid? orderId = null,
         [FromQuery] Guid? customerId = null,
@@ -90,6 +93,9 @@ public class PaymentController : ControllerBase
     /// <returns>The payment</returns>
     [HttpGet("{id:guid}")]
     [HasPermission("payments", "read")]
+    [ProducesResponseType(typeof(PaymentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PaymentDto>> GetPayment(Guid id)
     {
         try
@@ -118,6 +124,10 @@ public class PaymentController : ControllerBase
     /// <returns>The payment result</returns>
     [HttpPost("process")]
     [HasPermission("payments", "process")]
+    [ProducesResponseType(typeof(PaymentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PaymentDto>> ProcessPayment([FromBody] ProcessPaymentDto processDto)
     {
         try
@@ -193,6 +203,10 @@ public class PaymentController : ControllerBase
     /// <returns>The refund result</returns>
     [HttpPost("{paymentId:guid}/refund")]
     [HasPermission("payments", "refund")]
+    [ProducesResponseType(typeof(RefundDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<RefundDto>> ProcessRefund(Guid paymentId, [FromBody] ProcessRefundDto refundDto)
     {
         try
@@ -266,6 +280,8 @@ public class PaymentController : ControllerBase
     /// <returns>List of refunds for the payment</returns>
     [HttpGet("{paymentId:guid}/refunds")]
     [HasPermission("payments", "read")]
+    [ProducesResponseType(typeof(IEnumerable<RefundDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IEnumerable<RefundDto>>> GetPaymentRefunds(Guid paymentId)
     {
         try
@@ -291,6 +307,9 @@ public class PaymentController : ControllerBase
     /// <returns>The updated payment status</returns>
     [HttpPost("{id:guid}/verify")]
     [HasPermission("payments", "verify")]
+    [ProducesResponseType(typeof(PaymentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PaymentDto>> VerifyPayment(Guid id)
     {
         try
