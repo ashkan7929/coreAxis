@@ -29,6 +29,28 @@ public class SubmissionsController : ControllerBase
     /// <param name="includeForm">Include form details</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Submission details</returns>
+    /// <remarks>
+    /// Example success:
+    ///
+    /// ```json
+    /// {
+    ///   "id": "11111111-1111-1111-1111-111111111111",
+    ///   "formId": "22222222-2222-2222-2222-222222222222",
+    ///   "userId": "33333333-3333-3333-3333-333333333333",
+    ///   "status": "Submitted",
+    ///   "data": { "fieldA": "value" },
+    ///   "createdAt": "2025-01-08T10:00:00Z"
+    /// }
+    /// ```
+    ///
+    /// Example not found:
+    ///
+    /// ```json
+    /// {
+    ///   "errors": ["Submission not found"]
+    /// }
+    /// ```
+    /// </remarks>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(FormSubmissionDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -75,6 +97,26 @@ public class SubmissionsController : ControllerBase
     /// <param name="includeForm">Include form details</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of submissions</returns>
+    /// <remarks>
+    /// Example response:
+    ///
+    /// ```json
+    /// {
+    ///   "items": [
+    ///     {
+    ///       "id": "11111111-1111-1111-1111-111111111111",
+    ///       "formId": "22222222-2222-2222-2222-222222222222",
+    ///       "status": "Submitted",
+    ///       "createdAt": "2025-01-08T10:00:00Z"
+    ///     }
+    ///   ],
+    ///   "totalCount": 1,
+    ///   "pageNumber": 1,
+    ///   "pageSize": 10,
+    ///   "totalPages": 1
+    /// }
+    /// ```
+    /// </remarks>
     [HttpGet]
     [ProducesResponseType(typeof(PagedResult<FormSubmissionDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -125,6 +167,27 @@ public class SubmissionsController : ControllerBase
     /// <param name="command">Submission creation data</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Created submission</returns>
+    /// <remarks>
+    /// Example request:
+    ///
+    /// ```json
+    /// {
+    ///   "formId": "22222222-2222-2222-2222-222222222222",
+    ///   "data": { "fieldA": "value" }
+    /// }
+    /// ```
+    ///
+    /// Example success (201):
+    ///
+    /// ```json
+    /// {
+    ///   "id": "11111111-1111-1111-1111-111111111111",
+    ///   "formId": "22222222-2222-2222-2222-222222222222",
+    ///   "status": "Submitted",
+    ///   "createdAt": "2025-01-08T10:00:00Z"
+    /// }
+    /// ```
+    /// </remarks>
     [HttpPost]
     [ProducesResponseType(typeof(FormSubmissionDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(string[]), StatusCodes.Status400BadRequest)]
@@ -162,6 +225,16 @@ public class SubmissionsController : ControllerBase
     /// <param name="command">Submission update data</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Updated submission</returns>
+    /// <remarks>
+    /// Example request:
+    ///
+    /// ```json
+    /// {
+    ///   "data": { "fieldA": "new value" },
+    ///   "status": "Updated"
+    /// }
+    /// ```
+    /// </remarks>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(FormSubmissionDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(string[]), StatusCodes.Status400BadRequest)]
@@ -197,6 +270,9 @@ public class SubmissionsController : ControllerBase
     /// <param name="id">Submission ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Success status</returns>
+    /// <remarks>
+    /// Returns `204 NoContent` on success.
+    /// </remarks>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -230,6 +306,16 @@ public class SubmissionsController : ControllerBase
     /// <param name="command">Validation data</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Validation result</returns>
+    /// <remarks>
+    /// Example success:
+    ///
+    /// ```json
+    /// {
+    ///   "isValid": true,
+    ///   "errors": []
+    /// }
+    /// ```
+    /// </remarks>
     [HttpPost("validate")]
     [ProducesResponseType(typeof(ValidationResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(string[]), StatusCodes.Status400BadRequest)]

@@ -17,6 +17,43 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1",
         Description = "Main Web API for CoreAxis application"
     });
+
+    // Add JWT security to Swagger
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+
+    // Include XML comments for all loaded assemblies to enrich Swagger docs
+    var basePath = AppContext.BaseDirectory;
+    var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+    foreach (var asm in assemblies)
+    {
+        var xml = Path.Combine(basePath, $"{asm.GetName().Name}.xml");
+        if (File.Exists(xml))
+        {
+            c.IncludeXmlComments(xml);
+        }
+    }
 });
 
 // Add Entity Framework
@@ -31,14 +68,24 @@ builder.Services.AddWalletModuleApi(builder.Configuration);
 
 // Add ProductOrderModule (Product API)
 builder.Services.AddProductOrderModuleApi(builder.Configuration);
+// Register file-based Audit Store for admin audit API
+builder.Services.AddSingleton<CoreAxis.SharedKernel.Observability.Audit.IAuditStore>(sp =>
+    new CoreAxis.SharedKernel.Observability.Audit.AuditFileStore(
+        Path.Combine(AppContext.BaseDirectory, "App_Data", "audit"))
+);
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+var enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger");
+if (app.Environment.IsDevelopment() || enableSwagger)
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("webApi-v1/swagger.json", "CoreAxis Web API v1");
+        c.RoutePrefix = "swagger";
+    });
 }
 
 app.UseHttpsRedirection();

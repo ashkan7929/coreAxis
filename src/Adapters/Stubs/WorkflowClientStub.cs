@@ -4,6 +4,8 @@ using CoreAxis.EventBus;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Text.Json;
+using System.Text;
+using System.IO;
 
 namespace CoreAxis.Adapters.Stubs;
 
@@ -14,12 +16,16 @@ public class WorkflowClientStub : IWorkflowClient
     private readonly ILogger<WorkflowClientStub> _logger;
     private readonly ConcurrentDictionary<Guid, WorkflowState> _workflowStates = new();
     private readonly ConcurrentDictionary<string, PriceLock> _priceLocks = new();
+    private readonly ConcurrentDictionary<Guid, HashSet<string>> _loggedSteps = new();
+    private readonly string _storeRoot;
 
     public WorkflowClientStub(IPriceProvider priceProvider, IEventBus eventBus, ILogger<WorkflowClientStub> logger)
     {
         _priceProvider = priceProvider;
         _eventBus = eventBus;
         _logger = logger;
+        _storeRoot = Path.Combine(AppContext.BaseDirectory, "App_Data", "workflows");
+        Directory.CreateDirectory(_storeRoot);
     }
 
     public async Task<WorkflowResult> StartAsync(string definitionId, object context, CancellationToken cancellationToken = default)
@@ -30,6 +36,9 @@ public class WorkflowClientStub : IWorkflowClient
 
         _logger.LogInformation("Started workflow {WorkflowId} with definition {DefinitionId}", workflowId, definitionId);
 
+        // Persist start
+        AppendStepLog(workflowId, "workflow.start", "Running", new { definitionId });
+
         // Handle different workflow types
         switch (definitionId.ToLower())
         {
@@ -38,6 +47,9 @@ public class WorkflowClientStub : IWorkflowClient
                 break;
             case "price-lock-workflow":
                 await HandlePriceLockWorkflow(state, cancellationToken);
+                break;
+            case "post-finalize-workflow":
+                await HandlePostFinalizeWorkflow(state, cancellationToken);
                 break;
             default:
                 state.Status = "Failed";
@@ -56,6 +68,38 @@ public class WorkflowClientStub : IWorkflowClient
         if (eventName == "OrderPlaced" && payload is OrderPlaced orderPlaced)
         {
             await HandleOrderPlaced(orderPlaced, cancellationToken);
+        }
+
+        // Handle resume/cancel signals
+        if (payload is JsonElement json)
+        {
+            if (eventName.Equals("Resume", StringComparison.OrdinalIgnoreCase) &&
+                json.TryGetProperty("workflowId", out var wfProp))
+            {
+                var workflowId = wfProp.GetGuid();
+                AppendStepLog(workflowId, "signal.resume", "Received");
+                if (_workflowStates.TryGetValue(workflowId, out var state))
+                {
+                    state.Status = "Running";
+                    AppendStepLog(workflowId, "resume.applied", "Running");
+                    return new WorkflowResult(workflowId, state.Status, state.Result, state.Error);
+                }
+                return new WorkflowResult(workflowId, "NotFound", error: "Workflow not found");
+            }
+
+            if (eventName.Equals("Cancel", StringComparison.OrdinalIgnoreCase) &&
+                json.TryGetProperty("workflowId", out var wfProp2))
+            {
+                var workflowId = wfProp2.GetGuid();
+                AppendStepLog(workflowId, "signal.cancel", "Received");
+                if (_workflowStates.TryGetValue(workflowId, out var state))
+                {
+                    state.Status = "Canceled";
+                    AppendStepLog(workflowId, "cancel.applied", "Canceled");
+                    return new WorkflowResult(workflowId, state.Status, state.Result, state.Error);
+                }
+                return new WorkflowResult(workflowId, "NotFound", error: "Workflow not found");
+            }
         }
 
         return new WorkflowResult(Guid.NewGuid(), "Completed");
@@ -225,6 +269,112 @@ public class WorkflowClientStub : IWorkflowClient
             state.Error = ex.Message;
             _logger.LogError(ex, "Error in price lock workflow");
         }
+    }
+
+    private async Task HandlePostFinalizeWorkflow(WorkflowState state, CancellationToken cancellationToken)
+    {
+        var workflowId = state.WorkflowId;
+        try
+        {
+            // Extract context
+            var contextJson = JsonSerializer.Serialize(state.Context);
+            var ctx = JsonSerializer.Deserialize<Dictionary<string, object>>(contextJson) ?? new();
+
+            // ScriptTask: prepare summary
+            var step1 = "post-finalize.script.prepare";
+            if (!IsStepLogged(workflowId, step1))
+            {
+                AppendStepLog(workflowId, step1, "Started", ctx);
+                var summary = new
+                {
+                    OrderId = ctx.GetValueOrDefault("OrderId"),
+                    UserId = ctx.GetValueOrDefault("UserId"),
+                    TotalAmount = ctx.GetValueOrDefault("TotalAmount"),
+                    Currency = ctx.GetValueOrDefault("Currency"),
+                    FinalizedAt = ctx.GetValueOrDefault("FinalizedAt"),
+                    TenantId = ctx.GetValueOrDefault("TenantId")
+                };
+                AppendStepLog(workflowId, step1, "Completed", summary);
+            }
+
+            // ServiceTask: simulate external service call
+            var step2 = "post-finalize.service.apply-policies";
+            if (!IsStepLogged(workflowId, step2))
+            {
+                AppendStepLog(workflowId, step2, "Started");
+                await Task.Delay(200, cancellationToken);
+                AppendStepLog(workflowId, step2, "Completed", new { applied = true });
+            }
+
+            // Timer: wait boundary
+            var step3 = "post-finalize.timer.wait";
+            if (!IsStepLogged(workflowId, step3))
+            {
+                AppendStepLog(workflowId, step3, "Started", new { seconds = 3 });
+                await Task.Delay(TimeSpan.FromSeconds(3), cancellationToken);
+                AppendStepLog(workflowId, step3, "Fired");
+            }
+
+            // Event: emit completion
+            var step4 = "post-finalize.event.completed";
+            if (!IsStepLogged(workflowId, step4))
+            {
+                AppendStepLog(workflowId, step4, "Emitted");
+            }
+
+            state.Status = "Completed";
+            state.Result = new { ok = true };
+            AppendStepLog(workflowId, "workflow.completed", "Completed");
+            _logger.LogInformation("Post-finalize workflow {WorkflowId} completed", workflowId);
+        }
+        catch (Exception ex)
+        {
+            AppendStepLog(workflowId, "post-finalize.compensation", "Triggered", new { error = ex.Message });
+            state.Status = "Failed";
+            state.Error = ex.Message;
+            _logger.LogError(ex, "Error in post-finalize workflow {WorkflowId}", workflowId);
+        }
+    }
+
+    private string GetInstanceDir(Guid workflowId) => Path.Combine(_storeRoot, workflowId.ToString());
+    private string GetLogPath(Guid workflowId) => Path.Combine(GetInstanceDir(workflowId), "logs.ndjson");
+    private void EnsureInstanceDir(Guid workflowId) => Directory.CreateDirectory(GetInstanceDir(workflowId));
+
+    private bool IsStepLogged(Guid workflowId, string stepId)
+    {
+        if (_loggedSteps.TryGetValue(workflowId, out var set) && set.Contains(stepId))
+            return true;
+
+        var path = GetLogPath(workflowId);
+        if (File.Exists(path))
+        {
+            foreach (var line in File.ReadLines(path))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(line);
+                    if (doc.RootElement.TryGetProperty("stepId", out var sid) && sid.GetString() == stepId)
+                    {
+                        if (!_loggedSteps.ContainsKey(workflowId)) _loggedSteps[workflowId] = new HashSet<string>();
+                        _loggedSteps[workflowId].Add(stepId);
+                        return true;
+                    }
+                }
+                catch { /* skip malformed */ }
+            }
+        }
+        return false;
+    }
+
+    private void AppendStepLog(Guid workflowId, string stepId, string status, object? data = null)
+    {
+        EnsureInstanceDir(workflowId);
+        var path = GetLogPath(workflowId);
+        var entry = new { instanceId = workflowId, stepId, status, timestamp = DateTime.UtcNow, data };
+        var line = JsonSerializer.Serialize(entry);
+        File.AppendAllText(path, line + Environment.NewLine, Encoding.UTF8);
+        if (!_loggedSteps.ContainsKey(workflowId)) _loggedSteps[workflowId] = new HashSet<string>();
+        _loggedSteps[workflowId].Add(stepId);
     }
 
     private class WorkflowState

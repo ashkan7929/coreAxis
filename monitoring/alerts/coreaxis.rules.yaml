@@ -1,0 +1,38 @@
+groups:
+  - name: coreaxis_alerts
+    rules:
+      - alert: TTLQuoteExpiredSpike
+        expr: sum(rate(quote_expired_total[5m])) > 50
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "TTL Quote Expired spike"
+          runbook: "docs/AlertRules.md"
+
+      - alert: BreakerOpenSpike
+        expr: sum(rate(apim_breaker_open_total[5m])) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Circuit breaker open spike"
+          runbook: "docs/AlertRules.md"
+
+      - alert: PaymentFailureSpike
+        expr: sum(rate(payment_failure_total[5m])) > 10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Payment/settlement failures"
+          runbook: "docs/AlertRules.md"
+
+      - alert: Http429Anomaly
+        expr: sum(rate(http_429_total[5m])) > 20
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "429 anomaly"
+          runbook: "docs/AlertRules.md"

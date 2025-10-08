@@ -1,0 +1,99 @@
+{
+    "project": "CoreAxis",
+    "phase": "Finalization",
+    "tasks": [
+        {
+            "id": "FIN-SEC-1",
+            "title": "Audit trail (Wallet/Order/MLM)",
+            "description": "Persist audit entries for WalletTransaction, OrderStatusChange, CommissionSettlement; searchable by userId/orderId/txId.",
+            "acceptance": [
+                "Entries persisted with correlationId",
+                "Queryable via admin API",
+                "No PII in logs"
+            ],
+            "status": "Completed"
+        },
+        {
+            "id": "FIN-SEC-2",
+            "title": "Admin audit report/export",
+            "description": "GET /api/admin/audit?from&to&userId&type&format=csv|json with pagination.",
+            "acceptance": [
+                "Valid CSV/JSON",
+                "Filters work",
+                "Large-range pagination ok"
+            ],
+            "status": "Completed"
+        },
+        {
+            "id": "FIN-MON-1",
+            "title": "Grafana dashboards (final)",
+            "description": "Panels for pricing p95/p99, apim retry/breaker, checkout success, wallet/mlm ops.",
+            "acceptance": [
+                "Dashboards published",
+                "Links in Runbook"
+            ],
+            "status": "Completed"
+        },
+        {
+            "id": "FIN-MON-2",
+            "title": "Alerts",
+            "description": "TTL Quote Expired spike, breaker-open spike, payment/settlement failures, 429 anomaly.",
+            "acceptance": [
+                "Alert rules enabled & test-fired",
+                "On-call targets documented"
+            ],
+            "status": "Completed"
+        },
+        {
+            "id": "FIN-WF-2",
+            "title": "Workflow Phase 2 (timer/compensation)",
+            "description": "Add timer & compensation handlers, resume/cancel, persistent step logs.",
+            "acceptance": [
+                "Compensations executed on failure",
+                "Timer boundary works",
+                "Step history visible"
+            ],
+            "status": "Completed"
+        },
+        {
+            "id": "FIN-DOC-1",
+            "title": "Docs & Runbook & Release",
+            "description": "Finalize Swagger/curl; Deployment guide; Ops Runbook; Tag v1.0.0; changelog/release notes.",
+            "acceptance": [
+                "CI/CD with tag green",
+                "Ops can deploy & recover w/o dev"
+            ],
+            "status": "Completed"
+        },
+        {
+            "id": "FIN-REL-1",
+            "title": "Cutover/Canary/Rollback",
+            "description": "Canary 10→50→100; flags for mlm/workflow jobs; tested rollback plan.",
+            "acceptance": [
+                "Canary metrics green",
+                "Rollback drill passed"
+            ],
+            "status": "Completed"
+        },
+        {
+            "id": "FIN-DATA-1",
+            "title": "Migrations/Seeds/Backup",
+            "description": "Run DB migrations on stage→prod; seed MLM default plan, product bindings, wallet policies; backup & restore tested.",
+            "acceptance": [
+                "Migrations green",
+                "Backup restore passes"
+            ],
+            "status": "Completed"
+        },
+        {
+            "id": "FIN-PERF-1",
+            "title": "Performance & Load",
+            "description": "Load tests on pricing/checkout/apim/wallet/mlm; targets p95<300/800ms, 5xx<0.1%.",
+            "acceptance": [
+                "Targets met in dashboard",
+                "No breaker storm"
+            ],
+            "status": "Completed"
+        }
+    ]
+}

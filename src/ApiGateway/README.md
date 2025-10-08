@@ -26,5 +26,7 @@ The API Gateway is the main entry point for the application. It routes requests 
 
 3. Access the API documentation:
    ```
-   https://localhost:5001/swagger
+   http://localhost:5077/swagger
    ```
+
+> Tip: In non-development environments, set `EnableSwagger=true` in configuration to enable Swagger UI.

@@ -20,8 +20,40 @@ public class ProductsController : ControllerBase
         _productRepository = productRepository;
     }
 
+    /// <summary>
+    /// Retrieve public product list with optional search and pagination.
+    /// </summary>
+    /// <remarks>
+    /// Returns only products with status `Active`.
+    ///
+    /// Example response (paged):
+    ///
+    /// ```json
+    /// {
+    ///   "items": [
+    ///     {
+    ///       "id": "b1b2c3d4-0000-0000-0000-000000000001",
+    ///       "code": "PRD-001",
+    ///       "name": "Starter Pack",
+    ///       "status": "Active",
+    ///       "priceFrom": 49.99,
+    ///       "attributes": { "color": "red" }
+    ///     }
+    ///   ],
+    ///   "totalCount": 1,
+    ///   "pageNumber": 1,
+    ///   "pageSize": 20,
+    ///   "totalPages": 1
+    /// }
+    /// ```
+    /// </remarks>
+    /// <param name="q">Optional search query by name/code.</param>
+    /// <param name="pageNumber">Page number (default 1).</param>
+    /// <param name="pageSize">Page size (default 20).</param>
     [HttpGet]
     [Produces(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(typeof(PagedResult<ProductPublicDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PagedResult<ProductPublicDto>>> Get(
         [FromQuery] string? q,
         [FromQuery] int pageNumber = 1,
@@ -56,8 +88,42 @@ public class ProductsController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Retrieve a public product by ID.
+    /// </summary>
+    /// <remarks>
+    /// Returns `404` with problem details when the product is not found.
+    ///
+    /// Example success:
+    ///
+    /// ```json
+    /// {
+    ///   "id": "b1b2c3d4-0000-0000-0000-000000000001",
+    ///   "code": "PRD-001",
+    ///   "name": "Starter Pack",
+    ///   "status": "Active",
+    ///   "priceFrom": 49.99,
+    ///   "attributes": { "color": "red" }
+    /// }
+    /// ```
+    ///
+    /// Example not found (ProblemDetails):
+    ///
+    /// ```json
+    /// {
+    ///   "title": "Product not found",
+    ///   "detail": "No product with id '...'",
+    ///   "status": 404,
+    ///   "type": "https://coreaxis.dev/problems/product"
+    /// }
+    /// ```
+    /// </remarks>
+    /// <param name="id">Product unique identifier.</param>
     [HttpGet("{id:guid}")]
     [Produces(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(typeof(ProductPublicDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<ProductPublicDto>> GetById(Guid id)
     {
         var product = await _productRepository.GetByIdAsync(id);
@@ -85,8 +151,18 @@ public class ProductsController : ControllerBase
         return Ok(dto);
     }
 
+    /// <summary>
+    /// Retrieve a public product by code.
+    /// </summary>
+    /// <remarks>
+    /// Returns `404` with problem details when the product is not found.
+    /// </remarks>
+    /// <param name="code">Product code (case-sensitive).</param>
     [HttpGet("by-code/{code}")]
     [Produces(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(typeof(ProductPublicDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<ProductPublicDto>> GetByCode(string code)
     {
         var product = await _productRepository.GetByCodeAsync(code);

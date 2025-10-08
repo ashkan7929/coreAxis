@@ -120,6 +120,11 @@ Refer to the `docs/` folder for detailed documentation on:
 -   Continuous Integration (ContinuousIntegration.md)
 -   Precision Alignment (precision-alignment.md) - Decimal precision analysis between modules
 
+### API Documentation (Swagger)
+
+- Gateway Swagger UI: `http://localhost:5077/swagger`
+- Web API Swagger UI: `http://localhost:5001/swagger` (enable by setting `EnableSwagger=true` in configuration for non-development environments)
+
 ### Module-Specific Documentation
 
 - **ProductOrderModule**: Order management, pricing, and workflow integration

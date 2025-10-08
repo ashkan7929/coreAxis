@@ -1,0 +1,8 @@
+{
+  "title": "Ops Overview",
+  "panels": [
+    { "type": "stat", "title": "Checkout Success Ratio", "targets": [{ "expr": "sum(rate(http_requests_total{route=\"/api/commerce/checkout\",status=~\"2..\"}[5m])) / sum(rate(http_requests_total{route=\"/api/commerce/checkout\"}[5m]))" }] },
+    { "type": "graph", "title": "APIM Breaker Open", "targets": [{ "expr": "sum(rate(apim_breaker_open_total[5m]))" }] },
+    { "type": "graph", "title": "Wallet/MLM Ops per Minute", "targets": [{ "expr": "sum(rate(wallet_ops_total[1m])) + sum(rate(mlm_ops_total[1m]))" }] }
+  ]
+}
