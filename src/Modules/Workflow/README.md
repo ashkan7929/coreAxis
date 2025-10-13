@@ -32,10 +32,16 @@ The Workflow Module orchestrates business workflows (e.g., order post-finalizati
 
 ## 🔹 API
 
-Base route: `api/workflow`
+There are two API groups exposed in Swagger:
+- Runtime: `workflows-runtime` under base route `api/workflows`
+- Admin: `workflows-admin` under base route `api/admin/workflows`
 
-### Start Post-Finalize
-- `POST /api/workflow/post-finalize/start`
+All endpoints require `Authorization: Bearer <token>`. For POST operations, you may provide `Idempotency-Key: <unique-key>` to enable safe retries.
+
+### Runtime Endpoints (`api/workflows`)
+
+#### Start Post-Finalize
+- `POST /api/workflows/post-finalize/start`
   - Body (JSON): arbitrary context for post-finalization, typically:
     ```json
     {
@@ -49,36 +55,104 @@ Base route: `api/workflow`
     }
     ```
   - Responses:
-    - `200 OK` → `{ workflowId, isSuccess, error? }`
+    - `200 OK`
+      ```json
+      { "workflowId": "...", "isSuccess": true, "error": null }
+      ```
     - `400 BadRequest`, `401 Unauthorized`, `500 InternalServerError`
 
-### Resume
-- `POST /api/workflow/{workflowId}/resume`
+#### Resume
+- `POST /api/workflows/{workflowId}/resume`
   - Path: `workflowId` (Guid)
   - Responses:
-    - `200 OK` → resume signal result
+    - `200 OK`
+      ```json
+      { "signal": "Resume", "accepted": true, "workflowId": "..." }
+      ```
     - `404 NotFound`, `401 Unauthorized`, `500 InternalServerError`
 
-### Cancel
-- `POST /api/workflow/{workflowId}/cancel`
+#### Cancel
+- `POST /api/workflows/{workflowId}/cancel`
   - Path: `workflowId` (Guid)
   - Responses:
-    - `200 OK` → cancel signal result
+    - `200 OK`
+      ```json
+      { "signal": "Cancel", "accepted": true, "workflowId": "..." }
+      ```
     - `404 NotFound`, `401 Unauthorized`, `500 InternalServerError`
 
-### Get Status
-- `GET /api/workflow/{workflowId}`
+#### Get Status
+- `GET /api/workflows/{workflowId}`
   - Path: `workflowId` (Guid)
   - Responses:
     - `200 OK` → status payload
     - `404 NotFound`, `401 Unauthorized`, `500 InternalServerError`
 
-### Get History
-- `GET /api/workflow/{workflowId}/history`
+#### Get History
+- `GET /api/workflows/{workflowId}/history`
   - Path: `workflowId` (Guid)
   - Responses:
-    - `200 OK` → `{ workflowId, entries: [...] }`
+    - `200 OK`
+      ```json
+      { "workflowId": "...", "entries": [ { "ts": "2024-01-01T10:00:00Z", "msg": "Started" } ] }
+      ```
     - `404 NotFound`, `401 Unauthorized`, `500 InternalServerError`
+
+### Admin Endpoints (`api/admin/workflows`)
+
+#### List Definitions
+- `GET /api/admin/workflows`
+  - Responses:
+    - `200 OK`
+      ```json
+      [ { "id": "...", "code": "post-finalize", "name": "Post Finalize", "createdAt": "2024-01-01T10:00:00Z" } ]
+      ```
+    - `401 Unauthorized`, `500 InternalServerError`
+
+#### Create Definition
+- `POST /api/admin/workflows`
+  - Body:
+    ```json
+    { "code": "post-finalize", "name": "Post Finalize", "description": "Runs after order finalization" }
+    ```
+  - Responses:
+    - `201 Created`
+      ```json
+      { "id": "..." }
+      ```
+    - `400 BadRequest`, `401 Unauthorized`, `409 Conflict`, `500 InternalServerError`
+
+#### Create Version
+- `POST /api/admin/workflows/{id}/versions`
+  - Path: `id` (Guid)
+  - Body:
+    ```json
+    { "versionNumber": 2, "dslJson": { "steps": [ { "name": "SendEmail" } ] }, "changelog": "Add SendEmail" }
+    ```
+  - Responses:
+    - `201 Created`
+      ```json
+      { "id": "...", "version": 2 }
+      ```
+    - `400 BadRequest`, `401 Unauthorized`, `404 NotFound`, `500 InternalServerError`
+
+#### Publish Version
+- `POST /api/admin/workflows/{id}/versions/{version}/publish`
+  - Responses:
+    - `200 OK`
+      ```json
+      { "id": "...", "version": 2, "published": true }
+      ```
+    - `401 Unauthorized`, `404 NotFound`, `500 InternalServerError`
+
+#### Unpublish Version
+- `POST /api/admin/workflows/{id}/versions/{version}/unpublish`
+  - Responses:
+    - `200 OK`
+      ```json
+      { "id": "...", "version": 2, "published": false }
+      ```
+    - `401 Unauthorized`, `404 NotFound`, `500 InternalServerError`
 
 ---
 

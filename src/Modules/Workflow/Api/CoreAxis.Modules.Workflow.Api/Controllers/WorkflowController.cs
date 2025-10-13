@@ -7,6 +7,7 @@ using System.Text;
 using System.IO;
 using Microsoft.AspNetCore.Http;
 using System.Net.Mime;
+using CoreAxis.Modules.Workflow.Api.Filters;
 
 namespace CoreAxis.Modules.Workflow.Api.Controllers;
 
@@ -34,6 +35,10 @@ public class WorkflowController : ControllerBase
     /// <remarks>
     /// Triggers the workflow named `post-finalize-workflow` with the provided context.
     ///
+    /// Headers:
+    /// - `Authorization: Bearer <token>`
+    /// - `Idempotency-Key: <unique-key>` (optional; enables safe retries for POST)
+    ///
     /// Request body example:
     /// ```json
     /// {
@@ -48,19 +53,31 @@ public class WorkflowController : ControllerBase
     /// ```
     ///
     /// Responses:
-    /// - 200 OK → workflow start result `{ workflowId, isSuccess, error? }`
+    /// - 200 OK → workflow start result
+    ///   ```json
+    ///   {
+    ///     "workflowId": "7b6c8f0a-1c2d-4e5f-8a9b-0123456789ab",
+    ///     "isSuccess": true,
+    ///     "error": null
+    ///   }
+    ///   ```
     /// - 400 BadRequest → invalid payload
+    ///   ```json
+    ///   { "title": "Invalid payload", "status": 400 }
+    ///   ```
     /// - 401 Unauthorized → missing or invalid auth
     /// - 500 InternalServerError
     /// </remarks>
     /// <param name="context">Workflow context payload as JSON.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     [HttpPost("post-finalize/start")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [Produces(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    [ServiceFilter(typeof(IdempotencyFilter))]
     public async Task<IActionResult> StartPostFinalize([FromBody] JsonElement context, CancellationToken cancellationToken)
     {
         var result = await _workflowClient.StartAsync("post-finalize-workflow", context, cancellationToken);
@@ -76,6 +93,9 @@ public class WorkflowController : ControllerBase
     ///
     /// Responses:
     /// - 200 OK → resume signal result
+    ///   ```json
+    ///   { "signal": "Resume", "accepted": true, "workflowId": "..." }
+    ///   ```
     /// - 404 NotFound → workflow not found
     /// - 401 Unauthorized
     /// - 500 InternalServerError
@@ -83,6 +103,7 @@ public class WorkflowController : ControllerBase
     /// <param name="workflowId">Target workflow identifier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     [HttpPost("{workflowId:guid}/resume")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [Produces(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -103,6 +124,9 @@ public class WorkflowController : ControllerBase
     ///
     /// Responses:
     /// - 200 OK → cancel signal result
+    ///   ```json
+    ///   { "signal": "Cancel", "accepted": true, "workflowId": "..." }
+    ///   ```
     /// - 404 NotFound → workflow not found
     /// - 401 Unauthorized
     /// - 500 InternalServerError
@@ -110,6 +134,7 @@ public class WorkflowController : ControllerBase
     /// <param name="workflowId">Target workflow identifier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     [HttpPost("{workflowId:guid}/cancel")]
+    [Consumes(MediaTypeNames.Application.Json)]
     [Produces(MediaTypeNames.Application.Json)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -156,6 +181,15 @@ public class WorkflowController : ControllerBase
     ///
     /// Responses:
     /// - 200 OK → `{ workflowId, entries: [...] }`
+    ///   ```json
+    ///   {
+    ///     "workflowId": "...",
+    ///     "entries": [
+    ///       { "ts": "2024-01-01T10:00:00Z", "msg": "Started" },
+    ///       { "ts": "2024-01-01T10:00:05Z", "msg": "Step: SendEmail" }
+    ///     ]
+    ///   }
+    ///   ```
     /// - 404 NotFound → no logs found
     /// - 401 Unauthorized
     /// - 500 InternalServerError
