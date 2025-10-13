@@ -1,4 +1,3 @@
-using CoreAxis.Modules.CommerceModule.Application.Interfaces;
 using CoreAxis.Modules.CommerceModule.Infrastructure.Data;
 using CoreAxis.Modules.CommerceModule.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -41,17 +40,8 @@ public static class DependencyInjection
             options.EnableDetailedErrors();
         });
 
-        // Register repositories
-        services.AddScoped<IInventoryRepository, InventoryRepository>();
-        services.AddScoped<IPaymentRepository, PaymentRepository>();
-        services.AddScoped<IRefundRepository, RefundRepository>();
-        services.AddScoped<IOrderRepository, OrderRepository>();
-        services.AddScoped<IOrderItemRepository, OrderItemRepository>();
-        services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
-        services.AddScoped<ISubscriptionPaymentRepository, SubscriptionPaymentRepository>();
-        services.AddScoped<IReconciliationRepository, ReconciliationRepository>();
-        services.AddScoped<IReconciliationEntryRepository, ReconciliationEntryRepository>();
-        services.AddScoped<ICouponRepository, CouponRepository>();
+        // Register existing repositories (only ones present in this project)
+        services.AddScoped<InventoryRepository>();
 
         // Add health checks
         services.AddHealthChecks()

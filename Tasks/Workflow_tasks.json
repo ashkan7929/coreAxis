@@ -1,0 +1,868 @@
+{
+    "project": {
+        "name": "CoreAxis-PostPurchase-Workflow",
+        "goal": "Implement all web services and Swagger to support a dynamic, post-purchase workflow: calculate price (form+gold), call Alborz APIs to issue policy and fetch fund, deposit fund to wallet, and pay referral commissions. Add admin endpoints to define/publish workflows as JSON DSL.",
+        "tech_stack": {
+            "language": "C#",
+            "runtime": ".NET 8",
+            "framework": "ASP.NET Core Web API",
+            "packages": [
+                "Swashbuckle.AspNetCore",
+                "MediatR",
+                "FluentValidation",
+                "Polly",
+                "Microsoft.EntityFrameworkCore",
+                "Microsoft.EntityFrameworkCore.SqlServer",
+                "Microsoft.EntityFrameworkCore.Design"
+            ]
+        },
+        "non_goals": [
+            "Unit/integration tests"
+        ],
+        "deliverables": [
+            "Working REST APIs with Swagger UI",
+            "EF Core migrations for workflow tables",
+            "In-memory workflow executor for JSON DSL",
+            "Idempotent endpoints for money-affecting operations"
+        ]
+    },
+    "security": {
+        "auth": {
+            "scheme": "Bearer",
+            "header": "Authorization",
+            "prefix": "Bearer"
+        },
+        "headers_common": {
+            "X-Correlation-ID": "uuid string propagated across all steps"
+        },
+        "idempotency": {
+            "header": "Idempotency-Key",
+            "behavior": "For POST endpoints that mutate state, deduplicate by (route, body hash, header value) for 24h"
+        }
+    },
+    "persistence": {
+        "db": "SqlServer",
+        "schemas": [
+            {
+                "name": "WorkflowDefinition",
+                "columns": {
+                    "Id": "uniqueidentifier PK",
+                    "Code": "nvarchar(128) unique not null",
+                    "Name": "nvarchar(256) not null",
+                    "Description": "nvarchar(max) null",
+                    "CreatedBy": "nvarchar(128) not null",
+                    "CreatedAt": "datetime2 not null default getutcdate()"
+                }
+            },
+            {
+                "name": "WorkflowDefinitionVersion",
+                "columns": {
+                    "Id": "uniqueidentifier PK",
+                    "WorkflowDefinitionId": "uniqueidentifier FK->WorkflowDefinition(Id)",
+                    "VersionNumber": "int not null",
+                    "IsPublished": "bit not null default 0",
+                    "DslJson": "nvarchar(max) not null",
+                    "SchemaVersion": "int not null default 1",
+                    "Changelog": "nvarchar(max) null",
+                    "CreatedAt": "datetime2 not null default getutcdate()",
+                    "CreatedBy": "nvarchar(128) not null"
+                },
+                "uniques": [
+                    "UX_WorkflowDefinition_Version(WorkflowDefinitionId, VersionNumber)"
+                ]
+            },
+            {
+                "name": "WorkflowRun",
+                "columns": {
+                    "Id": "uniqueidentifier PK",
+                    "DefinitionId": "uniqueidentifier FK->WorkflowDefinition(Id)",
+                    "DefinitionVersionNumber": "int not null",
+                    "Status": "nvarchar(32) not null",
+                    "InputContextJson": "nvarchar(max) not null",
+                    "OutputContextJson": "nvarchar(max) null",
+                    "CorrelationId": "nvarchar(64) not null",
+                    "InitiatedBy": "nvarchar(128) null",
+                    "StartedAt": "datetime2 not null default getutcdate()",
+                    "EndedAt": "datetime2 null",
+                    "LastError": "nvarchar(max) null"
+                },
+                "indexes": [
+                    "IX_WorkflowRun_DefinitionId",
+                    "IX_WorkflowRun_CorrelationId"
+                ]
+            },
+            {
+                "name": "WorkflowRunStep",
+                "columns": {
+                    "Id": "uniqueidentifier PK",
+                    "RunId": "uniqueidentifier FK->WorkflowRun(Id)",
+                    "StepKey": "nvarchar(128) not null",
+                    "Type": "nvarchar(64) not null",
+                    "Status": "nvarchar(32) not null",
+                    "Attempt": "int not null default 0",
+                    "RequestJson": "nvarchar(max) null",
+                    "ResponseJson": "nvarchar(max) null",
+                    "Error": "nvarchar(max) null",
+                    "IdempotencyKey": "nvarchar(128) null",
+                    "StartedAt": "datetime2 not null default getutcdate()",
+                    "EndedAt": "datetime2 null"
+                },
+                "indexes": [
+                    "IX_WorkflowRunStep_RunId"
+                ]
+            },
+            {
+                "name": "IdempotencyKey",
+                "columns": {
+                    "Id": "uniqueidentifier PK",
+                    "Key": "nvarchar(128) not null",
+                    "Route": "nvarchar(256) not null",
+                    "BodyHash": "nvarchar(128) not null",
+                    "ResponseJson": "nvarchar(max) null",
+                    "StatusCode": "int not null",
+                    "CreatedAt": "datetime2 not null default getutcdate()"
+                },
+                "uniques": [
+                    "UX_Idempotency(Route, Key, BodyHash)"
+                ]
+            }
+        ]
+    },
+    "workflow_dsl": {
+        "schemaVersion": 1,
+        "definition": {
+            "code": "alborz_issue_fund_commission_v1",
+            "name": "Alborz – Issue Policy, Fetch Fund, Deposit & Commission",
+            "description": "Post-purchase workflow."
+        },
+        "triggers": [
+            {
+                "type": "domainEvent",
+                "event": "OrderFinalized"
+            }
+        ],
+        "services": [
+            {
+                "key": "dynamicform",
+                "type": "http",
+                "baseUrlEnv": "DYNAMICFORM_BASEURL",
+                "auth": "bearer"
+            },
+            {
+                "key": "wallet",
+                "type": "http",
+                "baseUrlEnv": "WALLET_BASEURL",
+                "auth": "bearer"
+            },
+            {
+                "key": "mlm",
+                "type": "http",
+                "baseUrlEnv": "MLM_BASEURL",
+                "auth": "bearer"
+            },
+            {
+                "key": "alborz.issue_policy",
+                "type": "api_manager",
+                "baseUrlEnv": "APIM_BASEURL",
+                "route": "/api-manager/proxy/alborz/issue-policy",
+                "auth": "apiManager"
+            },
+            {
+                "key": "alborz.get_fund_balance",
+                "type": "api_manager",
+                "baseUrlEnv": "APIM_BASEURL",
+                "route": "/api-manager/proxy/alborz/get-fund-balance",
+                "auth": "apiManager"
+            }
+        ],
+        "defaults": {
+            "headers": {
+                "X-Correlation-ID": "{{ctx.correlationId}}"
+            },
+            "retry": {
+                "max": 3,
+                "backoffSeconds": 5
+            },
+            "timeoutSeconds": 30,
+            "idempotency": {
+                "enabled": true,
+                "header": "Idempotency-Key",
+                "value": "{{ctx.correlationId}}:{{step.key}}"
+            }
+        },
+        "inputs": {
+            "required": [
+                "orderId",
+                "userId",
+                "tenantId",
+                "productId",
+                "formSubmissionId",
+                "walletId",
+                "correlationId"
+            ],
+            "optional": [
+                "quoteId",
+                "user"
+            ]
+        },
+        "steps": [
+            {
+                "key": "calc_price",
+                "type": "http_call",
+                "service": "dynamicform",
+                "method": "POST",
+                "path": "/api/submissions/calc",
+                "idempotency": {
+                    "enabled": false
+                },
+                "body": {
+                    "formSubmissionId": "{{ctx.formSubmissionId}}",
+                    "inputs": "{{ctx.inputs}}",
+                    "context": {
+                        "productId": "{{ctx.productId}}",
+                        "tenantId": "{{ctx.tenantId}}"
+                    }
+                },
+                "expect": {
+                    "status": 200,
+                    "jsonPaths": [
+                        "$.quoteId",
+                        "$.pricing.grandTotal"
+                    ]
+                },
+                "saveAs": "pricingResult"
+            },
+            {
+                "key": "issue_policy",
+                "type": "api_manager_call",
+                "service": "alborz.issue_policy",
+                "method": "POST",
+                "payload": {
+                    "user": {
+                        "nationalCode": "{{ctx.user.nationalCode}}",
+                        "firstName": "{{ctx.user.firstName}}",
+                        "lastName": "{{ctx.user.lastName}}",
+                        "mobile": "{{ctx.user.mobile}}"
+                    },
+                    "productId": "{{ctx.productId}}",
+                    "orderId": "{{ctx.orderId}}",
+                    "coverageAmount": "{{pricingResult.pricing.grandTotal}}",
+                    "inputsSnapshot": "{{pricingResult.inputsSnapshot}}"
+                },
+                "expect": {
+                    "status": 200,
+                    "equals": {
+                        "$.status": "ISSUED"
+                    },
+                    "jsonPaths": [
+                        "$.policyId"
+                    ]
+                },
+                "saveAs": "issueResult"
+            },
+            {
+                "key": "fetch_fund",
+                "type": "api_manager_call",
+                "service": "alborz.get_fund_balance",
+                "method": "POST",
+                "payload": {
+                    "policyId": "{{issueResult.policyId}}"
+                },
+                "expect": {
+                    "status": 200,
+                    "greaterThan": {
+                        "$.fundBalance": 0
+                    }
+                },
+                "saveAs": "fundResult"
+            },
+            {
+                "key": "deposit_fund_to_wallet",
+                "type": "http_call",
+                "service": "wallet",
+                "method": "POST",
+                "path": "/api/wallet/{{ctx.walletId}}/deposit",
+                "headers": {
+                    "Idempotency-Key": "{{ctx.correlationId}}:deposit_fund"
+                },
+                "body": {
+                    "amount": "{{fundResult.fundBalance}}",
+                    "description": "Alborz fund deposit for {{issueResult.policyId}} / order {{ctx.orderId}}",
+                    "reference": "{{issueResult.policyId}}",
+                    "metadata": {
+                        "orderId": "{{ctx.orderId}}",
+                        "policyId": "{{issueResult.policyId}}"
+                    }
+                },
+                "expect": {
+                    "status": 200,
+                    "jsonPaths": [
+                        "$.transactionId"
+                    ]
+                },
+                "saveAs": "walletDeposit"
+            },
+            {
+                "key": "approve_commissions_for_order",
+                "type": "http_call",
+                "service": "mlm",
+                "method": "POST",
+                "path": "/api/mlm/commissions/approve-for-order/{{ctx.orderId}}",
+                "headers": {
+                    "Idempotency-Key": "{{ctx.correlationId}}:approve_commissions"
+                },
+                "body": {},
+                "expect": {
+                    "status": 200
+                },
+                "saveAs": "commissionApprove"
+            },
+            {
+                "key": "payout_commissions_for_order",
+                "type": "http_call",
+                "service": "mlm",
+                "method": "POST",
+                "path": "/api/mlm/commissions/payout-for-order/{{ctx.orderId}}",
+                "headers": {
+                    "Idempotency-Key": "{{ctx.correlationId}}:payout_commissions"
+                },
+                "body": {},
+                "expect": {
+                    "status": 200
+                },
+                "saveAs": "commissionPayout"
+            }
+        ],
+        "outputs": {
+            "policyId": "{{issueResult.policyId}}",
+            "fundBalance": "{{fundResult.fundBalance}}",
+            "walletDepositTxId": "{{walletDeposit.transactionId}}",
+            "commissions": {
+                "approved": true,
+                "paid": true
+            }
+        }
+    },
+    "openapi": {
+        "title": "CoreAxis Workflow and Post-Purchase APIs",
+        "version": "v1",
+        "servers": [
+            {
+                "url": "https://dev.coreaxis.local",
+                "description": "Dev"
+            },
+            {
+                "url": "https://api.coreaxis.com",
+                "description": "Prod"
+            }
+        ],
+        "securitySchemes": {
+            "Bearer": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        },
+        "tags": [
+            {
+                "name": "Workflow Admin"
+            },
+            {
+                "name": "Workflow Runtime"
+            },
+            {
+                "name": "External Proxies (Alborz)"
+            },
+            {
+                "name": "MLM Aggregates"
+            }
+        ],
+        "paths": [
+            {
+                "tag": "Workflow Admin",
+                "method": "GET",
+                "path": "/api/admin/workflows",
+                "summary": "List workflow definitions",
+                "operationId": "ListWorkflows",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "example": [
+                                    {
+                                        "id": "guid",
+                                        "code": "alborz_issue_fund_commission",
+                                        "name": "Alborz Flow",
+                                        "createdAt": "2025-10-13T10:00:00Z"
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "tag": "Workflow Admin",
+                "method": "POST",
+                "path": "/api/admin/workflows",
+                "summary": "Create workflow definition",
+                "operationId": "CreateWorkflow",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "code": "alborz_issue_fund_commission",
+                                "name": "Alborz Flow",
+                                "description": "post-purchase"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created"
+                    }
+                }
+            },
+            {
+                "tag": "Workflow Admin",
+                "method": "POST",
+                "path": "/api/admin/workflows/{id}/versions",
+                "summary": "Create workflow version (DSL JSON)",
+                "operationId": "CreateWorkflowVersion",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "versionNumber": 1,
+                                "dslJson": {
+                                    "$ref": "#/workflow_dsl"
+                                },
+                                "changelog": "initial publish"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created"
+                    }
+                }
+            },
+            {
+                "tag": "Workflow Admin",
+                "method": "POST",
+                "path": "/api/admin/workflows/{id}/versions/{version}/publish",
+                "summary": "Publish workflow version",
+                "operationId": "PublishWorkflowVersion",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "version",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            {
+                "tag": "Workflow Admin",
+                "method": "POST",
+                "path": "/api/admin/workflows/{id}/versions/{version}/unpublish",
+                "summary": "Unpublish workflow version",
+                "operationId": "UnpublishWorkflowVersion",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "version",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            {
+                "tag": "Workflow Admin",
+                "method": "POST",
+                "path": "/api/admin/workflows/{id}/versions/{version}/dry-run",
+                "summary": "Dry-run workflow with sample input context",
+                "operationId": "DryRunWorkflow",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    },
+                    {
+                        "in": "path",
+                        "name": "version",
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "required": true
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "inputContext": {
+                                    "orderId": "guid",
+                                    "userId": "guid",
+                                    "tenantId": "tenant-1",
+                                    "productId": "guid",
+                                    "formSubmissionId": "guid",
+                                    "walletId": "guid",
+                                    "correlationId": "guid",
+                                    "user": {
+                                        "nationalCode": "0012345678",
+                                        "firstName": "Ali",
+                                        "lastName": "Ahmadi",
+                                        "mobile": "0912..."
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            {
+                "tag": "Workflow Runtime",
+                "method": "POST",
+                "path": "/api/workflows/start/{code}",
+                "summary": "Start a workflow by code with input context",
+                "operationId": "StartWorkflow",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "code",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "inputContext": {
+                                    "orderId": "guid",
+                                    "walletId": "guid",
+                                    "correlationId": "guid"
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Accepted"
+                    }
+                }
+            },
+            {
+                "tag": "Workflow Runtime",
+                "method": "GET",
+                "path": "/api/workflows/{runId}",
+                "summary": "Get workflow run status",
+                "operationId": "GetWorkflowStatus",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "runId",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            {
+                "tag": "Workflow Runtime",
+                "method": "GET",
+                "path": "/api/workflows/{runId}/history",
+                "summary": "Get workflow run history",
+                "operationId": "GetWorkflowHistory",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "runId",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            {
+                "tag": "Workflow Runtime",
+                "method": "POST",
+                "path": "/api/workflows/{runId}/resume",
+                "summary": "Resume a paused/failed workflow run",
+                "operationId": "ResumeWorkflow",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "runId",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            {
+                "tag": "Workflow Runtime",
+                "method": "POST",
+                "path": "/api/workflows/{runId}/cancel",
+                "summary": "Cancel a workflow run",
+                "operationId": "CancelWorkflow",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "runId",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            {
+                "tag": "External Proxies (Alborz)",
+                "method": "POST",
+                "path": "/api-manager/proxy/alborz/issue-policy",
+                "summary": "Proxy to Alborz: issue policy",
+                "operationId": "AlborzIssuePolicy",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "user": {
+                                    "nationalCode": "0012345678",
+                                    "firstName": "Ali",
+                                    "lastName": "Ahmadi",
+                                    "mobile": "0912..."
+                                },
+                                "productId": "guid",
+                                "orderId": "guid",
+                                "coverageAmount": 1090000,
+                                "inputsSnapshot": {
+                                    "weight": 12.3,
+                                    "karat": 18
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "policyId": "ALB-123456",
+                                    "status": "ISSUED",
+                                    "issuedAt": "2025-10-13T10:00:00Z"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "tag": "External Proxies (Alborz)",
+                "method": "POST",
+                "path": "/api-manager/proxy/alborz/get-fund-balance",
+                "summary": "Proxy to Alborz: fetch fund balance",
+                "operationId": "AlborzGetFundBalance",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "policyId": "ALB-123456"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "fundBalance": 850000
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                "tag": "MLM Aggregates",
+                "method": "POST",
+                "path": "/api/mlm/commissions/approve-for-order/{orderId}",
+                "summary": "Approve all commissions linked to orderId",
+                "operationId": "ApproveCommissionsForOrder",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "orderId",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            {
+                "tag": "MLM Aggregates",
+                "method": "POST",
+                "path": "/api/mlm/commissions/payout-for-order/{orderId}",
+                "summary": "Payout all approved commissions linked to orderId",
+                "operationId": "PayoutCommissionsForOrder",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "orderId",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        ]
+    },
+    "implementation_notes": {
+        "controllers": [
+            {
+                "name": "WorkflowDefinitionsController",
+                "namespace": "CoreAxis.Workflow.Admin"
+            },
+            {
+                "name": "WorkflowRunsController",
+                "namespace": "CoreAxis.Workflow.Runtime"
+            },
+            {
+                "name": "AlborzProxyController",
+                "namespace": "CoreAxis.ApiManager.Proxies"
+            },
+            {
+                "name": "MlmAggregatesController",
+                "namespace": "CoreAxis.MLM.Aggregates"
+            }
+        ],
+        "middleware": [
+            "Global exception handler returning RFC-7807 ProblemDetails",
+            "CorrelationId middleware (read/write X-Correlation-ID)",
+            "Idempotency middleware (persist response for POST with Idempotency-Key)"
+        ],
+        "swagger": {
+            "grouping": "By controller and tag",
+            "security": "Bearer globally required except [AllowAnonymous] if any"
+        },
+        "resilience": {
+            "httpClients": "Use Polly (Retry with jitter) for external calls",
+            "timeouts": "Per-step timeout from DSL"
+        },
+        "observability": {
+            "metrics": "latency, success, retries per step",
+            "logging": "Request/Response bodies masked for secrets"
+        }
+    }
+}

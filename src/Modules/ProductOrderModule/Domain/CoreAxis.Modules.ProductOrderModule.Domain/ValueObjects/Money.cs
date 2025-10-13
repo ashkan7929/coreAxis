@@ -11,10 +11,21 @@ public class Money : ValueObject
     public decimal Amount { get; private set; }
     public string Currency { get; private set; }
 
-    private Money(decimal amount, string currency)
+    // Public constructor to align with tests creating Money via 'new Money(amount, currency)'.
+    // Performs same validations as Create and normalizes currency to upper-case.
+    public Money(decimal amount, string currency)
     {
+        if (amount < 0)
+            throw new ArgumentException("Amount cannot be negative.", nameof(amount));
+
+        if (string.IsNullOrWhiteSpace(currency))
+            throw new ArgumentException("Currency cannot be null or empty.", nameof(currency));
+
+        if (currency.Length < 2 || currency.Length > 10)
+            throw new ArgumentException("Currency must be between 2 and 10 characters.", nameof(currency));
+
         Amount = amount;
-        Currency = currency;
+        Currency = currency.ToUpperInvariant();
     }
 
     /// <summary>
@@ -84,6 +95,16 @@ public class Money : ValueObject
     public static Money operator *(Money money, decimal factor)
     {
         return Create(money.Amount * factor, money.Currency);
+    }
+
+    /// <summary>
+    /// Implicit conversion to decimal returns the amount value.
+    /// </summary>
+    public static implicit operator decimal(Money money)
+    {
+        if (money == null)
+            throw new ArgumentNullException(nameof(money));
+        return money.Amount;
     }
 
     /// <summary>

@@ -14,6 +14,10 @@ public class OrderLine : EntityBase
     public Money? UnitPrice { get; private set; }
     public Money? LineTotal { get; private set; }
     public string? Notes { get; private set; }
+    public string? Description { get; private set; }
+
+    // Convenience computed total price for tests and DTOs expecting decimal
+    public decimal TotalPrice => UnitPrice != null ? (UnitPrice.Amount * Quantity) : 0m;
 
     // Navigation property
     public Order Order { get; private set; } = null!;
@@ -35,7 +39,8 @@ public class OrderLine : EntityBase
         AssetCode assetCode,
         decimal quantity,
         Money? unitPrice = null,
-        string? notes = null)
+        string? notes = null,
+        string? description = null)
     {
         if (orderId == Guid.Empty)
             throw new ArgumentException("Order ID cannot be empty.", nameof(orderId));
@@ -49,7 +54,8 @@ public class OrderLine : EntityBase
             AssetCode = assetCode,
             Quantity = quantity,
             UnitPrice = unitPrice,
-            Notes = notes
+            Notes = notes,
+            Description = description
         };
 
         if (unitPrice != null)
@@ -57,6 +63,42 @@ public class OrderLine : EntityBase
             orderLine.LineTotal = unitPrice * quantity;
         }
 
+        return orderLine;
+    }
+
+    /// <summary>
+    /// Creates a new order line without an OrderId (initially empty) using decimal unit price.
+    /// </summary>
+    /// <param name="assetCode">The asset code for this line</param>
+    /// <param name="quantity">The quantity for this line</param>
+    /// <param name="unitPrice">The unit price as decimal</param>
+    /// <param name="description">Optional description for this line</param>
+    /// <returns>A new OrderLine instance</returns>
+    public static OrderLine Create(
+        AssetCode assetCode,
+        decimal quantity,
+        decimal unitPrice,
+        string? description = null)
+    {
+        if (quantity <= 0)
+            throw new ArgumentException("Quantity must be positive.", nameof(quantity));
+
+        if (unitPrice <= 0)
+            throw new ArgumentException("UnitPrice must be greater than zero", nameof(unitPrice));
+
+        var price = Money.Create(unitPrice, "USD");
+
+        var orderLine = new OrderLine
+        {
+            OrderId = Guid.Empty,
+            AssetCode = assetCode,
+            Quantity = quantity,
+            UnitPrice = price,
+            Notes = null,
+            Description = description
+        };
+
+        orderLine.LineTotal = price * quantity;
         return orderLine;
     }
 
@@ -72,6 +114,22 @@ public class OrderLine : EntityBase
         if (!unitPrice.IsPositive)
             throw new ArgumentException("Unit price must be positive.", nameof(unitPrice));
 
+        UnitPrice = unitPrice;
+        LineTotal = unitPrice * Quantity;
+        LastModifiedOn = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Updates the unit price using a decimal value and recalculates the total.
+    /// </summary>
+    /// <param name="newPrice">The new unit price as decimal</param>
+    public void UpdatePrice(decimal newPrice)
+    {
+        if (newPrice <= 0)
+            throw new ArgumentException("UnitPrice must be greater than zero", nameof(newPrice));
+
+        var currency = UnitPrice?.Currency ?? "USD";
+        var unitPrice = Money.Create(newPrice, currency);
         UnitPrice = unitPrice;
         LineTotal = unitPrice * Quantity;
         LastModifiedOn = DateTime.UtcNow;

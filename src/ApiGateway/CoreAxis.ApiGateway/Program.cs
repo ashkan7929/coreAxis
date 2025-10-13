@@ -104,6 +104,20 @@ try
             Description = "API Gateway for CoreAxis modular application"
         });
 
+        // Add separate docs for Workflow Admin and Runtime groups
+        c.SwaggerDoc("workflows-admin", new Microsoft.OpenApi.Models.OpenApiInfo
+        {
+            Title = "Workflow Admin API",
+            Version = "v1",
+            Description = "Admin endpoints for Workflow DSL management"
+        });
+        c.SwaggerDoc("workflows-runtime", new Microsoft.OpenApi.Models.OpenApiInfo
+        {
+            Title = "Workflow Runtime API",
+            Version = "v1",
+            Description = "Runtime endpoints to start, resume, cancel, and inspect workflows"
+        });
+
         // Add JWT authentication to Swagger
         c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
         {
@@ -127,6 +141,14 @@ try
                 },
                 Array.Empty<string>()
             }
+        });
+
+        // Include controllers in docs based on their ApiExplorer.GroupName
+        c.DocInclusionPredicate((docName, apiDesc) =>
+        {
+            var group = apiDesc.GroupName ?? "v1";
+            if (docName == "v1") return true; // main doc includes all
+            return group == docName;
         });
 
         // Include XML comments from all assemblies copied to output for richer docs
@@ -243,6 +265,8 @@ try
         {
             // Use relative path so it works under virtual directories in IIS
             c.SwaggerEndpoint("v1/swagger.json", "CoreAxis API V1");
+            c.SwaggerEndpoint("workflows-admin/swagger.json", "Workflow Admin API");
+            c.SwaggerEndpoint("workflows-runtime/swagger.json", "Workflow Runtime API");
             c.RoutePrefix = "swagger";
         });
     }

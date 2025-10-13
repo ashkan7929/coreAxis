@@ -1,4 +1,3 @@
-using CoreAxis.Modules.CommerceModule.Application.Interfaces;
 using CoreAxis.Modules.CommerceModule.Domain.Entities;
 using CoreAxis.Modules.CommerceModule.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -6,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace CoreAxis.Modules.CommerceModule.Infrastructure.Repositories;
 
-public class InventoryRepository : IInventoryRepository
+public class InventoryRepository
 {
     private readonly CommerceDbContext _context;
     private readonly ILogger<InventoryRepository> _logger;
