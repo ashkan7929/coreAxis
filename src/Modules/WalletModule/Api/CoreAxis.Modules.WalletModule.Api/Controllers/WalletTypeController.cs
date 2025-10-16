@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using CoreAxis.Modules.WalletModule.Infrastructure.Data;
+using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 
 namespace CoreAxis.Modules.WalletModule.Api.Controllers;
 
@@ -186,5 +188,111 @@ public class WalletTypeController : ControllerBase
         };
 
         return CreatedAtAction(nameof(GetWalletTypes), result);
+    }
+
+    /// <summary>
+    /// Update an existing wallet type.
+    /// </summary>
+    /// <remarks>
+    /// Updates the name/description of a wallet type and optionally toggles activation state.
+    ///
+    /// Sample request body:
+    /// {
+    ///   "name": "Savings",
+    ///   "description": "Savings wallet for long-term storage",
+    ///   "isActive": true
+    /// }
+    ///
+    /// Notes:
+    /// - Name must be unique (case-insensitive) and up to 100 chars.
+    /// - Description up to 500 chars.
+    /// - Deactivation may be restricted if wallets exist for this type.
+    ///
+    /// Status codes:
+    /// - 200 OK: Type updated
+    /// - 400 Bad Request: Validation error
+    /// - 401 Unauthorized: Authentication required
+    /// - 404 Not Found: Wallet type not found
+    /// - 409 Conflict: Duplicate name or deactivation not allowed
+    /// </remarks>
+    [HttpPut("{id}")]
+    [Consumes("application/json")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(WalletTypeDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    // [HasPermission("WalletType", "Update")] // Uncomment when permission policy is configured
+    public async Task<ActionResult<WalletTypeDto>> UpdateWalletType([FromRoute] Guid id, [FromBody] UpdateWalletTypeDto request)
+    {
+        // Basic input validation
+        var name = (request.Name ?? string.Empty).Trim();
+        var description = (request.Description ?? string.Empty).Trim();
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return BadRequest("Name is required");
+        }
+        if (name.Length > 100)
+        {
+            return BadRequest("Name must be at most 100 characters");
+        }
+        if (description.Length > 500)
+        {
+            return BadRequest("Description must be at most 500 characters");
+        }
+
+        var walletType = await _walletTypeRepository.GetByIdAsync(id);
+        if (walletType == null)
+        {
+            return NotFound("Wallet type not found");
+        }
+
+        // Ensure unique name (excluding current type)
+        var existingWithName = await _walletTypeRepository.GetByNameAsync(name);
+        if (existingWithName != null && existingWithName.Id != walletType.Id)
+        {
+            return Conflict($"Wallet type with name '{name}' already exists");
+        }
+
+        // Apply updates
+        walletType.UpdateDetails(name, description);
+
+        // Toggle activation if requested
+        if (request.IsActive.HasValue)
+        {
+            if (!request.IsActive.Value)
+            {
+                // Prevent deactivation if any wallets exist for this type
+                var hasWallets = await _context.Wallets.AnyAsync(w => w.WalletTypeId == walletType.Id);
+                if (hasWallets)
+                {
+                    return Conflict("Cannot deactivate wallet type while wallets exist for this type");
+                }
+                walletType.Deactivate();
+            }
+            else
+            {
+                walletType.Activate();
+            }
+        }
+
+        // Audit: set last modified by current user
+        var modifiedBy = User?.Identity?.Name ?? User?.FindFirstValue(ClaimTypes.NameIdentifier) ?? "System";
+        walletType.SetLastModifiedBy(modifiedBy);
+
+        await _walletTypeRepository.UpdateAsync(walletType);
+        await _walletTypeRepository.SaveChangesAsync();
+
+        var result = new WalletTypeDto
+        {
+            Id = walletType.Id,
+            Name = walletType.Name,
+            Description = walletType.Description,
+            IsActive = walletType.IsActive
+        };
+
+        return Ok(result);
     }
 }

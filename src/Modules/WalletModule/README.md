@@ -120,6 +120,21 @@ All endpoints return structured responses and Problem+JSON errors with `code`, d
   - Body: `{ reason }`  
   - Responses: `200 OK`, `400`, `404`  
 
+### Wallet Types
+- `GET /api/WalletType` — List active wallet types  
+  - Responses: `200 OK` → `[ { id, name, description, isActive } ]`
+
+- `POST /api/WalletType` — Create wallet type  
+  - Body: `{ name, description }`  
+  - Responses: `201 Created`, `400 BadRequest` (duplicate name), `401 Unauthorized`
+
+- `PUT /api/WalletType/{id}` — Update wallet type  
+  - Path: `id` (Guid)  
+  - Body: `{ name, description, isActive? }`  
+  - Responses: `200 OK`, `400 BadRequest` (validation), `404 NotFound`, `409 Conflict` (duplicate name or deactivation blocked)
+  - Security: Requires authentication; recommended permission `WalletType:Update`
+  - Notes: Name must be unique (≤100 chars); Description ≤500 chars; deactivation is blocked if wallets exist for this type.
+
 ---
 
 ## 🔹 Schema
