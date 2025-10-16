@@ -23,6 +23,45 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
+    /// Admin: Create a new user with civil registry and Shahkar validation
+    /// </summary>
+    /// <remarks>
+    /// Functionality: Allows admin to create a user by verifying national code, mobile number, and birth date with external services.
+    ///
+    /// Input:
+    /// <code>
+    /// {
+    ///   "nationalCode": "1234567890",
+    ///   "mobileNumber": "09123456789",
+    ///   "birthDate": "13791129"
+    /// }
+    /// </code>
+    /// </remarks>
+    /// <param name="dto">Admin create user data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created user information</returns>
+    [HttpPost("admin-create")]
+    [ProducesResponseType(typeof(UserDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<UserDto>> AdminCreate([FromBody] AdminCreateUserDto dto, CancellationToken cancellationToken = default)
+    {
+        var command = new AdminCreateUserCommand(
+            dto.NationalCode,
+            dto.MobileNumber,
+            dto.BirthDate);
+
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return CreatedAtAction(nameof(GetById), new { id = result.Value.Id }, result.Value);
+        }
+
+        return BadRequest(result.Errors);
+    }
+
+    /// <summary>
     /// Get user by ID
     /// </summary>
     /// <remarks>
