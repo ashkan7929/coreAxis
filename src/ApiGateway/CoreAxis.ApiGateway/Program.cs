@@ -195,6 +195,10 @@ try
     var apiManagerModuleAssembly = typeof(CoreAxis.Modules.ApiManager.API.ApiManagerModule).Assembly;
     Console.WriteLine($"ApiManager assembly loaded: {apiManagerModuleAssembly.FullName}");
 
+    // Force load Workflow module assembly
+    var workflowModuleAssembly = typeof(CoreAxis.Modules.Workflow.Api.WorkflowModule).Assembly;
+    Console.WriteLine($"Workflow assembly loaded: {workflowModuleAssembly.FullName}");
+
     // Debug: List all loaded assemblies
     var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
     Console.WriteLine($"Total loaded assemblies: {loadedAssemblies.Length}");

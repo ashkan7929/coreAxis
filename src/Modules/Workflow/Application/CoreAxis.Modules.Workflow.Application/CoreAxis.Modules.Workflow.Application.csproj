@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\CoreAxis.Modules.Workflow.Application.xml</DocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.8" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\BuildingBlocks\SharedKernel\CoreAxis.SharedKernel\CoreAxis.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\Infrastructure\CoreAxis.Modules.Workflow.Infrastructure\CoreAxis.Modules.Workflow.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Domain\CoreAxis.Modules.Workflow.Domain\CoreAxis.Modules.Workflow.Domain.csproj" />
+  </ItemGroup>
+</Project>

@@ -19,12 +19,13 @@ public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, Result<IEnume
 
     public async Task<Result<IEnumerable<UserDto>>> Handle(GetUsersQuery request, CancellationToken cancellationToken)
     {
-        var users = await _userRepository.GetAll().ToListAsync(cancellationToken);
-        
-        // Apply pagination manually since the repository method doesn't support it
-        var paginatedUsers = users.Skip((request.PageNumber - 1) * request.PageSize).Take(request.PageSize);
-        
-        var userDtos = paginatedUsers.Select(user => new UserDto
+        // Page at database level for efficiency
+        var query = _userRepository.GetAll()
+            .AsNoTracking()
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize);
+
+        var userDtos = await query.Select(user => new UserDto
         {
             Id = user.Id,
             Username = user.Username,
@@ -34,8 +35,23 @@ public class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, Result<IEnume
             CreatedAt = user.CreatedOn,
             LastLoginAt = user.LastLoginAt,
             FailedLoginAttempts = user.FailedLoginAttempts,
-            
-        }).ToList();
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            FatherName = user.FatherName,
+            BirthDate = user.BirthDate,
+            Gender = user.Gender,
+            CertNumber = user.CertNumber,
+            IdentificationSerial = user.IdentificationSerial,
+            IdentificationSeri = user.IdentificationSeri,
+            OfficeName = user.OfficeName,
+            ReferralCode = user.ReferralCode,
+            PhoneNumber = user.PhoneNumber,
+            NationalCode = user.NationalCode,
+            IsMobileVerified = user.IsMobileVerified,
+            IsNationalCodeVerified = user.IsNationalCodeVerified,
+            IsPersonalInfoVerified = user.IsPersonalInfoVerified,
+            CivilRegistryTrackId = user.CivilRegistryTrackId
+        }).ToListAsync(cancellationToken);
 
         return Result<IEnumerable<UserDto>>.Success(userDtos);
     }

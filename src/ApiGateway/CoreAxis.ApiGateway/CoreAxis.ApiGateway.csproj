@@ -33,6 +33,8 @@
     <ProjectReference Include="..\..\Modules\AuthModule\API\CoreAxis.Modules.AuthModule.API\CoreAxis.Modules.AuthModule.API.csproj" />
     <ProjectReference Include="..\..\Modules\AuthModule\Infrastructure\CoreAxis.Modules.AuthModule.Infrastructure\CoreAxis.Modules.AuthModule.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\ApiManager\Api\CoreAxis.Modules.ApiManager.Api\CoreAxis.Modules.ApiManager.API.csproj" />
+    <ProjectReference Include="..\..\Modules\Workflow\Api\CoreAxis.Modules.Workflow.Api\CoreAxis.Modules.Workflow.Api.csproj" />
+    <ProjectReference Include="..\..\Modules\Workflow\Application\CoreAxis.Modules.Workflow.Application\CoreAxis.Modules.Workflow.Application.csproj" />
     <!-- DynamicForm API temporarily decoupled due to build errors; loaded at runtime if available -->
     <ProjectReference Include="..\..\EventBus\CoreAxis.EventBus\CoreAxis.EventBus.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\SharedKernel\CoreAxis.SharedKernel\CoreAxis.SharedKernel.csproj" />
