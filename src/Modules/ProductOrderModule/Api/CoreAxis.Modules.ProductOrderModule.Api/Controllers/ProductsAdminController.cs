@@ -149,7 +149,7 @@ public class ProductsAdminController : ControllerBase
         }
 
         var money = request.PriceFrom.HasValue ? Money.Create(request.PriceFrom.Value, request.Currency ?? "USD") : null;
-        var product = Product.Create(request.Code, request.Name, request.Status, money, request.Attributes);
+        var product = Product.Create(request.Code, request.Name, request.Status, money, request.Attributes, request.SupplierId);
 
         await _productRepository.AddAsync(product);
         await _productRepository.SaveChangesAsync();
@@ -220,7 +220,7 @@ public class ProductsAdminController : ControllerBase
             return Ok(MapToAdminDto(product));
         }
 
-        product.Update(request.Name, request.Status, money, request.Attributes);
+        product.Update(request.Name, request.Status, money, request.Attributes, request.SupplierId);
 
         await _productRepository.UpdateAsync(product);
         await _productRepository.SaveChangesAsync();
@@ -293,6 +293,7 @@ public class ProductsAdminController : ControllerBase
             PriceFrom = product.PriceFrom?.Amount,
             Currency = product.PriceFrom?.Currency,
             Attributes = product.Attributes,
+            SupplierId = product.SupplierId,
             CreatedOn = product.CreatedOn,
             LastModifiedOn = product.LastModifiedOn
         };
@@ -348,7 +349,8 @@ public class ProductsAdminController : ControllerBase
             && existing.Status == request.Status
             && ((existing.PriceFrom == null && !priceAmount.HasValue) ||
                 (existing.PriceFrom != null && priceAmount.HasValue && existing.PriceFrom.Amount == priceAmount.Value && existing.PriceFrom.Currency == priceCurrency))
-            && DictionariesEqual(existing.Attributes, request.Attributes ?? new Dictionary<string, string>());
+            && DictionariesEqual(existing.Attributes, request.Attributes ?? new Dictionary<string, string>())
+            && existing.SupplierId == request.SupplierId;
     }
 
     private static bool UpdateIsNoOp(Product existing, UpdateProductRequest request)
@@ -359,7 +361,8 @@ public class ProductsAdminController : ControllerBase
             && existing.Status == request.Status
             && ((existing.PriceFrom == null && !priceAmount.HasValue) ||
                 (existing.PriceFrom != null && priceAmount.HasValue && existing.PriceFrom.Amount == priceAmount.Value && existing.PriceFrom.Currency == priceCurrency))
-            && DictionariesEqual(existing.Attributes, request.Attributes ?? new Dictionary<string, string>());
+            && DictionariesEqual(existing.Attributes, request.Attributes ?? new Dictionary<string, string>())
+            && existing.SupplierId == request.SupplierId;
     }
 
     private static bool DictionariesEqual(Dictionary<string, string> a, Dictionary<string, string> b)

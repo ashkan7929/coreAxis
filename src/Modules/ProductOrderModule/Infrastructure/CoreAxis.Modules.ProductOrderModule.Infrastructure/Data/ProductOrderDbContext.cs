@@ -24,6 +24,7 @@ public class ProductOrderDbContext : DbContext
     public DbSet<Product> Products { get; set; }
     public DbSet<OutboxMessage> OutboxMessages { get; set; }
     public DbSet<IdempotencyEntry> IdempotencyEntries { get; set; }
+    public DbSet<Supplier> Suppliers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

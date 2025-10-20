@@ -10,22 +10,26 @@ public interface IProductRepository
     Task<List<Product>> GetAllAsync(
         ProductStatus? status = null,
         string? q = null,
+        Guid? supplierId = null,
         int pageNumber = 1,
         int pageSize = 10,
         CancellationToken cancellationToken = default);
     Task<int> GetAllCountAsync(
         ProductStatus? status = null,
         string? q = null,
+        Guid? supplierId = null,
         CancellationToken cancellationToken = default);
     Task<List<ProductListItem>> GetLightweightAsync(
         ProductStatus? status = null,
         string? q = null,
+        Guid? supplierId = null,
         int pageNumber = 1,
         int pageSize = 10,
         CancellationToken cancellationToken = default);
     Task<int> GetLightweightCountAsync(
         ProductStatus? status = null,
         string? q = null,
+        Guid? supplierId = null,
         CancellationToken cancellationToken = default);
     Task AddAsync(Product product);
     Task UpdateAsync(Product product);

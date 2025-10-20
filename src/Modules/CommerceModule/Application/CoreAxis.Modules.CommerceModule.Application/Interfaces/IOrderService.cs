@@ -33,6 +33,43 @@ public interface IOrderService
         string reason,
         string? correlationId = null,
         CancellationToken cancellationToken = default);
+
+    // --- Added methods to align with API controller usage ---
+    Task<List<Order>> GetOrdersAsync(
+        Guid? customerId,
+        OrderStatus? status,
+        DateTime? fromDate,
+        DateTime? toDate,
+        int page,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
+    Task<Order?> GetOrderByIdAsync(
+        Guid orderId,
+        CancellationToken cancellationToken = default);
+
+    Task<Order> CreateOrderAsync(
+        Order order,
+        CancellationToken cancellationToken = default);
+
+    Task<Order> UpdateOrderAsync(
+        Order order,
+        CancellationToken cancellationToken = default);
+
+    Task<Order?> CancelOrderAsync(
+        Guid orderId,
+        string reason,
+        CancellationToken cancellationToken = default);
+
+    Task<Order?> ConfirmOrderAsync(
+        Guid orderId,
+        CancellationToken cancellationToken = default);
+
+    Task<Order?> FulfillOrderAsync(
+        Guid orderId,
+        string trackingNumber,
+        string shippingCarrier,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>

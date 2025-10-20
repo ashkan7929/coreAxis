@@ -17,6 +17,7 @@ using CoreAxis.Modules.ProductOrderModule.Domain.Products;
 using CoreAxis.Modules.ProductOrderModule.Infrastructure.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using CoreAxis.Modules.ProductOrderModule.Application.Services;
+using CoreAxis.Modules.ProductOrderModule.Domain.Suppliers;
 
 namespace CoreAxis.Modules.ProductOrderModule.Infrastructure;
 
@@ -34,6 +35,7 @@ public static class DependencyInjection
         // Register repositories
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<ISupplierRepository, SupplierRepository>();
         services.AddScoped<IOutboxRepository, OutboxRepository>();
         
         // Register domain event handlers

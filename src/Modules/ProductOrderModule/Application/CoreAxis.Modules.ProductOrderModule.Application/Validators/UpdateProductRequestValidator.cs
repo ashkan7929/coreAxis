@@ -26,5 +26,9 @@ public class UpdateProductRequestValidator : AbstractValidator<UpdateProductRequ
             .WithMessage("Attribute keys must be at most 100 characters")
             .Must(attrs => attrs == null || attrs.All(kv => kv.Value.Length <= 500))
             .WithMessage("Attribute values must be at most 500 characters");
+
+        RuleFor(x => x.SupplierId)
+            .Must(id => !id.HasValue || id.Value != Guid.Empty)
+            .WithMessage("SupplierId must be a valid GUID when provided");
     }
 }

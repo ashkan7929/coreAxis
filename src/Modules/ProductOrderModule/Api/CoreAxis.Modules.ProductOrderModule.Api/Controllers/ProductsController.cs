@@ -56,14 +56,15 @@ public class ProductsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<PagedResult<ProductPublicDto>>> Get(
         [FromQuery] string? q,
+        [FromQuery] Guid? supplierId,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 20)
     {
         // Public listing must only show Active products
         var status = ProductStatus.Active;
 
-        var items = await _productRepository.GetLightweightAsync(status, q, pageNumber, pageSize);
-        var total = await _productRepository.GetLightweightCountAsync(status, q);
+        var items = await _productRepository.GetLightweightAsync(status, q, supplierId, pageNumber, pageSize);
+        var total = await _productRepository.GetLightweightCountAsync(status, q, supplierId);
 
         var dtoItems = items.Select(p => new ProductPublicDto
         {

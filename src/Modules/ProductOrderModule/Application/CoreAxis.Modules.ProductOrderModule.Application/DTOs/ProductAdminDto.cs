@@ -12,6 +12,7 @@ public class ProductAdminDto
     public decimal? PriceFrom { get; set; }
     public string? Currency { get; set; }
     public Dictionary<string, string> Attributes { get; set; } = new();
+    public Guid? SupplierId { get; set; }
     public DateTime CreatedOn { get; set; }
     public DateTime? LastModifiedOn { get; set; }
 }
@@ -24,6 +25,7 @@ public class CreateProductRequest
     public decimal? PriceFrom { get; set; }
     public string? Currency { get; set; }
     public Dictionary<string, string>? Attributes { get; set; }
+    public Guid? SupplierId { get; set; }
 }
 
 public class UpdateProductRequest
@@ -33,4 +35,5 @@ public class UpdateProductRequest
     public decimal? PriceFrom { get; set; }
     public string? Currency { get; set; }
     public Dictionary<string, string>? Attributes { get; set; }
+    public Guid? SupplierId { get; set; }
 }

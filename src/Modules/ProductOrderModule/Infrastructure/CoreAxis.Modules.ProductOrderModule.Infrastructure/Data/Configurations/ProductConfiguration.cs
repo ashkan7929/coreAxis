@@ -33,6 +33,15 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .HasMaxLength(20)
             .IsRequired();
 
+        // Optional SupplierId FK
+        builder.Property(p => p.SupplierId)
+            .IsRequired(false);
+
+        builder.HasOne<Supplier>()
+            .WithMany()
+            .HasForeignKey(p => p.SupplierId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // Owned value object: Money for PriceFrom
         builder.OwnsOne(p => p.PriceFrom, money =>
         {
@@ -73,5 +82,8 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.HasIndex(p => p.Name)
             .HasDatabaseName("IX_Products_Name");
+
+        builder.HasIndex(p => p.SupplierId)
+            .HasDatabaseName("IX_Products_SupplierId");
     }
 }

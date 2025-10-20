@@ -1,0 +1,104 @@
+{
+    "goal": "Finalize end-to-end gold purchase flow with supplier CRUD, supplier-centric reporting, and dynamic gold pricing via external rate.",
+    "modules": [
+        "ProductOrderModule",
+        "CommerceModule"
+    ],
+    "tasks": [
+        {
+            "title": "Supplier CRUD API (ProductOrderModule)",
+            "files": {
+                "controller": "ProductOrderModule/Api/.../Controllers/SuppliersController.cs",
+                "dbcontext": "ProductOrderModule/Infrastructure/.../Data/ProductOrderDbContext.cs",
+                "repo": "ProductOrderModule/Infrastructure/.../Repositories/SupplierRepository.cs (optional if using generic)",
+                "dto": "ProductOrderModule/Application/.../DTOs/SupplierDtos.cs"
+            },
+            "endpoints": [
+                {
+                    "method": "POST",
+                    "route": "/api/suppliers",
+                    "body": {
+                        "code": "string",
+                        "name": "string"
+                    }
+                },
+                {
+                    "method": "GET",
+                    "route": "/api/suppliers",
+                    "query": [
+                        "q",
+                        "isActive",
+                        "page",
+                        "pageSize"
+                    ]
+                },
+                {
+                    "method": "GET",
+                    "route": "/api/suppliers/{id:guid}"
+                },
+                {
+                    "method": "PUT",
+                    "route": "/api/suppliers/{id:guid}",
+                    "body": {
+                        "name": "string"
+                    }
+                },
+                {
+                    "method": "DELETE",
+                    "route": "/api/suppliers/{id:guid}"
+                }
+            ],
+            "acceptance": [
+                "201 on create with Id",
+                "Paging + search by code/name"
+            ]
+        },
+        {
+            "title": "Dynamic gold pricing endpoint",
+            "files": {
+                "controller": "CommerceModule/Api/.../Controllers/PricingController.cs",
+                "service": "CommerceModule/Application/.../Services/PricingService.cs",
+                "adapter_usage": "ProductOrderModule/Infrastructure/.../Adapters/PriceProviderViaApiManager.cs"
+            },
+            "add_endpoint": {
+                "method": "POST",
+                "route": "/api/v1/commerce/pricing/quote-gold",
+                "body": {
+                    "productId": "guid",
+                    "weight": "decimal",
+                    "purity": "decimal",
+                    "makingFeePerGram": "decimal"
+                },
+                "logic": [
+                    "Call IPriceProvider.GetQuoteAsync via PriceProviderViaApiManager",
+                    "Calculate: total = (spot * purity * weight) + (makingFeePerGram * weight)",
+                    "Return quote with {rate: {providerId,value,unit}, expiresAt}"
+                ]
+            },
+            "config": [
+                "appsettings: ApiManager:PriceService:GetPriceMethodId = <guid>"
+            ],
+            "acceptance": [
+                "Quote includes TTL and external rate metadata",
+                "Graceful error on upstream failure"
+            ]
+        },
+        {
+            "title": "Supplier-centric order reporting (Commerce)",
+            "files": {
+                "controller": "CommerceModule/Api/.../Controllers/OrderController.cs",
+                "service": "CommerceModule/Application/.../Services/OrderService.cs",
+                "repo": "CommerceModule/Infrastructure/.../Repositories/OrderRepository.cs"
+            },
+            "changes": [
+                "Add [FromQuery] Guid? supplierId to GET /api/v1/commerce/order",
+                "Propagate supplierId from Product line items at order creation",
+                "Filter query by supplierId when provided"
+            ],
+            "acceptance": [
+                "Supplier sees only their orders",
+                "Existing filters keep working (paging, status, date)"
+            ]
+        }
+    ]
+}
