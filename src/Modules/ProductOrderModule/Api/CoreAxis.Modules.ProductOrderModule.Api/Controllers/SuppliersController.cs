@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.Net.Mime;
 using System.Text.Json;
+using System.Security.Claims;
 
 namespace CoreAxis.Modules.ProductOrderModule.Api.Controllers;
 
@@ -76,6 +77,11 @@ public class SuppliersController : ControllerBase
         }
 
         var supplier = Supplier.Create(request.Code, request.Name);
+        // Set audit fields to satisfy NOT NULL constraints
+        var userId = GetUserIdOrSystem();
+        supplier.CreatedBy = userId;
+        supplier.LastModifiedBy = userId;
+
         await _supplierRepository.AddAsync(supplier);
         await _supplierRepository.SaveChangesAsync();
 
@@ -199,6 +205,9 @@ public class SuppliersController : ControllerBase
         }
 
         supplier.Update(request.Name);
+        // Set audit field for modification
+        supplier.LastModifiedBy = GetUserIdOrSystem();
+
         await _supplierRepository.UpdateAsync(supplier);
         await _supplierRepository.SaveChangesAsync();
 
@@ -255,6 +264,16 @@ public class SuppliersController : ControllerBase
         {
             Response.Headers[headerName] = value.ToString();
         }
+    }
+
+    private string GetUserIdOrSystem()
+    {
+        var claim = User?.FindFirst(ClaimTypes.NameIdentifier) ?? User?.FindFirst("sub") ?? User?.FindFirst("nameid");
+        if (claim != null && !string.IsNullOrWhiteSpace(claim.Value))
+        {
+            return claim.Value;
+        }
+        return "System";
     }
 
     private ActionResult BuildProblem(string title, string detail, int statusCode, string code, object? errors = null)
