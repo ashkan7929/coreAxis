@@ -16,6 +16,7 @@ using System;
 using DotNetEnv;
 using AspNetCoreRateLimit;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 try
 {
@@ -61,7 +62,12 @@ try
 
     // Add services to the container.
     // Make DynamicForm optional at runtime to avoid hard failure if assembly is missing
-    var mvcBuilder = builder.Services.AddControllers();
+    var mvcBuilder = builder.Services.AddControllers()
+        .AddJsonOptions(options =>
+        {
+            // Accept enum values as strings (e.g., "Active" instead of 0)
+            options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        });
     try
     {
         var dynamicFormAssembly = System.Reflection.Assembly.Load("CoreAxis.Modules.DynamicForm.API");

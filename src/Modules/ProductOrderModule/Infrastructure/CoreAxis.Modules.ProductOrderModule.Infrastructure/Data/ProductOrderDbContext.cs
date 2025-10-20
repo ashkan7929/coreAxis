@@ -113,12 +113,25 @@ public class ProductOrderDbContext : DbContext
             if (entry.State == EntityState.Added)
             {
                 entry.Entity.CreatedOn = DateTime.UtcNow;
-                // CreatedBy should be set by the application layer
+                // Fallback defaults for audit fields when application layer doesn't set them
+                if (string.IsNullOrEmpty(entry.Entity.CreatedBy))
+                {
+                    entry.Entity.CreatedBy = "System";
+                }
+                if (string.IsNullOrEmpty(entry.Entity.LastModifiedBy))
+                {
+                    // Initialize LastModifiedBy to match CreatedBy on creation
+                    entry.Entity.LastModifiedBy = entry.Entity.CreatedBy;
+                }
             }
             else if (entry.State == EntityState.Modified)
             {
                 entry.Entity.LastModifiedOn = DateTime.UtcNow;
-                // LastModifiedBy should be set by the application layer
+                // Fallback default for LastModifiedBy when not set
+                if (string.IsNullOrEmpty(entry.Entity.LastModifiedBy))
+                {
+                    entry.Entity.LastModifiedBy = "System";
+                }
             }
         }
 
