@@ -59,7 +59,7 @@ public class ProductsAdminController : ControllerBase
     [ProducesResponseType(typeof(ProductAdminDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    [HasPermission("Products", "Read")]
+    // [HasPermission("Products", "Read")]
     public async Task<ActionResult<ProductAdminDto>> GetById(Guid id)
     {
         var product = await _productRepository.GetByIdAsync(id);
@@ -107,7 +107,7 @@ public class ProductsAdminController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    [HasPermission("Products", "Write")]
+    // [HasPermission("Products", "Write")]
     public async Task<ActionResult<ProductAdminDto>> Create([FromBody] CreateProductRequest request)
     {
         var validation = await _createValidator.ValidateAsync(request);
@@ -184,7 +184,7 @@ public class ProductsAdminController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    [HasPermission("Products", "Write")]
+    // [HasPermission("Products", "Write")]
     public async Task<ActionResult<ProductAdminDto>> Update(Guid id, [FromBody] UpdateProductRequest request)
     {
         var validation = await _updateValidator.ValidateAsync(request);
@@ -261,7 +261,7 @@ public class ProductsAdminController : ControllerBase
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    [HasPermission("Products", "Delete")]
+    // [HasPermission("Products", "Delete")]
     public async Task<IActionResult> Delete(Guid id)
     {
         var product = await _productRepository.GetByIdAsync(id);
