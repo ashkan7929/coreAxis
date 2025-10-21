@@ -39,6 +39,7 @@
     <ProjectReference Include="..\..\EventBus\CoreAxis.EventBus\CoreAxis.EventBus.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\SharedKernel\CoreAxis.SharedKernel\CoreAxis.SharedKernel.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\BuildingBlocks\CoreAxis.BuildingBlocks\CoreAxis.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\..\Adapters\CoreAxis.Adapters.csproj" />
   </ItemGroup>
 
   <!-- Copy XML docs from referenced projects to gateway output so Swagger can load them -->
