@@ -42,6 +42,7 @@ public class Order : EntityBase
     /// <param name="userId">The user placing the order</param>
     /// <param name="orderType">The type of order (buy/sell)</param>
     /// <param name="assetCode">The asset being traded</param>
+    /// <param name="totalAmount">The totalAmount to trade</param>
     /// <param name="quantity">The quantity to trade</param>
     /// <param name="tenantId">The tenant identifier</param>
     /// <param name="idempotencyKey">Optional idempotency key for duplicate prevention</param>
@@ -51,6 +52,7 @@ public class Order : EntityBase
         Guid userId,
         OrderType orderType,
         AssetCode assetCode,
+        Money? totalAmount,
         decimal quantity,
         string tenantId,
         string? idempotencyKey = null,
@@ -72,6 +74,7 @@ public class Order : EntityBase
             OrderType = orderType,
             Status = OrderStatus.Pending,
             AssetCode = assetCode,
+            TotalAmount = totalAmount,
             Quantity = quantity,
             TenantId = tenantId,
             IdempotencyKey = idempotencyKey,
