@@ -45,17 +45,20 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Res
         {
             var assetCode = AssetCode.Create(request.AssetCode);
 
-        var orderLines = request.OrderLines.Select(ol => 
-            OrderLine.Create(Guid.NewGuid(), AssetCode.Create(ol.AssetCode), ol.Quantity, Money.Create(ol.UnitPrice, "USD"))
-        ).ToList();
-
+            var orderLines = request.OrderLines.Select(ol => 
+                OrderLine.Create(Guid.NewGuid(), AssetCode.Create(ol.AssetCode), ol.Quantity, Money.Create(ol.UnitPrice, "USD"))
+            ).ToList();
+            
+            var totalAmount = Money.Create(request.TotalAmount, "IRR");
+            // Create order
             var order = Order.Create(
-                 Guid.Parse(request.UserId),
-                 OrderType.Buy, // Default to Buy order type
-                 assetCode,
-                 request.TotalAmount, // Use decimal quantity instead of Money
-                 "default" // Default tenant ID
-             );
+                Guid.Parse(request.UserId),
+                OrderType.Buy, // Default to Buy, this should be determined by business logic
+                AssetCode.Create(request.AssetCode),
+                totalAmount,
+                request.OrderLines.Sum(ol => ol.Quantity),
+                "default" // Default tenant ID
+            );
 
             await _orderRepository.AddAsync(order);
             await _unitOfWork.SaveChangesAsync();

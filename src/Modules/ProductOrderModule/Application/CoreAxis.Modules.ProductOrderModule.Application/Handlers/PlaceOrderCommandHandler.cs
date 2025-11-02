@@ -128,20 +128,24 @@ public class PlaceOrderCommandHandler : IRequestHandler<PlaceOrderCommand, Order
             throw new ArgumentException($"TotalAmount {request.TotalAmount} does not match calculated total {calculatedTotal}");
         }
 
+        var totalAmount = Money.Create(request.TotalAmount, "IRR");
         // Create order
         var order = Order.Create(
             Guid.Parse(request.UserId),
             OrderType.Buy, // Default to Buy, this should be determined by business logic
             AssetCode.Create(request.AssetCode),
-            request.TotalAmount,
+            totalAmount,
+            request.OrderLines.Sum(ol=> ol.Quantity),
             request.TenantId,
             request.IdempotencyKey
         );
 
+        order.LockPrice(totalAmount,TimeSpan.FromMinutes(30));
+
         // Create and add order lines to the order
         foreach (var orderLineDto in request.OrderLines)
         {
-            var unitPrice = Money.Create(orderLineDto.UnitPrice, "USD"); // Default currency, should be configurable
+            var unitPrice = Money.Create(orderLineDto.UnitPrice, "IRR"); // Default currency, should be configurable
             var orderLine = OrderLine.Create(
                 order.Id,
                 AssetCode.Create(orderLineDto.AssetCode),
