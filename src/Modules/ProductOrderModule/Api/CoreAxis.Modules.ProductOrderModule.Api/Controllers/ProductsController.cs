@@ -1,10 +1,12 @@
 using CoreAxis.Modules.ProductOrderModule.Application.DTOs;
-using CoreAxis.Modules.ProductOrderModule.Domain.Products;
+using CoreAxis.Modules.ProductOrderModule.Application.Queries.ThirdParty;
 using CoreAxis.Modules.ProductOrderModule.Domain.Enums;
-using Microsoft.AspNetCore.Mvc;
-using System.Net.Mime;
-using System.Diagnostics;
+using CoreAxis.Modules.ProductOrderModule.Domain.Products;
+using MediatR;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
+using System.Net.Mime;
 using System.Text.Json;
 
 namespace CoreAxis.Modules.ProductOrderModule.Api.Controllers;
@@ -14,12 +16,13 @@ namespace CoreAxis.Modules.ProductOrderModule.Api.Controllers;
 public class ProductsController : ControllerBase
 {
     private readonly IProductRepository _productRepository;
+    private readonly IMediator _mediator;
 
-    public ProductsController(IProductRepository productRepository)
+    public ProductsController(IProductRepository productRepository, IMediator mediator)
     {
         _productRepository = productRepository;
+        _mediator = mediator;
     }
-
     /// <summary>
     /// Retrieve public product list with optional search and pagination.
     /// </summary>
@@ -76,6 +79,26 @@ public class ProductsController : ControllerBase
             Attributes = p.Attributes
         }).ToList();
 
+        #region Get Price From Mili
+        try
+        {
+            var milliResult = await _mediator.Send(new GetMilliPriceQuery());
+
+            if (milliResult != null && milliResult.Data != null)
+            {
+                foreach(var item in dtoItems)
+                {
+                    milliResult.Data.Price18 = (milliResult.Data.Price18 * 0.1m);
+                    item.PriceFrom = new Domain.ValueObjects.Money(milliResult.Data.Price18 * 1000, "IRR");
+                }
+            }
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+        #endregion
         var result = new PagedResult<ProductPublicDto>
         {
             Items = dtoItems,
@@ -147,7 +170,23 @@ public class ProductsController : ControllerBase
             PriceFrom = product.PriceFrom,
             Attributes = product.Attributes
         };
+        #region Get Price From Mili
+        try
+        {
+            var result = await _mediator.Send(new GetMilliPriceQuery());
 
+            if (result != null && result.Data != null)
+            {
+                result.Data.Price18 = (result.Data.Price18 * 0.1m);
+                dto.PriceFrom = new Domain.ValueObjects.Money(result.Data.Price18 * 1000, "IRR");
+            }
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+        #endregion
         TryAddCorrelationHeader();
         return Ok(dto);
     }
@@ -186,7 +225,22 @@ public class ProductsController : ControllerBase
             PriceFrom = product.PriceFrom,
             Attributes = product.Attributes
         };
+        #region Get Price From Mili
+        try
+        {
+            var result = await _mediator.Send(new GetMilliPriceQuery());
 
+            if (result != null && result.Data != null)
+            {
+                dto.PriceFrom = new Domain.ValueObjects.Money(result.Data.Price18 * 1000, "IRR");
+            }
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+        #endregion
         TryAddCorrelationHeader();
         return Ok(dto);
     }
