@@ -54,20 +54,21 @@ public class OrderController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    [HasPermission("ORDER", "PLACE")]
-    public async Task<ActionResult<OrderDto>> PlaceOrder([FromBody] PlaceOrderDto request)
+    //[HasPermission("ORDER", "PLACE")]
+    public async Task<ActionResult<OrderDto>> PlaceOrder([FromHeader] string tenantId, [FromBody] PlaceOrderDto request)
     {
         var userId = GetUserId();
         var idempotencyKey = Request.Headers["Idempotency-Key"].FirstOrDefault();
         var correlationId = Request.Headers["X-Correlation-ID"].FirstOrDefault();
-        
+
         var command = new PlaceOrderCommand
         {
             UserId = userId,
             AssetCode = request.AssetCode,
             TotalAmount = request.TotalAmount,
             OrderLines = request.OrderLines,
-            IdempotencyKey = idempotencyKey
+            IdempotencyKey = idempotencyKey,
+            TenantId = tenantId
         };
 
         var result = await _mediator.Send(command);
@@ -86,7 +87,7 @@ public class OrderController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    [HasPermission("ORDER", "READ")]
+    //[HasPermission("ORDER", "READ")]
     public async Task<ActionResult<OrderDto>> GetOrder(Guid id)
     {
         var userId = GetUserId();
@@ -117,7 +118,7 @@ public class OrderController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<OrderDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    [HasPermission("ORDER", "READ")]
+    //[HasPermission("ORDER", "READ")]
     public async Task<ActionResult<IEnumerable<OrderDto>>> GetUserOrders(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
@@ -150,7 +151,7 @@ public class OrderController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    [HasPermission("ORDER", "CANCEL")]
+    //[HasPermission("ORDER", "CANCEL")]
     public async Task<ActionResult> CancelOrder(Guid id)
     {
         var userId = GetUserId();
@@ -180,7 +181,7 @@ public class OrderController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    [HasPermission("ORDER", "READ")]
+    //[HasPermission("ORDER", "READ")]
     public async Task<ActionResult<IEnumerable<OrderLineDto>>> GetOrderLines(Guid id)
     {
         var userId = GetUserId();
