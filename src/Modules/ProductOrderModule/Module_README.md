@@ -6,7 +6,7 @@ Purpose
 - Keep boundaries with SharedKernel (ProblemDetails, Correlation, Outbox, EventBus).
 
 Entities
-- Product: Id (Guid), Code (string, unique), Name (string), Status (Active/Inactive), PriceFrom (Money), Attributes (Dictionary<string,string>), CreatedAt/UpdatedAt.
+- Product: Id (Guid), Code (string, unique), Name (string), Status (Active/Inactive), PriceFrom (Money), Attributes (Dictionary<string,string>), Count (int, immutable baseline), Quantity (decimal?, decreases after purchase), CreatedAt/UpdatedAt.
 
 APIs
 - Base route: `/api/products` (public)
@@ -81,3 +81,7 @@ Dependencies
 
 Notes
 - No UI; REST-only. No breaking changes to existing Order handlers.
+- Count vs Quantity semantics:
+  - `count` is an integer baseline value that does NOT decrease after purchases.
+  - `quantity` is a decimal value that represents available stock and DOES decrease after purchases.
+  - Existing quantity reduction logic remains unchanged with this addition.

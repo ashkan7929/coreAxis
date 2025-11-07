@@ -92,6 +92,11 @@ This document provides a comprehensive overview and technical documentation for 
 
 ## Schema
 
+### Product Model Changes
+- New field `count` (int): immutable baseline, does not decrease after purchase.
+- Existing field `quantity` (decimal?): represents available stock and decreases after purchase.
+- No changes to existing order placement or quantity reduction logic.
+
 ### ProductDto
 ```json
 {

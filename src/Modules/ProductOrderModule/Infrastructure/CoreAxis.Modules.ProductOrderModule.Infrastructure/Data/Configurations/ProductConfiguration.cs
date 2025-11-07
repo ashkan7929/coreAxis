@@ -31,6 +31,11 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.Quantity)
             .HasPrecision(18, 2);
 
+        // Count as immutable stock baseline (int)
+        builder.Property(p => p.Count)
+            .HasColumnType("int")
+            .HasDefaultValue(0);
+
         // Status enum as string with max length
         var statusConverter = new EnumToStringConverter<ProductStatus>();
         builder.Property(p => p.Status)
@@ -68,8 +73,8 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             WriteIndented = false
         };
 
-        var dictToJsonConverter = new ValueConverter<Dictionary<string, string>?, string?>(
-            v => v == null ? null : JsonSerializer.Serialize(v, jsonOptions),
+        var dictToJsonConverter = new ValueConverter<Dictionary<string, string>, string?>(
+            v => JsonSerializer.Serialize(v, jsonOptions),
             v => string.IsNullOrWhiteSpace(v) ? new Dictionary<string, string>() : JsonSerializer.Deserialize<Dictionary<string, string>>(v!, jsonOptions)!);
 
         // Add ValueComparer to avoid EF warning and ensure proper change tracking
@@ -82,7 +87,7 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
                 d == null
                     ? 0
                     : d.OrderBy(kv => kv.Key)
-                         .Aggregate(0, (hash, kv) => HashCode.Combine(hash, kv.Key.GetHashCode(), kv.Value?.GetHashCode() ?? 0)),
+                         .Aggregate(0, (hash, kv) => HashCode.Combine(hash, kv.Key.GetHashCode(), kv.Value != null ? kv.Value.GetHashCode() : 0)),
             d =>
                 d == null
                     ? new Dictionary<string, string>()
