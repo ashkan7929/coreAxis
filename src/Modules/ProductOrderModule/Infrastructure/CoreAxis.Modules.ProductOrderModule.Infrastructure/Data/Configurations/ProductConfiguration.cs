@@ -4,6 +4,7 @@ using CoreAxis.Modules.ProductOrderModule.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System.Text.Json;
 
 namespace CoreAxis.Modules.ProductOrderModule.Infrastructure.Data.Configurations;
@@ -71,8 +72,24 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             v => v == null ? null : JsonSerializer.Serialize(v, jsonOptions),
             v => string.IsNullOrWhiteSpace(v) ? new Dictionary<string, string>() : JsonSerializer.Deserialize<Dictionary<string, string>>(v!, jsonOptions)!);
 
+        // Add ValueComparer to avoid EF warning and ensure proper change tracking
+        var dictValueComparer = new ValueComparer<Dictionary<string, string>>(
+            (d1, d2) =>
+                (d1 == null && d2 == null) ||
+                (d1 != null && d2 != null && d1.Count == d2.Count &&
+                 d1.OrderBy(kv => kv.Key).SequenceEqual(d2.OrderBy(kv => kv.Key))),
+            d =>
+                d == null
+                    ? 0
+                    : d.OrderBy(kv => kv.Key)
+                         .Aggregate(0, (hash, kv) => HashCode.Combine(hash, kv.Key.GetHashCode(), kv.Value?.GetHashCode() ?? 0)),
+            d =>
+                d == null
+                    ? new Dictionary<string, string>()
+                    : d.ToDictionary(kv => kv.Key, kv => kv.Value));
+
         builder.Property(p => p.Attributes)
-            .HasConversion(dictToJsonConverter)
+            .HasConversion(dictToJsonConverter, dictValueComparer)
             .HasColumnType("nvarchar(max)")
             .HasColumnName("AttributesJson");
 
