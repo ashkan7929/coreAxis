@@ -26,6 +26,10 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .IsRequired()
             .HasMaxLength(200);
 
+        // Quantity precision (align with migration: decimal(18,2))
+        builder.Property(p => p.Quantity)
+            .HasPrecision(18, 2);
+
         // Status enum as string with max length
         var statusConverter = new EnumToStringConverter<ProductStatus>();
         builder.Property(p => p.Status)
