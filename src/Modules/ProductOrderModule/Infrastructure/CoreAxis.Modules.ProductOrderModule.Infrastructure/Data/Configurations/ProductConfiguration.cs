@@ -33,7 +33,7 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         // Count as immutable stock baseline (int)
         builder.Property(p => p.Count)
-            .HasColumnType("int")
+            .HasPrecision(18, 2)
             .HasDefaultValue(0);
 
         // Status enum as string with max length

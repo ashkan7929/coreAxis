@@ -13,7 +13,7 @@ public class Product : EntityBase
     public Dictionary<string, string> Attributes { get; private set; } = new();
     public Guid? SupplierId { get; private set; }
     public decimal? Quantity { get; private set; }
-    public int Count { get; private set; }
+    public decimal Count { get; private set; }
     private Product() { }
 
     public static Product Create(string code, string name, ProductStatus status, Money? priceFrom = null, Dictionary<string, string>? attributes = null, Guid? supplierId = null, int count = 0)
