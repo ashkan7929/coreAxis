@@ -75,6 +75,8 @@ public class ProductsController : ControllerBase
             Code = p.Code,
             Name = p.Name,
             Status = p.Status,
+            Count = p.Count,
+            Quantity = p.Quantity,
             PriceFrom = p.PriceFrom,
             Attributes = p.Attributes
         }).ToList();
@@ -167,6 +169,8 @@ public class ProductsController : ControllerBase
             Code = product.Code,
             Name = product.Name,
             Status = product.Status,
+            Count = product.Count,
+            Quantity = product.Quantity,
             PriceFrom = product.PriceFrom,
             Attributes = product.Attributes
         };
@@ -221,6 +225,8 @@ public class ProductsController : ControllerBase
             Id = product.Id,
             Code = product.Code,
             Name = product.Name,
+            Count = product.Count,
+            Quantity = product.Quantity,
             Status = product.Status,
             PriceFrom = product.PriceFrom,
             Attributes = product.Attributes

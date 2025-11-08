@@ -220,7 +220,7 @@ public class ProductsAdminController : ControllerBase
             return Ok(MapToAdminDto(product));
         }
 
-        product.Update(request.Name, request.Status, money, request.Attributes, request.SupplierId);
+        product.Update(request.Name, request.Status, request.Count, request.Quantity, money, request.Attributes, request.SupplierId);
 
         await _productRepository.UpdateAsync(product);
         await _productRepository.SaveChangesAsync();

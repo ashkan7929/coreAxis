@@ -34,6 +34,8 @@ public class UpdateProductRequest
     public ProductStatus Status { get; set; } = ProductStatus.Active;
     public decimal? PriceFrom { get; set; }
     public string? Currency { get; set; }
+    public decimal Count { get; set; }
+    public decimal? Quantity { get; set; }
     public Dictionary<string, string>? Attributes { get; set; }
     public Guid? SupplierId { get; set; }
 }
