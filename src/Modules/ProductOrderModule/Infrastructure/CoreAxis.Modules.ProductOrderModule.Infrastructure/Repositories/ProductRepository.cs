@@ -109,6 +109,8 @@ public class ProductRepository : IProductRepository
                 Code = p.Code,
                 Name = p.Name,
                 Status = p.Status,
+                Count = p.Count,
+                Quantity = p.Quantity,
                 PriceFrom = p.PriceFrom,
                 Attributes = p.Attributes
             })
