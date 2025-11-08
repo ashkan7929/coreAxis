@@ -16,7 +16,7 @@ public class Product : EntityBase
     public decimal Count { get; private set; }
     private Product() { }
 
-    public static Product Create(string code, string name, ProductStatus status, Money? priceFrom = null, Dictionary<string, string>? attributes = null, Guid? supplierId = null, int count = 0)
+    public static Product Create(string code, string name, ProductStatus status, Money? priceFrom = null, Dictionary<string, string>? attributes = null, Guid? supplierId = null, decimal count = 0)
     {
         if (count < 0)
             throw new ArgumentException("Count cannot be negative.", nameof(count));
@@ -29,18 +29,26 @@ public class Product : EntityBase
             PriceFrom = priceFrom,
             Attributes = attributes ?? new Dictionary<string, string>(),
             SupplierId = supplierId,
-            Count = count
+            Count = count,
+            Quantity = count
         };
 
         return product;
     }
 
-    public void Update(string name, ProductStatus status, Money? priceFrom = null, Dictionary<string, string>? attributes = null, Guid? supplierId = null)
+    public void Update(string name, ProductStatus status, decimal count, decimal? quantity, Money? priceFrom = null, Dictionary<string, string>? attributes = null, Guid? supplierId = null)
     {
         Name = name.Trim();
         Status = status;
         PriceFrom = priceFrom;
         Attributes = attributes ?? Attributes;
         SupplierId = supplierId;
+        Quantity = quantity;
+        Count = count;
+    }
+
+    public void UpdateQuantity(decimal quantity)
+    {
+        Quantity = quantity;
     }
 }
