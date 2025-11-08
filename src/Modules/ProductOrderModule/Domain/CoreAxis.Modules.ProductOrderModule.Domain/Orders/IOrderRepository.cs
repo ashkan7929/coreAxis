@@ -1,5 +1,6 @@
 using CoreAxis.Modules.ProductOrderModule.Domain.Entities;
 using CoreAxis.Modules.ProductOrderModule.Domain.Enums;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CoreAxis.Modules.ProductOrderModule.Domain.Orders;
 
@@ -27,4 +28,6 @@ public interface IOrderRepository
     Task UpdateAsync(Order order);
     Task DeleteAsync(Order order);
     Task<int> SaveChangesAsync();
+    Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken);
+    Task RollbackTransactionAsync();
 }

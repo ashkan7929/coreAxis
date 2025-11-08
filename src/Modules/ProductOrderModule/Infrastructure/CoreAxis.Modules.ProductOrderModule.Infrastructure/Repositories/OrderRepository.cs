@@ -3,6 +3,7 @@ using CoreAxis.Modules.ProductOrderModule.Domain.Entities;
 using CoreAxis.Modules.ProductOrderModule.Domain.Enums;
 using CoreAxis.Modules.ProductOrderModule.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CoreAxis.Modules.ProductOrderModule.Infrastructure.Repositories;
 
@@ -26,7 +27,7 @@ public class OrderRepository : IOrderRepository
     {
         if (string.IsNullOrWhiteSpace(idempotencyKey))
             return null;
-            
+
         return await _context.Orders
             .Include(o => o.OrderLines)
             .FirstOrDefaultAsync(o => o.IdempotencyKey == idempotencyKey);
@@ -143,4 +144,16 @@ public class OrderRepository : IOrderRepository
     {
         return await _context.SaveChangesAsync();
     }
+
+    public async Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken)
+    {
+        return await _context.Database.BeginTransactionAsync(cancellationToken);
+    }
+
+    public async Task RollbackTransactionAsync()
+    {
+        if (_context.Database.CurrentTransaction != null)
+            await _context.Database.RollbackTransactionAsync();
+    }
+
 }
