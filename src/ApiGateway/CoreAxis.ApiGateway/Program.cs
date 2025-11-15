@@ -217,7 +217,7 @@ try
     builder.Services.AddCoreAxisEventBus();
 
     // Register AuthModule
-    builder.Services.AddAuthModuleApi(builder.Configuration);
+    builder.Services.AddAuthModuleApi(builder.Configuration, builder.Environment);
     
     // Register WalletModule
     builder.Services.AddWalletModuleApi(builder.Configuration);

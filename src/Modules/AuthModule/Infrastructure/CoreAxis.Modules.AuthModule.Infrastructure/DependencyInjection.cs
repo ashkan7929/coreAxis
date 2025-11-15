@@ -7,29 +7,33 @@ using CoreAxis.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace CoreAxis.Modules.AuthModule.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddAuthModuleInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddAuthModuleInfrastructure(this IServiceCollection services, IConfiguration configuration, IHostEnvironment env)
     {
-        // Add DbContext - Use SQL Server database
         services.AddDbContext<AuthDbContext>(options =>
         {
+            var useInMemory = configuration.GetValue<bool>("Auth:UseInMemoryDb");
             var connectionString = configuration.GetConnectionString("DefaultConnection");
-            if (string.IsNullOrEmpty(connectionString))
+
+            if (env.IsDevelopment() && useInMemory)
             {
-                // Use in-memory database only if no connection string is provided
                 options.UseInMemoryDatabase("CoreAxisAuthDb");
             }
             else
             {
+                if (string.IsNullOrWhiteSpace(connectionString))
+                {
+                    throw new InvalidOperationException("ConnectionStrings:DefaultConnection is required");
+                }
                 options.UseSqlServer(connectionString);
             }
         });
 
-        // Add Repositories
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
         services.AddScoped<IPermissionRepository, PermissionRepository>();
@@ -38,7 +42,6 @@ public static class DependencyInjection
         services.AddScoped<IAccessLogRepository, AccessLogRepository>();
         services.AddScoped<IOtpCodeRepository, OtpCodeRepository>();
 
-        // Add Services
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IOtpService, OtpService>();
@@ -47,14 +50,11 @@ public static class DependencyInjection
         services.AddScoped<IMegfaSmsService, MegfaSmsService>();
         services.AddScoped<IAuthDataSeeder, AuthDataSeeder>();
 
-        // Add HttpClient for external services
         services.AddHttpClient<IShahkarService, ShahkarService>();
         services.AddHttpClient<ICivilRegistryService, CivilRegistryService>();
 
-        // Add HttpContextAccessor for OTP service
         services.AddHttpContextAccessor();
 
-        // Add Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;

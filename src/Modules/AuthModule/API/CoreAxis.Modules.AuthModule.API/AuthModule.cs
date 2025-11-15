@@ -26,14 +26,6 @@ namespace CoreAxis.Modules.AuthModule.API
         /// <param name="services">The service collection to register services with.</param>
         public void RegisterServices(IServiceCollection services)
         {
-            // Get configuration from the service provider
-            var serviceProvider = services.BuildServiceProvider();
-            var configuration = serviceProvider.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>();
-            
-            // Register all AuthModule services including MediatR, repositories, and other dependencies
-            services.AddAuthModuleApi(configuration);
-            
-            // Add controllers from this module
             services.AddControllers()
                 .AddApplicationPart(typeof(AuthModule).Assembly);
         }
@@ -44,9 +36,6 @@ namespace CoreAxis.Modules.AuthModule.API
         /// <param name="app">The application builder to configure middleware with.</param>
         public void ConfigureApplication(IApplicationBuilder app)
         {
-            // Configure any module-specific middleware here if needed
-            // For now, the AuthModule doesn't require specific middleware configuration
-            // as JWT authentication is handled globally in the API Gateway
         }
     }
 }

@@ -36,6 +36,13 @@ public class AuthDbContext : DbContext
             entity.Property(e => e.Username).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
             entity.Property(e => e.PasswordHash).IsRequired().HasMaxLength(500);
+
+            entity.Property(e => e.NationalCode).IsRequired().HasMaxLength(10);
+            entity.HasIndex(e => e.NationalCode).IsUnique();
+
+            entity.Property(e => e.PhoneNumber).HasMaxLength(15);
+            entity.HasIndex(e => e.PhoneNumber);
+
             entity.HasIndex(e => e.Username).IsUnique();
             entity.HasIndex(e => e.Email).IsUnique();
         });
@@ -56,15 +63,15 @@ public class AuthDbContext : DbContext
             entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
             entity.Property(e => e.Description).HasMaxLength(500);
             entity.HasIndex(e => new { e.PageId, e.ActionId }).IsUnique();
-            
-            entity.HasOne<Page>()
-                .WithMany()
-                .HasForeignKey(e => e.PageId)
+
+            entity.HasOne(p => p.Page)
+                .WithMany(pg => pg.Permissions)
+                .HasForeignKey(p => p.PageId)
                 .OnDelete(DeleteBehavior.Restrict);
-                
-            entity.HasOne<Domain.Entities.Action>()
-                .WithMany()
-                .HasForeignKey(e => e.ActionId)
+
+            entity.HasOne(p => p.Action)
+                .WithMany(a => a.Permissions)
+                .HasForeignKey(p => p.ActionId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
