@@ -80,16 +80,12 @@ builder.Services.AddSingleton<CoreAxis.SharedKernel.Observability.Audit.IAuditSt
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-var enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger");
-if (app.Environment.IsDevelopment() || enableSwagger)
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("webApi-v1/swagger.json", "CoreAxis Web API v1");
-        c.RoutePrefix = "swagger";
-    });
-}
+    c.SwaggerEndpoint("webApi-v1/swagger.json", "CoreAxis Web API v1");
+    c.RoutePrefix = "swagger";
+});
 
 app.UseHttpsRedirection();
 // Insert Correlation middleware early so headers/context propagate to downstream components

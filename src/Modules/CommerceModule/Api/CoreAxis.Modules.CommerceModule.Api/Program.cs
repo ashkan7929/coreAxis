@@ -157,17 +157,12 @@ if (!string.IsNullOrEmpty(pathBase))
 }
 
 // Configure the HTTP request pipeline
-var enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger");
-if (app.Environment.IsDevelopment() || enableSwagger)
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        // Use relative path so it works under virtual directories
-        c.SwaggerEndpoint("commerce-v1/swagger.json", "CoreAxis Commerce Module API v1");
-        c.RoutePrefix = string.Empty; // Set Swagger UI at the app's root
-    });
-}
+    c.SwaggerEndpoint("commerce-v1/swagger.json", "CoreAxis Commerce Module API v1");
+    c.RoutePrefix = string.Empty;
+});
 
 app.UseHttpsRedirection();
 

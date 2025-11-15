@@ -247,18 +247,12 @@ try
         app.UsePathBase(pathBase);
     }
 
-    // Configure the HTTP request pipeline.
-    var enableSwagger = builder.Configuration.GetValue<bool>("EnableSwagger");
-    if (app.Environment.IsDevelopment() || enableSwagger)
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
     {
-        app.UseSwagger();
-        app.UseSwaggerUI(c =>
-        {
-            // Use relative path so it works under virtual directories in IIS
-            c.SwaggerEndpoint("v1/swagger.json", "CoreAxis API V1");
-            c.RoutePrefix = "swagger";
-        });
-    }
+        c.SwaggerEndpoint("v1/swagger.json", "CoreAxis API V1");
+        c.RoutePrefix = "swagger";
+    });
 
     if (app.Environment.IsDevelopment())
     {
