@@ -8,6 +8,10 @@ using CoreAxis.Modules.WalletModule.Api;
 using CoreAxis.Modules.ProductOrderModule.Api;
 using CoreAxis.Modules.ApiManager.API;
 using static CoreAxis.Modules.ApiManager.API.DependencyInjection;
+using CoreAxis.Modules.AuthModule.Infrastructure.Data;
+ 
+using CoreAxis.Modules.Workflow.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
@@ -68,16 +72,7 @@ try
             // Accept enum values as strings (e.g., "Active" instead of 0)
             options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         });
-    try
-    {
-        var dynamicFormAssembly = System.Reflection.Assembly.Load("CoreAxis.Modules.DynamicForm.API");
-        mvcBuilder.AddApplicationPart(dynamicFormAssembly);
-        Console.WriteLine("[Startup] DynamicForm API loaded via ApplicationPart.");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"[Startup] DynamicForm API not available: {ex.Message}. Continuing without it.");
-    }
+    
     
     // Add Localization
     builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
@@ -177,8 +172,9 @@ try
     // Add Authorization
     builder.Services.AddAuthorization();
 
-    // Add health checks - temporarily disabled
-    // builder.Services.AddCoreAxisHealthChecks();
+    builder.Services.AddCoreAxisHealthChecks();
+    builder.Services.AddHealthChecks()
+        .AddCheck<DbConnectivityHealthCheck>("db-connectivity", tags: new[] { "ready" });
 
     // Register modules
     builder.Services.AddSingleton<IModuleRegistrar, ModuleRegistrar>();
@@ -256,8 +252,7 @@ try
 
     if (app.Environment.IsDevelopment())
     {
-        // Use health checks - temporarily disabled
-        // app.UseCoreAxisHealthChecks();
+        app.UseCoreAxisHealthChecks();
     }
 
     if (app.Environment.IsDevelopment())
@@ -271,9 +266,9 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
+    app.MapCoreAxisHealthChecks();
 
-    // Use health checks - temporarily disabled
-    // app.UseCoreAxisHealthChecks();
+    app.UseCoreAxisHealthChecks();
 
     // Serve static files for health dashboard
     app.UseStaticFiles();
@@ -295,6 +290,19 @@ try
         });
     });
 
+    app.MapGet("/_diag/db", async (IServiceProvider sp) =>
+    {
+        using var scope = sp.CreateScope();
+        var auth = scope.ServiceProvider.GetService<AuthDbContext>();
+        var workflow = scope.ServiceProvider.GetService<WorkflowDbContext>();
+        var authOk = auth != null && await auth.Database.CanConnectAsync();
+        var workflowOk = workflow != null && await workflow.Database.CanConnectAsync();
+        var ok = authOk && workflowOk;
+        return ok
+            ? Results.Ok(new { auth = authOk, workflow = workflowOk })
+            : Results.Problem(title: "db-connectivity", detail: $"auth={authOk}, workflow={workflowOk}", statusCode: 503);
+    });
+
     app.MapGet("/weatherforecast", () =>
     {
         var forecast = Enumerable.Range(1, 5).Select(index =>
@@ -312,6 +320,54 @@ try
     // Configure modules
     var registeredModules = moduleRegistrar.GetRegisteredModules();
     moduleRegistrar.ConfigureModules(registeredModules, app);
+
+    using (var scope = app.Services.CreateScope())
+    {
+        var sp = scope.ServiceProvider;
+        var dbLogger = app.Services.GetRequiredService<ILogger<Program>>();
+        var authDb = sp.GetService<AuthDbContext>();
+        var workflowDb = sp.GetService<WorkflowDbContext>();
+
+        if (authDb != null)
+        {
+            try
+            {
+                if (authDb.Database.CanConnect())
+                {
+                    authDb.Database.Migrate();
+                    dbLogger.LogInformation("AuthDb migrated: {CanConnect}", authDb.Database.CanConnect());
+                }
+                else
+                {
+                    dbLogger.LogWarning("AuthDb unreachable");
+                }
+            }
+            catch (Exception ex)
+            {
+                dbLogger.LogError(ex, "AuthDb migration failed");
+            }
+        }
+
+        if (workflowDb != null)
+        {
+            try
+            {
+                if (workflowDb.Database.CanConnect())
+                {
+                    workflowDb.Database.Migrate();
+                    dbLogger.LogInformation("WorkflowDb migrated: {CanConnect}", workflowDb.Database.CanConnect());
+                }
+                else
+                {
+                    dbLogger.LogWarning("WorkflowDb unreachable");
+                }
+            }
+            catch (Exception ex)
+            {
+                dbLogger.LogError(ex, "WorkflowDb migration failed");
+            }
+        }
+    }
 
     // Log registered modules
     Console.WriteLine("About to get logger service...");

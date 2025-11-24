@@ -1,0 +1,55 @@
+name: Build & Deploy CoreAxis (self-hosted)
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore & Publish CoreAxis.ApiGateway
+        run: |
+          dotnet restore
+          dotnet publish src/ApiGateway/CoreAxis.ApiGateway/CoreAxis.ApiGateway.csproj -c Release -o D:\backend-new
+
+      - name: Backup current version and swap to new build
+        shell: pwsh
+        run: |
+          Import-Module WebAdministration
+
+          $siteName   = 'coreaxis'             
+          $sitePath   = 'D:\backend'           
+          $newPath    = 'D:\backend-new'       
+          $backupRoot = 'D:\deploy\backups\coreaxis'
+
+          New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
+          if (!(Test-Path $sitePath)) { New-Item -ItemType Directory -Path $sitePath -Force | Out-Null }
+
+          $timestamp  = Get-Date -Format 'yyyyMMdd-HHmmss'
+          $backupPath = Join-Path $backupRoot $timestamp
+          Write-Host "Backing up $sitePath to $backupPath ..."
+          Copy-Item $sitePath $backupPath -Recurse -Force
+
+          Write-Host "Stopping IIS site $siteName ..."
+          Stop-Website -Name $siteName -ErrorAction SilentlyContinue
+
+          Write-Host "Clearing $sitePath ..."
+          Get-ChildItem $sitePath -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+
+          Write-Host "Copying new build to $sitePath ..."
+          Copy-Item $newPath\* $sitePath -Recurse -Force
+
+          Write-Host "Starting IIS site $siteName ..."
+          Start-Website -Name $siteName
+
+          Write-Host "Deployment DONE ✅"

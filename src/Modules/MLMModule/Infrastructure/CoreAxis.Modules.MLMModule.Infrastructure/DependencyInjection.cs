@@ -13,6 +13,7 @@ using CoreAxis.SharedKernel.Outbox;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 
 namespace CoreAxis.Modules.MLMModule.Infrastructure;
 
@@ -22,7 +23,11 @@ public static class DependencyInjection
     {
         // Add DbContext
         services.AddDbContext<MLMModuleDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"), sql =>
+            {
+                sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(30), null);
+                sql.CommandTimeout(60);
+            }));
 
         // Register repositories
         services.AddScoped<IUserReferralRepository, UserReferralRepository>();

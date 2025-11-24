@@ -16,6 +16,7 @@ using Microsoft.Extensions.Configuration;
 using CoreAxis.Modules.ProductOrderModule.Domain.Products;
 using CoreAxis.Modules.ProductOrderModule.Infrastructure.Repositories;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 using CoreAxis.Modules.ProductOrderModule.Application.Services;
 using CoreAxis.Modules.ProductOrderModule.Domain.Suppliers;
 
@@ -30,7 +31,11 @@ public static class DependencyInjection
         
         // Add DbContext
         services.AddDbContext<ProductOrderDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"), sql =>
+            {
+                sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(30), null);
+                sql.CommandTimeout(60);
+            }));
 
         // Register repositories
         services.AddScoped<IOrderRepository, OrderRepository>();

@@ -10,6 +10,7 @@ using CoreAxis.Modules.DynamicForm.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Reflection;
 
 namespace CoreAxis.Modules.DynamicForm;
@@ -20,7 +21,11 @@ public static class DependencyInjection
     {
         // Add DbContext
         services.AddDbContext<DynamicFormDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"), sql =>
+            {
+                sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(30), null);
+                sql.CommandTimeout(60);
+            }));
 
         // Add MediatR
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));

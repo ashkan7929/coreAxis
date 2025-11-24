@@ -15,6 +15,7 @@ public class DynamicFormDbContextFactory : IDesignTimeDbContextFactory<DynamicFo
         optionsBuilder.UseSqlServer(connectionString, sql =>
         {
             sql.MigrationsHistoryTable("__EFMigrationsHistory", "dynamicform");
+            sql.EnableRetryOnFailure(3, TimeSpan.FromSeconds(30), null);
         });
 
         return new DynamicFormDbContext(optionsBuilder.Options);

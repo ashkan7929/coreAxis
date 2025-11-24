@@ -7,6 +7,7 @@ using CoreAxis.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 using Microsoft.Extensions.Hosting;
 
 namespace CoreAxis.Modules.AuthModule.Infrastructure;
@@ -30,7 +31,11 @@ public static class DependencyInjection
                 {
                     throw new InvalidOperationException("ConnectionStrings:DefaultConnection is required");
                 }
-                options.UseSqlServer(connectionString);
+                options.UseSqlServer(connectionString, sql =>
+                {
+                    sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(30), null);
+                    sql.CommandTimeout(60);
+                });
             }
         });
 

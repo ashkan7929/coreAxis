@@ -8,6 +8,7 @@ using CoreAxis.Modules.WalletModule.Infrastructure.Providers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 
 namespace CoreAxis.Modules.WalletModule.Infrastructure;
 
@@ -17,7 +18,11 @@ public static class DependencyInjection
     {
         // Add DbContext
         services.AddDbContext<WalletDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"), sql =>
+            {
+                sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(30), null);
+                sql.CommandTimeout(60);
+            }));
 
         // Register repositories
         services.AddScoped<IWalletRepository, WalletRepository>();

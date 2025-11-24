@@ -17,6 +17,7 @@ public class ProductOrderDbContextFactory : IDesignTimeDbContextFactory<ProductO
         optionsBuilder.UseSqlServer(connectionString, sql =>
         {
             sql.MigrationsHistoryTable("__EFMigrationsHistory", "productorder");
+            sql.EnableRetryOnFailure(3, TimeSpan.FromSeconds(30), null);
         });
 
         return new ProductOrderDbContext(optionsBuilder.Options, new NoOpDomainEventDispatcher());
