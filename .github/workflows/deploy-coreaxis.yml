@@ -9,7 +9,7 @@ jobs:
     runs-on: self-hosted
 
     env:
-      SITE_NAME: "coreaxis"
+      SITE_NAME: "VemBackend"
       SITE_PATH: "D:\\backend"
       PUBLISH_TEMP: "D:\\backend-new"
       BACKUP_ROOT: "D:\\deploy\\backups\\coreaxis"
@@ -40,16 +40,23 @@ jobs:
           $newPath    = $env:PUBLISH_TEMP
           $backupRoot = $env:BACKUP_ROOT
 
+          # اطمینان از وجود دایرکتوری‌ها
           New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
           if (!(Test-Path $sitePath)) { New-Item -ItemType Directory -Path $sitePath -Force | Out-Null }
 
+          # بکاپ گرفتن از نسخه فعلی
           $timestamp  = Get-Date -Format 'yyyyMMdd-HHmmss'
           $backupPath = Join-Path $backupRoot $timestamp
           Write-Host "Backing up $sitePath to $backupPath ..."
           Copy-Item "$sitePath\*" $backupPath -Recurse -Force -ErrorAction SilentlyContinue
 
-          Write-Host "Stopping IIS site $siteName ..."
-          Stop-Website -Name $siteName -ErrorAction SilentlyContinue
+          # Stop IIS site فقط اگر وجود داشته باشد
+          if (Get-Website | Where-Object { $_.Name -eq $siteName }) {
+              Write-Host "Stopping IIS site $siteName ..."
+              Stop-Website -Name $siteName
+          } else {
+              Write-Host "Website $siteName not found → skipping stop"
+          }
 
           Write-Host "Clearing $sitePath ..."
           Get-ChildItem $sitePath -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
@@ -57,7 +64,12 @@ jobs:
           Write-Host "Copying new build from $newPath to $sitePath ..."
           Copy-Item "$newPath\*" $sitePath -Recurse -Force
 
-          Write-Host "Starting IIS site $siteName ..."
-          Start-Website -Name $siteName
+          # Start IIS site فقط اگر وجود داشته باشد
+          if (Get-Website | Where-Object { $_.Name -eq $siteName }) {
+              Write-Host "Starting IIS site $siteName ..."
+              Start-Website -Name $siteName
+          } else {
+              Write-Host "Website $siteName not found → skipping start"
+          }
 
           Write-Host "Deployment DONE ✅"
