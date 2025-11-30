@@ -40,6 +40,16 @@ jobs:
           $newPath    = $env:PUBLISH_TEMP
           $backupRoot = $env:BACKUP_ROOT
 
+          # --- پیدا کردن سایت و App Pool ---
+          $site = Get-Website | Where-Object { $_.Name -eq $siteName }
+          if (-not $site) {
+              Write-Host "Website $siteName not found, aborting deployment."
+              exit 1
+          }
+
+          $appPoolName = $site.ApplicationPool
+          Write-Host "Using application pool: $appPoolName"
+
           # اطمینان از وجود دایرکتوری‌ها
           New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
           if (!(Test-Path $sitePath)) { New-Item -ItemType Directory -Path $sitePath -Force | Out-Null }
@@ -50,26 +60,47 @@ jobs:
           Write-Host "Backing up $sitePath to $backupPath ..."
           Copy-Item "$sitePath\*" $backupPath -Recurse -Force -ErrorAction SilentlyContinue
 
-          # Stop IIS site فقط اگر وجود داشته باشد
-          if (Get-Website | Where-Object { $_.Name -eq $siteName }) {
-              Write-Host "Stopping IIS site $siteName ..."
-              Stop-Website -Name $siteName
-          } else {
-              Write-Host "Website $siteName not found → skipping stop"
-          }
+          # Stop App Pool و سایت
+          Write-Host "Stopping App Pool $appPoolName ..."
+          Stop-WebAppPool -Name $appPoolName -ErrorAction SilentlyContinue
 
+          Write-Host "Stopping IIS site $siteName ..."
+          Stop-Website -Name $siteName -ErrorAction SilentlyContinue
+
+          Start-Sleep -Seconds 3
+
+          # خالی کردن مسیر فعلی
           Write-Host "Clearing $sitePath ..."
           Get-ChildItem $sitePath -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 
-          Write-Host "Copying new build from $newPath to $sitePath ..."
-          Copy-Item "$newPath\*" $sitePath -Recurse -Force
+          Start-Sleep -Seconds 2
 
-          # Start IIS site فقط اگر وجود داشته باشد
-          if (Get-Website | Where-Object { $_.Name -eq $siteName }) {
-              Write-Host "Starting IIS site $siteName ..."
-              Start-Website -Name $siteName
-          } else {
-              Write-Host "Website $siteName not found → skipping start"
+          # کپی بیلد جدید با چند بار تلاش
+          $maxAttempts = 3
+          $copyOk = $false
+          for ($i = 1; $i -le $maxAttempts; $i++) {
+              try {
+                  Write-Host "Copy attempt $i: from $newPath to $sitePath ..."
+                  Copy-Item "$newPath\*" $sitePath -Recurse -Force
+                  $copyOk = $true
+                  break
+              }
+              catch {
+                  Write-Host "Copy failed on attempt $i: $($_.Exception.Message)"
+                  Start-Sleep -Seconds 2
+              }
           }
+
+          if (-not $copyOk) {
+              Write-Error "Copy failed after $maxAttempts attempts. Aborting deployment."
+              exit 1
+          }
+
+          # Start App Pool و سایت
+          Write-Host "Starting App Pool $appPoolName ..."
+          Start-WebAppPool -Name $appPoolName -ErrorAction SilentlyContinue
+
+          Write-Host "Starting IIS site $siteName ..."
+          Start-Website -Name $siteName -ErrorAction SilentlyContinue
 
           Write-Host "Deployment DONE ✅"
