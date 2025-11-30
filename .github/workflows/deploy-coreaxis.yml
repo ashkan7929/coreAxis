@@ -27,14 +27,12 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Publish CoreAxis.ApiGateway
-        shell: pwsh
         run: |
           $projectPath = "src/ApiGateway/CoreAxis.ApiGateway/CoreAxis.ApiGateway.csproj"
           Write-Host "Publishing $projectPath to $env:PUBLISH_TEMP ..."
           dotnet publish $projectPath -c Release -o $env:PUBLISH_TEMP
 
       - name: Backup current version and swap to new build
-        shell: pwsh
         run: |
           Import-Module WebAdministration
 
