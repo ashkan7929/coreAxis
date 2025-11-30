@@ -85,15 +85,18 @@ try
     builder.Services.AddInMemoryRateLimiting();
     builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
     builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowLocalhost8030", policy =>
     {
-        policy.WithOrigins("http://localhost:8030")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        options.AddPolicy("DefaultCorsPolicy", policy =>
+        {
+            policy.WithOrigins(
+                    "http://localhost:8030",
+                    "https://vemclub.com",
+                    "https://panel.vemclub.com")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        });
     });
-});
     // Add Swagger
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(c =>
@@ -234,7 +237,7 @@ try
     builder.Host.UseSerilog();
 
     var app = builder.Build();
-    app.UseCors("AllowLocalhost8030");
+    app.UseCors("DefaultCorsPolicy");
 
     // Honor PathBase when hosted behind IIS virtual directories or reverse proxies
     var pathBase = builder.Configuration["PathBase"];
