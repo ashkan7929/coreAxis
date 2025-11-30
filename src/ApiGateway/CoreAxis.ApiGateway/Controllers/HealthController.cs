@@ -19,7 +19,7 @@ namespace CoreAxis.ApiGateway.Controllers
         public async Task<IActionResult> TestSqlConnection()
         {
             var canConnect = await _dbContext.Database.CanConnectAsync();
-            return canConnect ? Ok("Connection successful!") : StatusCode(500, "Connection failed!");
+            return canConnect ? Ok("Connection successful!!") : StatusCode(500, "Connection failed!");
         }
     }
 }
