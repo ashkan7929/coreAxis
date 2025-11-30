@@ -43,7 +43,7 @@ jobs:
           # --- پیدا کردن سایت و App Pool ---
           $site = Get-Website | Where-Object { $_.Name -eq $siteName }
           if (-not $site) {
-              Write-Host "Website $siteName not found, aborting deployment."
+              Write-Error "Website $siteName not found, aborting deployment."
               exit 1
           }
 
@@ -75,18 +75,19 @@ jobs:
 
           Start-Sleep -Seconds 2
 
-          # کپی بیلد جدید با چند بار تلاش
+          # کپی بیلد جدید با Retry
           $maxAttempts = 3
           $copyOk = $false
+
           for ($i = 1; $i -le $maxAttempts; $i++) {
+              Write-Host ("Copy attempt {0}: from {1} to {2} ..." -f $i, $newPath, $sitePath)
               try {
-                  Write-Host "Copy attempt $i: from $newPath to $sitePath ..."
                   Copy-Item "$newPath\*" $sitePath -Recurse -Force
                   $copyOk = $true
                   break
               }
               catch {
-                  Write-Host "Copy failed on attempt $i: $($_.Exception.Message)"
+                  Write-Host ("Copy failed on attempt {0}: {1}" -f $i, $_.Exception.Message)
                   Start-Sleep -Seconds 2
               }
           }
