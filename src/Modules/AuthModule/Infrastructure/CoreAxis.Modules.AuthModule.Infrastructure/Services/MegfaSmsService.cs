@@ -85,13 +85,13 @@ public class MegfaSmsService : IMegfaSmsService
             request.AddJsonBody(requestBody);
 
             // Log request details (password redacted always)
-            var urlForLog = $"{_restClient.Options.BaseUrl?.AbsoluteUri?.TrimEnd('/')}/send";
-            var sanitizedMessage = _enableSensitiveLogging ? message : SanitizeMessage(message);
+            var urlForLog = _restClient.BuildUri(request).ToString();
+            var sanitizedMessage = message;
             var logBodyObject = new
             {
                 senders = new[] { _from },
                 recipients = new[] { phoneNumber },
-                messages = new[] { _enableSensitiveLogging ? message : sanitizedMessage }
+                messages = new[] { sanitizedMessage }
             };
             string requestJsonForLog = JsonSerializer.Serialize(logBodyObject, new JsonSerializerOptions { WriteIndented = false });
             string requestHeadersForLog = "accept=application/json; cache-control=no-cache";
