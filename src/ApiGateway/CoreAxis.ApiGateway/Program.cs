@@ -26,16 +26,28 @@ try
 {
     // Load environment variables from .env file if it exists (search common locations)
     string? loadedEnvPath = null;
-    var candidateEnvPaths = new[]
+    
+    // Look for .env in typical locations, including current directory and parents
+    var currentDir = Directory.GetCurrentDirectory();
+    var candidateEnvPaths = new List<string>
     {
-        Path.Combine(AppContext.BaseDirectory, ".env"),
-        Path.Combine(Directory.GetCurrentDirectory(), ".env"),
-        Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../.env")),
-        Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../.env")),
-        Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "../../../.env")),
-        "/Users/ashkan/Desktop/projects/coreAxis/.env"
+        Path.Combine(currentDir, ".env"),
+        Path.Combine(AppContext.BaseDirectory, ".env")
     };
-    foreach (var candidate in candidateEnvPaths.Distinct().Where(p => !string.IsNullOrWhiteSpace(p)))
+
+    // Add parent directories up to 5 levels
+    var parent = Directory.GetParent(currentDir);
+    for (int i = 0; i < 5; i++)
+    {
+        if (parent == null) break;
+        candidateEnvPaths.Add(Path.Combine(parent.FullName, ".env"));
+        parent = parent.Parent;
+    }
+
+    // Add specific path for local dev if needed (optional)
+    // candidateEnvPaths.Add("/Users/ashkan/Desktop/projects/coreAxis/.env");
+
+    foreach (var candidate in candidateEnvPaths.Distinct())
     {
         if (File.Exists(candidate))
         {
