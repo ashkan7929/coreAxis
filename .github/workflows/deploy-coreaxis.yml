@@ -40,7 +40,6 @@ jobs:
           $newPath    = $env:PUBLISH_TEMP
           $backupRoot = $env:BACKUP_ROOT
 
-          # --- پیدا کردن سایت و App Pool ---
           $site = Get-Website | Where-Object { $_.Name -eq $siteName }
           if (-not $site) {
               Write-Error "Website $siteName not found, aborting deployment."
@@ -50,17 +49,14 @@ jobs:
           $appPoolName = $site.ApplicationPool
           Write-Host "Using application pool: $appPoolName"
 
-          # اطمینان از وجود دایرکتوری‌ها
           New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
           if (!(Test-Path $sitePath)) { New-Item -ItemType Directory -Path $sitePath -Force | Out-Null }
 
-          # بکاپ گرفتن از نسخه فعلی
           $timestamp  = Get-Date -Format 'yyyyMMdd-HHmmss'
           $backupPath = Join-Path $backupRoot $timestamp
           Write-Host "Backing up $sitePath to $backupPath ..."
           Copy-Item "$sitePath\*" $backupPath -Recurse -Force -ErrorAction SilentlyContinue
 
-          # Stop App Pool و سایت
           Write-Host "Stopping App Pool $appPoolName ..."
           Stop-WebAppPool -Name $appPoolName -ErrorAction SilentlyContinue
 
@@ -69,13 +65,13 @@ jobs:
 
           Start-Sleep -Seconds 3
 
-          # خالی کردن مسیر فعلی
-          Write-Host "Clearing $sitePath ..."
-          Get-ChildItem $sitePath -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host "Clearing $sitePath (excluding .env) ..."
+          Get-ChildItem $sitePath -Force |
+            Where-Object { $_.Name -ne '.env' } |
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 
           Start-Sleep -Seconds 2
 
-          # کپی بیلد جدید با Retry
           $maxAttempts = 3
           $copyOk = $false
 
@@ -97,7 +93,6 @@ jobs:
               exit 1
           }
 
-          # Start App Pool و سایت
           Write-Host "Starting App Pool $appPoolName ..."
           Start-WebAppPool -Name $appPoolName -ErrorAction SilentlyContinue
 
