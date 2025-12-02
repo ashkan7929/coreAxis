@@ -53,6 +53,43 @@ public class WalletTypeController : ControllerBase
     }
 
     /// <summary>
+    /// Get a wallet type by ID.
+    /// </summary>
+    /// <param name="id">The unique identifier of the wallet type.</param>
+    /// <returns>The wallet type details.</returns>
+    /// <remarks>
+    /// Returns the details of a specific wallet type.
+    ///
+    /// Status codes:
+    /// - 200 OK: Wallet type found
+    /// - 404 Not Found: Wallet type not found
+    /// - 401 Unauthorized: Authentication required
+    /// </remarks>
+    [HttpGet("{id}")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(WalletTypeDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<WalletTypeDto>> GetWalletTypeById([FromRoute] Guid id)
+    {
+        var walletType = await _walletTypeRepository.GetByIdAsync(id);
+        if (walletType == null)
+        {
+            return NotFound("Wallet type not found");
+        }
+
+        var result = new WalletTypeDto
+        {
+            Id = walletType.Id,
+            Name = walletType.Name,
+            Description = walletType.Description,
+            IsActive = walletType.IsActive
+        };
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Initialize default wallet types (for development/testing).
     /// </summary>
     /// <remarks>
