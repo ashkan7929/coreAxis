@@ -26,8 +26,8 @@ public class CivilRegistryService : ICivilRegistryService
         _httpClient = httpClient;
         _configuration = configuration;
         _logger = logger;
-        _baseUrl = "https://bhub.satpay.ir/service/v2/personalInfo";
-        _token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2ODk0NTdlN2UzMGI1ZTUwMTQ3ODI4NmUiLCJ1dWlkIjoiZGJmZDViNmItZjc2Zi00MWVmLTlhNDMtZDlmNjVlNDc3YzdmIiwiaWF0IjoxNzU0NTU5MjcyfQ.VEUVn7oHRsrrGOoNHNf78EmIPZ_IiBRnbFCmdkyF0tA";
+        _baseUrl = _configuration["CIVIL_REGISTRY_BASE_URL"] ?? _configuration["CivilRegistry:BaseUrl"] ?? throw new InvalidOperationException("Civil Registry BaseUrl is not configured (CIVIL_REGISTRY_BASE_URL)");
+        _token = _configuration["CIVIL_REGISTRY_TOKEN"] ?? _configuration["CivilRegistry:Token"] ?? throw new InvalidOperationException("Civil Registry Token is not configured (CIVIL_REGISTRY_TOKEN)");
     }
 
     /// <inheritdoc/>

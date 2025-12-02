@@ -31,16 +31,16 @@ public class MegfaSmsService : IMegfaSmsService
         _configuration = configuration;
         _logger = logger;
         
-        var baseUrl = _configuration["Magfa:BaseUrl"] ?? "https://sms.magfa.com/api/http/sms/v2";
-        var username = _configuration["Magfa:Username"] ?? throw new InvalidOperationException("Magfa username is not configured");
-        var password = _configuration["Magfa:Password"] ?? throw new InvalidOperationException("Magfa password is not configured");
-        var domain = _configuration["Magfa:Domain"] ?? "magfa";
-        _from = _configuration["Magfa:From"] ?? throw new InvalidOperationException("Magfa sender number is not configured");
+        var baseUrl = _configuration["MAGFA_BASE_URL"] ?? _configuration["Magfa:BaseUrl"] ?? throw new InvalidOperationException("Magfa BaseUrl is not configured (MAGFA_BASE_URL)");
+        var username = _configuration["MAGFA_USERNAME"] ?? _configuration["Magfa:Username"] ?? throw new InvalidOperationException("Magfa username is not configured (MAGFA_USERNAME)");
+        var password = _configuration["MAGFA_PASSWORD"] ?? _configuration["Magfa:Password"] ?? throw new InvalidOperationException("Magfa password is not configured (MAGFA_PASSWORD)");
+        var domain = _configuration["MAGFA_DOMAIN"] ?? _configuration["Magfa:Domain"] ?? "magfa";
+        _from = _configuration["MAGFA_FROM"] ?? _configuration["Magfa:From"] ?? throw new InvalidOperationException("Magfa sender number is not configured (MAGFA_FROM)");
         
         // assign to fields for structured logging
         _username = username;
         _domain = domain;
-        _enableSensitiveLogging = bool.TryParse(_configuration["Magfa:EnableSensitiveLogging"], out var flag) && flag;
+        _enableSensitiveLogging = bool.TryParse(_configuration["MAGFA_ENABLE_SENSITIVE_LOGGING"] ?? _configuration["Magfa:EnableSensitiveLogging"], out var flag) && flag;
         
         var options = new RestClientOptions(baseUrl)
         {
@@ -71,7 +71,14 @@ public class MegfaSmsService : IMegfaSmsService
         {
             _logger.LogInformation("Sending SMS to {PhoneNumber}", phoneNumber);
 
-            var request = new RestRequest("send", Method.Post);
+            // Adjust resource based on BaseUrl to avoid double "send"
+            string resource = "send";
+            if (_restClient.Options.BaseUrl?.AbsoluteUri.TrimEnd('/').EndsWith("send", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                resource = "";
+            }
+
+            var request = new RestRequest(resource, Method.Post);
             request.AddHeader("cache-control", "no-cache");
             request.AddHeader("accept", "application/json");
             
@@ -85,7 +92,17 @@ public class MegfaSmsService : IMegfaSmsService
             request.AddJsonBody(requestBody);
 
             // Log request details (password redacted always)
-            var urlForLog = _restClient.BuildUri(request).ToString();
+            string urlForLog;
+            try
+            {
+                urlForLog = _restClient.BuildUri(request).ToString();
+            }
+            catch
+            {
+                // Fallback if BuildUri fails (e.g. if BaseUrl is relative or malformed)
+                urlForLog = $"{_restClient.Options.BaseUrl?.ToString().TrimEnd('/')}/{request.Resource}";
+            }
+            
             var sanitizedMessage = message;
             var logBodyObject = new
             {

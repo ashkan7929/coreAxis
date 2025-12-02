@@ -26,8 +26,8 @@ public class ShahkarService : IShahkarService
         _httpClient = httpClient;
         _configuration = configuration;
         _logger = logger;
-        _baseUrl = _configuration["Shahkar:BaseUrl"] ?? "https://bhub.satpay.ir/service/bv/shahkar";
-        _token = _configuration["Shahkar:Token"] ?? throw new InvalidOperationException("Shahkar token is not configured");
+        _baseUrl = _configuration["SHAHKAR_BASE_URL"] ?? _configuration["Shahkar:BaseUrl"] ?? throw new InvalidOperationException("Shahkar BaseUrl is not configured (SHAHKAR_BASE_URL)");
+        _token = _configuration["SHAHKAR_TOKEN"] ?? _configuration["Shahkar:Token"] ?? throw new InvalidOperationException("Shahkar token is not configured (SHAHKAR_TOKEN)");
     }
 
     /// <inheritdoc/>
@@ -55,9 +55,9 @@ public class ShahkarService : IShahkarService
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             _httpClient.DefaultRequestHeaders.Clear();
-            _httpClient.DefaultRequestHeaders.Add("token", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2ODk0NTdlN2UzMGI1ZTUwMTQ3ODI4NmUiLCJ1dWlkIjoiZGJmZDViNmItZjc2Zi00MWVmLTlhNDMtZDlmNjVlNDc3YzdmIiwiaWF0IjoxNzU0NTU5MjcyfQ.VEUVn7oHRsrrGOoNHNf78EmIPZ_IiBRnbFCmdkyF0tA");
+            _httpClient.DefaultRequestHeaders.Add("token", _token);
 
-            var fullUrl = "https://bhub.satpay.ir/service/bv/shahkar";
+            var fullUrl = _baseUrl;
             _logger.LogInformation("Making request to: {FullUrl}", fullUrl);
 
             var response = await _httpClient.PostAsync(
