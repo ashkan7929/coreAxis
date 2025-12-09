@@ -23,7 +23,7 @@ public class User : EntityBase
     public string? IdentificationSerial { get; private set; }
     public string? IdentificationSeri { get; private set; }
     public string? OfficeName { get; private set; }
-    public string PasswordHash { get; private set; } = string.Empty;
+    public string? PasswordHash { get; private set; }
     public DateTime? LastLoginAt { get; private set; }
     public string? LastLoginIp { get; private set; }
     public int FailedLoginAttempts { get; private set; } = 0;
@@ -36,7 +36,7 @@ public class User : EntityBase
 
     private User() { } // For EF Core
 
-    public User(string username, string email, string passwordHash, string? phoneNumber = null)
+    public User(string username, string email, string? passwordHash = null, string? phoneNumber = null)
     {
         Username = username;
         Email = email;
@@ -46,7 +46,7 @@ public class User : EntityBase
         AddDomainEvent(new UserRegisteredEvent(Id, username, email));
     }
 
-    public User(string username, string email, string nationalCode, string phoneNumber, string passwordHash, string? referralCode = null)
+    public User(string username, string email, string nationalCode, string phoneNumber, string? passwordHash = null, string? referralCode = null)
     {
         Username = username;
         Email = email;

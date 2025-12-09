@@ -92,9 +92,8 @@ public class AdminCreateUserCommandHandler : IRequestHandler<AdminCreateUserComm
             var username = request.NationalCode;
             var email = $"{request.NationalCode}@system.local";
 
-            // Generate a strong temporary password and hash it
-            var tempPassword = GenerateTemporaryPassword();
-            var passwordHash = _passwordHasher.HashPassword(tempPassword);
+            // No password by default for admin-created users
+            string? passwordHash = null;
 
             // Create user entity
             var user = new User(
@@ -201,11 +200,9 @@ public class AdminCreateUserCommandHandler : IRequestHandler<AdminCreateUserComm
         return Result<bool>.Success(true);
     }
 
-    private static string GenerateTemporaryPassword()
-    {
-        // Generate a pseudo-random strong password
-        var guid = Guid.NewGuid().ToString("N");
-        var randomPart = guid[..8];
-        return $"Ax!{randomPart}#2025"; // Example: strong temporary password
-    }
+    // private string GenerateTemporaryPassword()
+    // {
+    //     // Simple random password generator
+    //     return Guid.NewGuid().ToString("N").Substring(0, 8) + "Aa1!";
+    // }
 }

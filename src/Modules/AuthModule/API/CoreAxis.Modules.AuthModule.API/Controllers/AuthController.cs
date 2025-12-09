@@ -62,7 +62,7 @@ public class AuthController : ControllerBase
         var command = new RegisterUserCommand(
             dto.NationalCode, // Using national code as username for now
             $"{dto.NationalCode}@temp.com", // Temporary email
-            "TempPassword123!", // Temporary password
+            null, // No password by default
             dto.NationalCode,
             dto.MobileNumber,
             dto.BirthDate, // Birth date in yyyymmdd format for Civil Registry

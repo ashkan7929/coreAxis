@@ -16,7 +16,7 @@ namespace CoreAxis.Modules.AuthModule.Application.Commands.Users;
 public record RegisterUserCommand(
     string Username,
     string Email,
-    string Password,
+    string? Password,
     string NationalCode,
     string PhoneNumber,
     string BirthDate, // yyyymmdd format (e.g., 13791120)
@@ -104,8 +104,12 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, R
 
             var personalInfo = civilRegistryResult.Value!;
 
-            // Hash password
-            var passwordHash = _passwordHasher.HashPassword(request.Password);
+            // Hash password if provided
+            string? passwordHash = null;
+            if (!string.IsNullOrEmpty(request.Password))
+            {
+                passwordHash = _passwordHasher.HashPassword(request.Password);
+            }
 
             // Create user with all information
             var user = new User(

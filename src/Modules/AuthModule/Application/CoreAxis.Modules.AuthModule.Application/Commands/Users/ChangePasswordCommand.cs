@@ -35,11 +35,15 @@ public class ChangePasswordCommandHandler : IRequestHandler<ChangePasswordComman
             return Result.Failure("User not found");
         }
 
-        // Verify current password
-        if (!_passwordHasher.VerifyPassword(request.CurrentPassword, user.PasswordHash))
+        // Verify current password only if user has a password
+        if (!string.IsNullOrEmpty(user.PasswordHash))
         {
-            return Result.Failure("Current password is incorrect");
+            if (!_passwordHasher.VerifyPassword(request.CurrentPassword, user.PasswordHash))
+            {
+                return Result.Failure("Current password is incorrect");
+            }
         }
+        // If user has no password, we skip verification (allowing them to set a password)
 
         // Hash new password
         var newPasswordHash = _passwordHasher.HashPassword(request.NewPassword);

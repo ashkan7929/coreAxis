@@ -13,7 +13,7 @@ namespace CoreAxis.Modules.AuthModule.Application.Commands.Users;
 public record CreateUserCommand(
     string Username,
     string Email,
-    string Password
+    string? Password
 ) : IRequest<Result<UserDto>>;
 
 public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Result<UserDto>>
@@ -51,8 +51,12 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, Resul
             return Result<UserDto>.Failure("Email already exists");
         }
 
-        // Hash password
-        var passwordHash = _passwordHasher.HashPassword(request.Password);
+        // Hash password if provided
+        string? passwordHash = null;
+        if (!string.IsNullOrEmpty(request.Password))
+        {
+            passwordHash = _passwordHasher.HashPassword(request.Password);
+        }
 
         // Create user
         var user = new User(

@@ -60,6 +60,12 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<LoginRes
         }
 
         // Verify password
+        if (string.IsNullOrEmpty(user.PasswordHash))
+        {
+            await LogFailedAttempt(request.MobileNumber, request.IpAddress, "User has no password", cancellationToken);
+            return Result<LoginResultDto>.Failure("User has no password set. Please login via OTP.");
+        }
+
         if (!_passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
         {
             user.RecordFailedLogin();
