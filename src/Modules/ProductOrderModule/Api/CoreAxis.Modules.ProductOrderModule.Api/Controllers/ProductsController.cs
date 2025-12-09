@@ -24,6 +24,94 @@ public class ProductsController : ControllerBase
         _mediator = mediator;
     }
     /// <summary>
+    /// Retrieve all products (admin/internal usage).
+    /// </summary>
+    /// <remarks>
+    /// Returns all products regardless of status (e.g. Active, Inactive, Archived).
+    /// Typically used for admin dashboards or inventory management.
+    ///
+    /// Example response (paged):
+    ///
+    /// ```json
+    /// {
+    ///   "items": [
+    ///     {
+    ///       "id": "...",
+    ///       "code": "PRD-001",
+    ///       "name": "Starter Pack",
+    ///       "status": "Inactive",
+    ///       ...
+    ///     }
+    ///   ],
+    ///   "totalCount": 5,
+    ///   ...
+    /// }
+    /// ```
+    /// </remarks>
+    /// <param name="q">Optional search query by name/code.</param>
+    /// <param name="supplierId">Optional supplier ID filter.</param>
+    /// <param name="pageNumber">Page number (default 1).</param>
+    /// <param name="pageSize">Page size (default 20).</param>
+    [HttpGet("all")]
+    [Produces(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(typeof(PagedResult<ProductPublicDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    // [Authorize(Roles = "Admin,Manager")] // Uncomment when auth is fully integrated
+    public async Task<ActionResult<PagedResult<ProductPublicDto>>> GetAll(
+        [FromQuery] string? q,
+        [FromQuery] Guid? supplierId,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        // No status filter = return all
+        ProductStatus? status = null;
+
+        var items = await _productRepository.GetLightweightAsync(status, q, supplierId, pageNumber, pageSize);
+        var total = await _productRepository.GetLightweightCountAsync(status, q, supplierId);
+
+        var dtoItems = items.Select(p => new ProductPublicDto
+        {
+            Id = p.Id,
+            Code = p.Code,
+            Name = p.Name,
+            Status = p.Status,
+            Count = p.Count,
+            Quantity = p.Quantity,
+            PriceFrom = p.PriceFrom,
+            Attributes = p.Attributes
+        }).ToList();
+
+        #region Get Price From Mili
+        try
+        {
+            var milliResult = await _mediator.Send(new GetMilliPriceQuery());
+
+            if (milliResult != null && milliResult.Data != null)
+            {
+                foreach(var item in dtoItems)
+                {
+                    milliResult.Data.Price18 = (milliResult.Data.Price18 * 0.1m);
+                    item.PriceFrom = new Domain.ValueObjects.Money(milliResult.Data.Price18 * 1000, "IRR");
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // Ignore price update errors for admin listing or log them
+        }
+        #endregion
+
+        return Ok(new PagedResult<ProductPublicDto>
+        {
+            Items = dtoItems,
+            TotalCount = total,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalPages = (int)Math.Ceiling((double)total / pageSize)
+        });
+    }
+
+    /// <summary>
     /// Retrieve public product list with optional search and pagination.
     /// </summary>
     /// <remarks>
