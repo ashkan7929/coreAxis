@@ -26,10 +26,10 @@ public class WalletTypeController : ControllerBase
     }
 
     /// <summary>
-    /// Get all available wallet types.
+    /// Get all wallet types (active and inactive).
     /// </summary>
     /// <remarks>
-    /// Returns the list of active wallet types that can be used when creating wallets.
+    /// Returns the complete list of wallet types available in the system.
     ///
     /// Status codes:
     /// - 200 OK: Successful retrieval
@@ -40,7 +40,7 @@ public class WalletTypeController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<WalletTypeDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<WalletTypeDto>>> GetWalletTypes()
     {
-        var walletTypes = await _walletTypeRepository.GetActiveAsync();
+        var walletTypes = await _walletTypeRepository.GetAllAsync();
         var result = walletTypes.Select(wt => new WalletTypeDto
         {
             Id = wt.Id,
