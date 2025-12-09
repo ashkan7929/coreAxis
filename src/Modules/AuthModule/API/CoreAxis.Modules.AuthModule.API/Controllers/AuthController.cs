@@ -24,6 +24,55 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Set initial password for users who don't have one
+    /// </summary>
+    /// <remarks>
+    /// Functionality: Allows users who registered without a password to set their initial password using OTP verification.
+    ///
+    /// Input:
+    /// <code>
+    /// {
+    ///   "mobileNumber": "09123456789",
+    ///   "otpCode": "123456",
+    ///   "newPassword": "Str0ngP@ss!",
+    ///   "confirmPassword": "Str0ngP@ss!"
+    /// }
+    /// </code>
+    ///
+    /// Output (200 OK):
+    /// <code>
+    /// { "message": "رمز عبور با موفقیت ثبت شد" }
+    /// </code>
+    /// 
+    /// Error Responses:
+    /// - 400 Bad Request: OTP invalid, passwords don't match, or user already has a password.
+    /// </remarks>
+    /// <param name="dto">Password setting data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Result message</returns>
+    [HttpPost("set-initial-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> SetInitialPassword([FromBody] SetInitialPasswordDto dto, CancellationToken cancellationToken = default)
+    {
+        var command = new SetInitialPasswordCommand(
+            dto.MobileNumber,
+            dto.OtpCode,
+            dto.NewPassword,
+            dto.ConfirmPassword);
+
+        var result = await _mediator.Send(command, cancellationToken);
+
+        if (result.IsSuccess)
+        {
+            return Ok(new { message = "رمز عبور با موفقیت ثبت شد" });
+        }
+
+        return BadRequest(result.Errors);
+    }
+
+    /// <summary>
     /// Register a new user with national verification
     /// </summary>
     /// <remarks>
