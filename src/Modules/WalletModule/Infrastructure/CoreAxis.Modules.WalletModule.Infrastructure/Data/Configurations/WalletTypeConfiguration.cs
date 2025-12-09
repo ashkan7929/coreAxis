@@ -23,6 +23,10 @@ public class WalletTypeConfiguration : IEntityTypeConfiguration<WalletType>
             .IsRequired()
             .HasDefaultValue(true);
 
+        builder.Property(wt => wt.IsDefault)
+            .IsRequired()
+            .HasDefaultValue(false);
+
         // Relationships
         builder.HasMany(wt => wt.Wallets)
             .WithOne(w => w.WalletType)

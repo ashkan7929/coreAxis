@@ -9,6 +9,7 @@ using CoreAxis.SharedKernel;
 using CoreAxis.EventBus;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using SharedUserRegistered = CoreAxis.SharedKernel.Contracts.Events.UserRegistered;
 
 namespace CoreAxis.Modules.AuthModule.Application.Commands.Users;
 
@@ -170,6 +171,15 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, R
                 user.LastName ?? string.Empty);
 
             await _eventBus.PublishAsync(userRegisteredEvent);
+
+            // Publish SharedKernel event for other modules (e.g. Wallet)
+            var sharedUserRegistered = new SharedUserRegistered(
+                user.Id,
+                user.Email,
+                "Default", // TenantId
+                Guid.NewGuid() // CorrelationId
+            );
+            await _eventBus.PublishAsync(sharedUserRegistered);
 
             var result = new RegisterUserResultDto
             {

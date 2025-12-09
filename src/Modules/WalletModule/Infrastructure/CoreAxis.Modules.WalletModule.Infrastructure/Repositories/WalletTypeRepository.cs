@@ -33,6 +33,13 @@ public class WalletTypeRepository : IWalletTypeRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IEnumerable<WalletType>> GetDefaultAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.WalletTypes
+            .Where(wt => wt.IsActive && wt.IsDefault)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<IEnumerable<WalletType>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await _context.WalletTypes

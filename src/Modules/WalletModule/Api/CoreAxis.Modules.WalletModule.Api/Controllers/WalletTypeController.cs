@@ -46,7 +46,8 @@ public class WalletTypeController : ControllerBase
             Id = wt.Id,
             Name = wt.Name,
             Description = wt.Description,
-            IsActive = wt.IsActive
+            IsActive = wt.IsActive,
+            IsDefault = wt.IsDefault
         });
         
         return Ok(result);
@@ -83,7 +84,8 @@ public class WalletTypeController : ControllerBase
             Id = walletType.Id,
             Name = walletType.Name,
             Description = walletType.Description,
-            IsActive = walletType.IsActive
+            IsActive = walletType.IsActive,
+            IsDefault = walletType.IsDefault
         };
 
         return Ok(result);
@@ -150,7 +152,7 @@ public class WalletTypeController : ControllerBase
             // Create default wallet types
             var defaultTypes = new[]
             {
-                new WalletType("Main", "Primary wallet for general transactions"),
+                new WalletType("Main", "Primary wallet for general transactions", isDefault: true),
                 new WalletType("Savings", "Savings wallet for long-term storage"),
                 new WalletType("Commission", "Commission wallet for earned commissions"),
                 new WalletType("Bonus", "Bonus wallet for promotional rewards"),
@@ -212,7 +214,7 @@ public class WalletTypeController : ControllerBase
             return BadRequest($"Wallet type with name '{request.Name}' already exists");
         }
 
-        var walletType = new WalletType(request.Name, request.Description);
+        var walletType = new WalletType(request.Name, request.Description, request.IsDefault);
         await _walletTypeRepository.AddAsync(walletType);
         await _walletTypeRepository.SaveChangesAsync();
 
@@ -221,7 +223,8 @@ public class WalletTypeController : ControllerBase
             Id = walletType.Id,
             Name = walletType.Name,
             Description = walletType.Description,
-            IsActive = walletType.IsActive
+            IsActive = walletType.IsActive,
+            IsDefault = walletType.IsDefault
         };
 
         return CreatedAtAction(nameof(GetWalletTypes), result);
@@ -294,7 +297,7 @@ public class WalletTypeController : ControllerBase
         }
 
         // Apply updates
-        walletType.UpdateDetails(name, description);
+        walletType.UpdateDetails(name, description, request.IsDefault);
 
         // Toggle activation if requested
         if (request.IsActive.HasValue)
@@ -327,7 +330,8 @@ public class WalletTypeController : ControllerBase
             Id = walletType.Id,
             Name = walletType.Name,
             Description = walletType.Description,
-            IsActive = walletType.IsActive
+            IsActive = walletType.IsActive,
+            IsDefault = walletType.IsDefault
         };
 
         return Ok(result);

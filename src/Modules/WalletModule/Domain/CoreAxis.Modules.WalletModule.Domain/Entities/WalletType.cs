@@ -7,25 +7,31 @@ public class WalletType : EntityBase
     public string Name { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;
     public bool IsActive { get; private set; } = true;
+    public bool IsDefault { get; private set; } = false;
 
     // Navigation properties
     public virtual ICollection<Wallet> Wallets { get; private set; } = new List<Wallet>();
 
     private WalletType() { } // For EF Core
 
-    public WalletType(string name, string description)
+    public WalletType(string name, string description, bool isDefault = false)
     {
         Name = name;
         Description = description;
+        IsDefault = isDefault;
         CreatedOn = DateTime.UtcNow;
         CreatedBy = "System";
         LastModifiedBy = "System";
     }
 
-    public void UpdateDetails(string name, string description)
+    public void UpdateDetails(string name, string description, bool? isDefault = null)
     {
         Name = name;
         Description = description;
+        if (isDefault.HasValue)
+        {
+            IsDefault = isDefault.Value;
+        }
         LastModifiedOn = DateTime.UtcNow;
         LastModifiedBy = "System";
     }

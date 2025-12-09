@@ -2,6 +2,7 @@ using CoreAxis.BuildingBlocks;
 using CoreAxis.EventBus;
 using CoreAxis.SharedKernel.Contracts.Events;
 using CoreAxis.Modules.WalletModule.Infrastructure.EventHandlers;
+using CoreAxis.Modules.MLMModule.Infrastructure.IntegrationEvents;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -54,6 +55,8 @@ public class WalletModule : IModule
 
         // Subscribe to OrderFinalized.v1 events to create Pending commission transactions
         eventBus.Subscribe<OrderFinalized, OrderFinalizedIntegrationEventHandler>();
+        eventBus.Subscribe<CommissionApprovedIntegrationEvent, CommissionApprovedIntegrationEventHandler>();
+        eventBus.Subscribe<UserRegistered, UserRegisteredIntegrationEventHandler>();
 
         Console.WriteLine($"Module {Name} v{Version} configured.");
     }

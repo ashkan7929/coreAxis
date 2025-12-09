@@ -5,6 +5,7 @@ using CoreAxis.Modules.WalletModule.Infrastructure.Repositories;
 using CoreAxis.Modules.WalletModule.Infrastructure.Services;
 using CoreAxis.Modules.WalletModule.Infrastructure.Configuration;
 using CoreAxis.Modules.WalletModule.Infrastructure.Providers;
+using CoreAxis.Modules.WalletModule.Infrastructure.EventHandlers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,6 +40,11 @@ public static class DependencyInjection
         // Register services
         services.AddScoped<IWalletPolicyService, WalletPolicyService>();
         services.AddScoped<ITransactionService, TransactionService>();
+        
+        // Event Handlers
+        services.AddTransient<UserRegisteredIntegrationEventHandler>();
+        services.AddTransient<OrderFinalizedIntegrationEventHandler>();
+        services.AddTransient<CommissionApprovedIntegrationEventHandler>();
 
         // Hosted services
         services.AddHostedService<CommissionSettlementHostedService>();
