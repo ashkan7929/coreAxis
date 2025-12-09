@@ -9,10 +9,10 @@ using System.Text.RegularExpressions;
 namespace CoreAxis.Modules.AuthModule.Application.Commands.Users;
 
 public record SetInitialPasswordCommand(
-    string MobileNumber,
     string OtpCode,
     string NewPassword,
-    string ConfirmPassword
+    string ConfirmPassword,
+    Guid? UserId = null // Optional: if we want to support finding by ID in future, but here we'll get it from token/context
 ) : IRequest<Result<bool>>;
 
 public class SetInitialPasswordCommandHandler : IRequestHandler<SetInitialPasswordCommand, Result<bool>>
@@ -21,7 +21,16 @@ public class SetInitialPasswordCommandHandler : IRequestHandler<SetInitialPasswo
     private readonly IOtpService _otpService;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IUnitOfWork _unitOfWork;
-
+    private readonly IJwtTokenService _jwtTokenService; // To get user from context if needed, or we rely on HttpContext accessor in Controller
+    // Actually, command should receive UserId or MobileNumber.
+    // Since user is authenticated (token), we can pass UserId in command.
+    // BUT wait, "users who don't have password" -> they might be logged in via OTP!
+    // If they are logged in via OTP, they have a token.
+    // So we can get their ID from token.
+    // Then we need to find their mobile number to verify OTP (VerifyOtpAsync takes mobile number).
+    
+    // Let's inject IHttpContextAccessor or similar? No, better to pass UserId in command.
+    
     public SetInitialPasswordCommandHandler(
         IUserRepository userRepository,
         IOtpService otpService,
@@ -48,40 +57,29 @@ public class SetInitialPasswordCommandHandler : IRequestHandler<SetInitialPasswo
             return Result<bool>.Failure("رمز عبور باید حداقل ۸ کاراکتر و شامل حروف و اعداد باشد");
         }
 
-        // 3. Verify OTP
-        // We use PasswordReset purpose or maybe Login purpose? 
-        // User asked to receive OTP via existing endpoint which usually uses Login or Registration.
-        // Let's assume we use PasswordReset purpose for setting initial password as well, or Login if checking L151 logic.
-        // The user said "receive OTP via .../send-otp", which takes a purpose.
-        // If the user uses "Login" purpose there, we should verify "Login" here.
-        // However, "PasswordReset" is semantically more correct for setting password.
-        // But the requirement says "receive OTP via .../send-otp for users who don't have password".
-        // Let's use OtpPurpose.PasswordReset to be safe and logical, assuming the client sends PasswordReset purpose when calling send-otp.
-        // OR we can check Login purpose if that's what's expected.
-        // Given the context "users who don't have password", they might use "Login" flow to get OTP.
-        // Let's check VerifyOtp logic. It takes a purpose.
-        // I'll stick to PasswordReset as it's a password operation.
-        
-        // Wait, if I use PasswordReset, the user must have requested OTP with PasswordReset purpose.
-        // If the frontend calls send-otp with "Login", then I must verify "Login".
-        // Since this is "Set Initial Password", it's effectively a "Reset Password" flow for a null password.
-        // I will use OtpPurpose.PasswordReset for now. If user clarifies, I can change.
-        // Actually, looking at the request, it says "receive OTP via .../send-otp".
-        // I'll assume the client will send `purpose: PasswordReset` (value 3) when requesting OTP for this action.
-        
-        var otpResult = await _otpService.VerifyOtpAsync(request.MobileNumber, request.OtpCode, OtpPurpose.PasswordReset, cancellationToken);
-        if (!otpResult.IsSuccess || !otpResult.Value)
+        // 4. Get User by ID (from token)
+        if (request.UserId == null)
         {
-            // Try Login purpose as fallback if PasswordReset fails? No, that's insecure.
-            // Let's enforce PasswordReset purpose.
-            return Result<bool>.Failure("کد تایید نامعتبر است");
+             return Result<bool>.Failure("شناسه کاربر نامعتبر است");
         }
-
-        // 4. Get User
-        var user = await _userRepository.GetByPhoneNumberAsync(request.MobileNumber, cancellationToken);
+        
+        var user = await _userRepository.GetByIdAsync(request.UserId.Value);
         if (user == null)
         {
             return Result<bool>.Failure("کاربر یافت نشد");
+        }
+
+        // 3. Verify OTP
+        // Now we have user.PhoneNumber
+        if (string.IsNullOrEmpty(user.PhoneNumber))
+        {
+             return Result<bool>.Failure("شماره موبایل کاربر یافت نشد");
+        }
+
+        var otpResult = await _otpService.VerifyOtpAsync(user.PhoneNumber, request.OtpCode, OtpPurpose.PasswordReset, cancellationToken);
+        if (!otpResult.IsSuccess || !otpResult.Value)
+        {
+            return Result<bool>.Failure("کد تایید نامعتبر است");
         }
 
         // 5. Check if user already has a password
@@ -99,7 +97,7 @@ public class SetInitialPasswordCommandHandler : IRequestHandler<SetInitialPasswo
         await _unitOfWork.SaveChangesAsync();
 
         // 8. Invalidate OTP
-        await _otpService.InvalidateOtpAsync(request.MobileNumber, OtpPurpose.PasswordReset, cancellationToken);
+        await _otpService.InvalidateOtpAsync(user.PhoneNumber, OtpPurpose.PasswordReset, cancellationToken);
 
         return Result<bool>.Success(true);
     }

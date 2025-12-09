@@ -5,10 +5,8 @@ namespace CoreAxis.Modules.AuthModule.Application.DTOs;
 /// </summary>
 public class SetInitialPasswordDto
 {
-    /// <summary>
-    /// Mobile number
-    /// </summary>
-    public string MobileNumber { get; set; } = string.Empty;
+    // MobileNumber removed as we get it from token (user context)
+    // public string MobileNumber { get; set; } = string.Empty;
 
     /// <summary>
     /// OTP code received via SMS
