@@ -20,6 +20,8 @@ public record RegisterUserCommand(
     string NationalCode,
     string PhoneNumber,
     string BirthDate, // yyyymmdd format (e.g., 13791120)
+    string FirstName,
+    string LastName,
     string? ReferralCode = null
 ) : IRequest<Result<RegisterUserResultDto>>;
 
@@ -95,14 +97,17 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, R
             var civilRegistryResult = await _civilRegistryService.GetPersonalInfoAsync(
                 request.NationalCode, request.BirthDate, cancellationToken);
 
-            if (!civilRegistryResult.IsSuccess)
-            {
-                _logger.LogWarning("Civil registry lookup failed for national code {NationalCode}: {Errors}",
-                    request.NationalCode, string.Join(", ", civilRegistryResult.Errors));
-                return Result<RegisterUserResultDto>.Failure($"خطا در دریافت اطلاعات از ثبت احوال: {string.Join(", ", civilRegistryResult.Errors)}");
-            }
+            CivilRegistryPersonalInfo? personalInfo = null;
 
-            var personalInfo = civilRegistryResult.Value!;
+            if (civilRegistryResult.IsSuccess)
+            {
+                personalInfo = civilRegistryResult.Value;
+            }
+            else
+            {
+                _logger.LogWarning("Civil registry lookup failed for national code {NationalCode}: {Errors}. Proceeding with user provided data.",
+                    request.NationalCode, string.Join(", ", civilRegistryResult.Errors));
+            }
 
             // Hash password if provided
             string? passwordHash = null;
@@ -120,22 +125,42 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, R
                 passwordHash,
                 request.ReferralCode);
 
-            // Update personal information from civil registry
+            // Update personal information from civil registry or user input
             // Convert birth date from yyyymmdd format to DateOnly
             if (DateTime.TryParseExact(request.BirthDate, "yyyyMMdd", null, System.Globalization.DateTimeStyles.None, out var parsedDate))
             {
                 var birthDate = DateOnly.FromDateTime(parsedDate);
-                user.UpdatePersonalInfo(
-                    personalInfo.FirstName,
-                    personalInfo.LastName,
-                    personalInfo.FatherName,
-                    birthDate,
-                    personalInfo.Gender,
-                    personalInfo.CertNumber,
-                    personalInfo.IdentificationSerial,
-                    personalInfo.IdentificationSeri,
-                    personalInfo.OfficeName,
-                    personalInfo.TrackId);
+                
+                if (personalInfo != null)
+                {
+                    user.UpdatePersonalInfo(
+                        personalInfo.FirstName,
+                        personalInfo.LastName,
+                        personalInfo.FatherName,
+                        birthDate,
+                        personalInfo.Gender,
+                        personalInfo.CertNumber,
+                        personalInfo.IdentificationSerial,
+                        personalInfo.IdentificationSeri,
+                        personalInfo.OfficeName,
+                        personalInfo.TrackId);
+                }
+                else
+                {
+                    // Fallback to user provided data
+                    user.UpdatePersonalInfo(
+                        request.FirstName,
+                        request.LastName,
+                        null, // FatherName
+                        birthDate,
+                        null, // Gender
+                        null, // CertNumber
+                        null, // IdentificationSerial
+                        null, // IdentificationSeri
+                        null, // OfficeName
+                        null  // TrackId
+                    );
+                }
             }
 
             // Mark national code as verified (since Shahkar verification passed)

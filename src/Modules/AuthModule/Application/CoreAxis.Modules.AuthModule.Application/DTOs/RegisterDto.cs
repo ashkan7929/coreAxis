@@ -14,6 +14,16 @@ public class RegisterDto
     public string NationalCode { get; set; } = string.Empty;
 
     /// <summary>
+    /// First Name (نام)
+    /// </summary>
+    public string FirstName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Last Name (نام خانوادگی)
+    /// </summary>
+    public string LastName { get; set; } = string.Empty;
+
+    /// <summary>
     /// Mobile number
     /// </summary>
     public string MobileNumber { get; set; } = string.Empty;

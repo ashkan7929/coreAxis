@@ -122,6 +122,8 @@ public class AuthController : ControllerBase
             dto.NationalCode,
             dto.MobileNumber,
             dto.BirthDate, // Birth date in yyyymmdd format for Civil Registry
+            dto.FirstName,
+            dto.LastName,
             dto.ReferralCode);
 
         var result = await _mediator.Send(command, cancellationToken);
