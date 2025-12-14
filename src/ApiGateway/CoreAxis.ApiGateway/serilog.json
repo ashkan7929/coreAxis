@@ -1,6 +1,6 @@
 {
   "Serilog": {
-    "Using": [ "Serilog.Sinks.Console", "Serilog.Sinks.File", "Serilog.Sinks.Seq" ],
+    "Using": [ "Serilog.Sinks.Console", "Serilog.Sinks.File", "Serilog.Sinks.Seq", "Serilog.Sinks.MSSqlServer" ],
     "MinimumLevel": {
       "Default": "Information",
       "Override": {
@@ -10,6 +10,14 @@
       }
     },
     "WriteTo": [
+      {
+        "Name": "MSSqlServer",
+        "Args": {
+          "connectionString": "Server=194.62.17.5,1433;Database=CoreAxisDb;User Id=coreaxis_user;Password=j5P9SzzCADjguKuV57lLpjxkm7EKGmyVDCgWoUrtVT3aay1C7C;Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True;",
+          "tableName": "Logs",
+          "autoCreateSqlTable": true
+        }
+      },
       {
         "Name": "Console",
         "Args": {
