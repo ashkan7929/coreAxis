@@ -148,7 +148,9 @@ public class PlaceOrderCommandHandler : IRequestHandler<PlaceOrderCommand, Order
             totalAmount,
             sumOfQuantity,
             request.TenantId,
-            request.IdempotencyKey
+            request.IdempotencyKey,
+            null,
+            request.ApplicationData
         );
 
         //order.LockPrice(totalAmount, TimeSpan.FromMinutes(30));
@@ -171,13 +173,12 @@ public class PlaceOrderCommandHandler : IRequestHandler<PlaceOrderCommand, Order
         // Save with transaction safety
         try
         {
-            using var transaction = await _orderRepository.BeginTransactionAsync(cancellationToken);
-
-            await _orderRepository.AddAsync(order);
-            await _productRepository.UpdateAsync(product);
-            await _orderRepository.SaveChangesAsync();
-
-            await transaction.CommitAsync(cancellationToken);
+            await _orderRepository.ExecuteInTransactionAsync(async () =>
+            {
+                await _orderRepository.AddAsync(order);
+                await _productRepository.UpdateAsync(product);
+                await _orderRepository.SaveChangesAsync();
+            }, cancellationToken);
 
             return order;
         }
@@ -186,8 +187,7 @@ public class PlaceOrderCommandHandler : IRequestHandler<PlaceOrderCommand, Order
             _logger.LogError(ex, "Failed to save order for user {UserId} with IdempotencyKey {IdempotencyKey}",
                 request.UserId, request.IdempotencyKey);
 
-            // Rollback
-            await _orderRepository.RollbackTransactionAsync();
+            // Rollback is handled by ExecuteInTransactionAsync
 
             // Check if this was a duplicate key violation due to race condition
             if (!string.IsNullOrWhiteSpace(request.IdempotencyKey) &&

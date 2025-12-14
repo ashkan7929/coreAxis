@@ -156,4 +156,24 @@ public class OrderRepository : IOrderRepository
             await _context.Database.RollbackTransactionAsync();
     }
 
+    public async Task ExecuteInTransactionAsync(Func<Task> action, CancellationToken cancellationToken)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                await action();
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                // Rollback is automatic on dispose if not committed, but explicit rollback is safer
+                if (_context.Database.CurrentTransaction != null)
+                    await _context.Database.RollbackTransactionAsync(cancellationToken);
+                throw;
+            }
+        });
+    }
 }

@@ -27,6 +27,7 @@ public class Order : EntityBase
     public string TenantId { get; private set; } = string.Empty;
     public string JsonSnapshot { get; private set; } = string.Empty;
     public string? Notes { get; private set; }
+    public string ApplicationData { get; private set; } = string.Empty;
 
     /// <summary>
     /// Gets the order lines associated with this order.
@@ -47,6 +48,7 @@ public class Order : EntityBase
     /// <param name="tenantId">The tenant identifier</param>
     /// <param name="idempotencyKey">Optional idempotency key for duplicate prevention</param>
     /// <param name="notes">Optional notes for the order</param>
+    /// <param name="applicationData">Optional application data for the order</param>
     /// <returns>A new Order instance</returns>
     public static Order Create(
         Guid userId,
@@ -56,7 +58,8 @@ public class Order : EntityBase
         decimal quantity,
         string tenantId,
         string? idempotencyKey = null,
-        string? notes = null)
+        string? notes = null,
+        string applicationData = "")
     {
         if (userId == Guid.Empty)
             throw new ArgumentException("User ID cannot be empty.", nameof(userId));
@@ -78,7 +81,8 @@ public class Order : EntityBase
             Quantity = quantity,
             TenantId = tenantId,
             IdempotencyKey = idempotencyKey,
-            Notes = notes
+            Notes = notes,
+            ApplicationData = applicationData
         };
 
         order.UpdateJsonSnapshot();

@@ -68,7 +68,10 @@ public class OrderController : ControllerBase
             TotalAmount = request.TotalAmount,
             OrderLines = request.OrderLines,
             IdempotencyKey = idempotencyKey,
-            TenantId = tenantId
+            TenantId = tenantId,
+            ApplicationData = request.ApplicationData != null 
+                ? System.Text.Json.JsonSerializer.Serialize(request.ApplicationData) 
+                : string.Empty
         };
 
         var result = await _mediator.Send(command);

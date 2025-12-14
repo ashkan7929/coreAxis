@@ -68,7 +68,7 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.Property(o => o.IdempotencyKey)
             .HasMaxLength(100)
-            .IsRequired();
+            .IsRequired(false);
 
         builder.Property(o => o.TenantId)
             .HasMaxLength(100)
@@ -102,7 +102,8 @@ public class OrderConfiguration : IEntityTypeConfiguration<Order>
 
         builder.HasIndex(o => o.IdempotencyKey)
             .IsUnique()
-            .HasDatabaseName("IX_Orders_IdempotencyKey");
+            .HasDatabaseName("IX_Orders_IdempotencyKey")
+            .HasFilter("[IdempotencyKey] IS NOT NULL");
 
         builder.HasIndex(o => new { o.UserId, o.Status })
             .HasDatabaseName("IX_Orders_UserId_Status");

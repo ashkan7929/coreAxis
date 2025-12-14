@@ -11,6 +11,7 @@ public class PlaceOrderCommand : IRequest<OrderDto>
     public List<PlaceOrderLineDto> OrderLines { get; set; } = new();
     public string? IdempotencyKey { get; set; }
     public string TenantId { get; set; } = string.Empty;
+    public string ApplicationData { get; set; } = string.Empty;
 }
 
 public class CancelOrderCommand : IRequest<bool>

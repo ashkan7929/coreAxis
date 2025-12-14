@@ -146,20 +146,34 @@ public class ProductOrderDbContext : DbContext
             .ToList();
 
         // Save changes first
-        var result = await base.SaveChangesAsync(cancellationToken);
-
-        // Dispatch domain events after successful save
-        if (domainEvents.Any())
+        try 
         {
-            await _domainEventDispatcher.DispatchAsync(domainEvents);
-            
-            // Clear domain events after dispatching
-            foreach (var entity in entitiesWithEvents)
-            {
-                entity.ClearDomainEvents();
-            }
-        }
+            var result = await base.SaveChangesAsync(cancellationToken);
 
-        return result;
+            // Dispatch domain events after successful save
+            if (domainEvents.Any())
+            {
+                await _domainEventDispatcher.DispatchAsync(domainEvents);
+                
+                // Clear domain events after dispatching
+                foreach (var entity in entitiesWithEvents)
+                {
+                    entity.ClearDomainEvents();
+                }
+            }
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[ProductOrderDbContext] SaveChangesAsync failed: {ex.Message}");
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine($"[ProductOrderDbContext] Inner Exception: {ex.InnerException.Message}");
+                if (ex.InnerException.InnerException != null)
+                     Console.WriteLine($"[ProductOrderDbContext] Inner Inner Exception: {ex.InnerException.InnerException.Message}");
+            }
+            throw;
+        }
     }
 }

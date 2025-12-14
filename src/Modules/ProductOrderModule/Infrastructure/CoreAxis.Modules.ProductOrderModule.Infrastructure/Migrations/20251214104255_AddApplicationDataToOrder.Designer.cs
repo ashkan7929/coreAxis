@@ -4,6 +4,7 @@ using CoreAxis.Modules.ProductOrderModule.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CoreAxis.Modules.ProductOrderModule.Infrastructure.Migrations
 {
     [DbContext(typeof(ProductOrderDbContext))]
-    partial class ProductOrderDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251214104255_AddApplicationDataToOrder")]
+    partial class AddApplicationDataToOrder
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -45,6 +48,7 @@ namespace CoreAxis.Modules.ProductOrderModule.Infrastructure.Migrations
                         .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("IdempotencyKey")
+                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -109,8 +113,7 @@ namespace CoreAxis.Modules.ProductOrderModule.Infrastructure.Migrations
 
                     b.HasIndex("IdempotencyKey")
                         .IsUnique()
-                        .HasDatabaseName("IX_Orders_IdempotencyKey")
-                        .HasFilter("[IdempotencyKey] IS NOT NULL");
+                        .HasDatabaseName("IX_Orders_IdempotencyKey");
 
                     b.HasIndex("OrderNumber")
                         .IsUnique()

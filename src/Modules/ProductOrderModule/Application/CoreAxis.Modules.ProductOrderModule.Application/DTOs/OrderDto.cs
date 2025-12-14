@@ -36,6 +36,7 @@ public class PlaceOrderDto
     public string AssetCode { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
     public List<PlaceOrderLineDto> OrderLines { get; set; } = new();
+    public object? ApplicationData { get; set; }
 }
 
 public class PlaceOrderLineDto

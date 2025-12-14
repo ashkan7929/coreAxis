@@ -30,4 +30,5 @@ public interface IOrderRepository
     Task<int> SaveChangesAsync();
     Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken);
     Task RollbackTransactionAsync();
+    Task ExecuteInTransactionAsync(Func<Task> action, CancellationToken cancellationToken);
 }
