@@ -416,7 +416,11 @@ try
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "Application terminated unexpectedly");
+    // Ignore HostAbortedException during design-time tools execution
+    if (ex.GetType().Name != "HostAbortedException")
+    {
+        Log.Fatal(ex, "Application terminated unexpectedly");
+    }
 }
 finally
 {
