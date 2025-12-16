@@ -76,7 +76,8 @@ public class AuthDataSeeder : IAuthDataSeeder
             new { Code = "Create", Name = "Create", Description = "Create access" },
             new { Code = "Update", Name = "Update", Description = "Update access" },
             new { Code = "Delete", Name = "Delete", Description = "Delete access" },
-            new { Code = "Manage", Name = "Manage", Description = "Full management access" }
+            new { Code = "Manage", Name = "Manage", Description = "Full management access" },
+            new { Code = "MarkPaid", Name = "Mark Paid", Description = "Mark commission as paid" }
         };
 
         foreach (var actionData in actions)
@@ -100,7 +101,13 @@ public class AuthDataSeeder : IAuthDataSeeder
             new { Code = "Permissions", Name = "Permissions", ModuleName = "AuthModule", Description = "Permission management" },
             new { Code = "ApiManager", Name = "API Manager", ModuleName = "ApiManager", Description = "API management and configuration" },
             new { Code = "WebServices", Name = "Web Services", ModuleName = "ApiManager", Description = "Web service management" },
-            new { Code = "SecurityProfiles", Name = "Security Profiles", ModuleName = "ApiManager", Description = "Security profile management" }
+            new { Code = "SecurityProfiles", Name = "Security Profiles", ModuleName = "ApiManager", Description = "Security profile management" },
+            // Wallet Module
+            new { Code = "WALLET", Name = "Wallet", ModuleName = "WalletModule", Description = "Wallet management" },
+            // MLM Module
+            new { Code = "Commissions", Name = "Commissions", ModuleName = "MLMModule", Description = "Commission management" },
+            new { Code = "CommissionRules", Name = "Commission Rules", ModuleName = "MLMModule", Description = "Commission rules management" },
+            new { Code = "UserReferrals", Name = "User Referrals", ModuleName = "MLMModule", Description = "User referrals management" }
         };
 
         foreach (var pageData in pages)
@@ -152,7 +159,17 @@ public class AuthDataSeeder : IAuthDataSeeder
             ("SecurityProfiles", "Read"),
             ("SecurityProfiles", "Create"),
             ("SecurityProfiles", "Update"),
-            ("SecurityProfiles", "Delete")
+            ("SecurityProfiles", "Delete"),
+            
+            // Wallet permissions
+            ("WALLET", "Read"),
+            ("WALLET", "Manage"),
+            
+            // MLM permissions
+            ("Commissions", "Read"),
+            ("Commissions", "MarkPaid"),
+            ("CommissionRules", "Create"),
+            ("UserReferrals", "Create")
         };
 
         foreach (var (pageCode, actionCode) in permissionCombinations)
