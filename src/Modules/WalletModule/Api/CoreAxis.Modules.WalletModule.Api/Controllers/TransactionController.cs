@@ -84,7 +84,7 @@ public class TransactionController : ControllerBase
     /// - 401 Unauthorized: Authentication required
     /// </remarks>
     [HttpGet]
-    [HasPermission("WALLET", "READ")]
+    // [HasPermission("WALLET", "READ")]
     [ProducesResponseType(typeof(IEnumerable<TransactionDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<IEnumerable<TransactionDto>>> GetTransactions(
