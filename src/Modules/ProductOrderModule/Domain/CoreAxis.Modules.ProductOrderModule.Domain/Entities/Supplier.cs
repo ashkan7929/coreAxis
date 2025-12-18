@@ -19,8 +19,12 @@ public class Supplier : EntityBase
         return supplier;
     }
 
-    public void Update(string name)
+    public void Update(string name, bool? isActive = null)
     {
         Name = name.Trim();
+        if (isActive.HasValue)
+        {
+            IsActive = isActive.Value;
+        }
     }
 }

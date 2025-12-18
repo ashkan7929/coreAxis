@@ -19,4 +19,5 @@ public class CreateSupplierRequest
 public class UpdateSupplierRequest
 {
     public string Name { get; set; } = string.Empty;
+    public bool? IsActive { get; set; }
 }

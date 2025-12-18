@@ -198,13 +198,13 @@ public class SuppliersController : ControllerBase
         }
 
         // No-op check
-        if (supplier.Name == request.Name.Trim())
+        if (supplier.Name == request.Name.Trim() && (!request.IsActive.HasValue || supplier.IsActive == request.IsActive.Value))
         {
             TryAddCorrelationHeader();
             return Ok(MapToDto(supplier));
         }
 
-        supplier.Update(request.Name);
+        supplier.Update(request.Name, request.IsActive);
         // Set audit field for modification
         supplier.LastModifiedBy = GetUserIdOrSystem();
 
