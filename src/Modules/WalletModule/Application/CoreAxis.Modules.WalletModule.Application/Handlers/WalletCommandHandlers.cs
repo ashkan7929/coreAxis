@@ -41,7 +41,7 @@ public class CreateWalletCommandHandler : IRequestHandler<CreateWalletCommand, W
         }
 
         // Create new wallet
-        var wallet = new Wallet(request.UserId, request.WalletTypeId, request.Currency);
+        var wallet = new Wallet(request.UserId, request.WalletTypeId);
         await _walletRepository.AddAsync(wallet, cancellationToken);
         await _walletRepository.SaveChangesAsync(cancellationToken);
 
@@ -54,7 +54,7 @@ public class CreateWalletCommandHandler : IRequestHandler<CreateWalletCommand, W
             WalletTypeId = wallet.WalletTypeId,
             WalletTypeName = walletType.Name,
             Balance = wallet.Balance,
-            Currency = wallet.Currency,
+            Currency = walletType.Currency,
             IsLocked = wallet.IsLocked,
             LockReason = wallet.LockReason,
             CreatedOn = wallet.CreatedOn

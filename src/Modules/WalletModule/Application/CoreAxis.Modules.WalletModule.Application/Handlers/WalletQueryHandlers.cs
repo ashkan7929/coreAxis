@@ -39,7 +39,7 @@ public class GetWalletByIdQueryHandler : IRequestHandler<GetWalletByIdQuery, Wal
             WalletTypeId = wallet.WalletTypeId,
             WalletTypeName = walletType?.Name ?? "Unknown",
             Balance = wallet.Balance,
-            Currency = wallet.Currency,
+            Currency = walletType?.Currency ?? "USD",
             IsLocked = wallet.IsLocked,
             LockReason = wallet.LockReason,
             CreatedOn = wallet.CreatedOn
@@ -67,7 +67,7 @@ public class GetUserWalletsQueryHandler : IRequestHandler<GetUserWalletsQuery, I
     {
         var wallets = await _walletRepository.GetByUserIdAsync(request.UserId, cancellationToken);
         var walletTypes = await _walletTypeRepository.GetAllAsync(cancellationToken);
-        var walletTypeDict = walletTypes.ToDictionary(wt => wt.Id, wt => wt.Name);
+        var walletTypeDict = walletTypes.ToDictionary(wt => wt.Id, wt => new { wt.Name, wt.Currency });
 
         return wallets
             .Select(wallet => new WalletDto
@@ -75,9 +75,9 @@ public class GetUserWalletsQueryHandler : IRequestHandler<GetUserWalletsQuery, I
                 Id = wallet.Id,
                 UserId = wallet.UserId,
                 WalletTypeId = wallet.WalletTypeId,
-                WalletTypeName = walletTypeDict.GetValueOrDefault(wallet.WalletTypeId, "Unknown"),
+                WalletTypeName = walletTypeDict.GetValueOrDefault(wallet.WalletTypeId)?.Name ?? "Unknown",
                 Balance = wallet.Balance,
-                Currency = wallet.Currency,
+                Currency = walletTypeDict.GetValueOrDefault(wallet.WalletTypeId)?.Currency ?? "USD",
                 IsLocked = wallet.IsLocked,
                 LockReason = wallet.LockReason,
                 CreatedOn = wallet.CreatedOn
@@ -88,13 +88,16 @@ public class GetUserWalletsQueryHandler : IRequestHandler<GetUserWalletsQuery, I
 public class GetWalletBalanceQueryHandler : IRequestHandler<GetWalletBalanceQuery, WalletBalanceDto?>
 {
     private readonly IWalletRepository _walletRepository;
+    private readonly IWalletTypeRepository _walletTypeRepository;
     private readonly ILogger<GetWalletBalanceQueryHandler> _logger;
 
     public GetWalletBalanceQueryHandler(
         IWalletRepository walletRepository,
+        IWalletTypeRepository walletTypeRepository,
         ILogger<GetWalletBalanceQueryHandler> logger)
     {
         _walletRepository = walletRepository;
+        _walletTypeRepository = walletTypeRepository;
         _logger = logger;
     }
 
@@ -106,11 +109,13 @@ public class GetWalletBalanceQueryHandler : IRequestHandler<GetWalletBalanceQuer
             return null;
         }
 
+        var walletType = await _walletTypeRepository.GetByIdAsync(wallet.WalletTypeId, cancellationToken);
+
         return new WalletBalanceDto
         {
             WalletId = wallet.Id,
             Balance = wallet.Balance,
-            Currency = wallet.Currency,
+            Currency = walletType?.Currency ?? "USD",
             LastUpdated = wallet.LastModifiedOn ?? wallet.CreatedOn
         };
     }

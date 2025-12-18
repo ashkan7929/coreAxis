@@ -19,6 +19,11 @@ public class WalletTypeConfiguration : IEntityTypeConfiguration<WalletType>
         builder.Property(wt => wt.Description)
             .HasMaxLength(500);
 
+        builder.Property(wt => wt.Currency)
+            .HasMaxLength(10)
+            .IsRequired()
+            .HasDefaultValue("USD");
+
         builder.Property(wt => wt.IsActive)
             .IsRequired()
             .HasDefaultValue(true);

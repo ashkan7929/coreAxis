@@ -22,10 +22,6 @@ public class WalletConfiguration : IEntityTypeConfiguration<Wallet>
             .HasPrecision(18, 6)
             .IsRequired();
 
-        builder.Property(w => w.Currency)
-            .HasMaxLength(10)
-            .IsRequired();
-
         builder.Property(w => w.IsLocked)
             .IsRequired()
             .HasDefaultValue(false);

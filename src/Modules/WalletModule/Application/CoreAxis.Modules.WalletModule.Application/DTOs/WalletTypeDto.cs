@@ -5,6 +5,7 @@ public class WalletTypeDto
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string Currency { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public bool IsDefault { get; set; }
 }
@@ -13,6 +14,7 @@ public class CreateWalletTypeDto
 {
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string Currency { get; set; } = "USD";
     public bool IsDefault { get; set; }
 }
 
@@ -20,6 +22,7 @@ public class UpdateWalletTypeDto
 {
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string Currency { get; set; } = string.Empty;
     // Optional: when provided, toggles activation state
     public bool? IsActive { get; set; }
     public bool? IsDefault { get; set; }

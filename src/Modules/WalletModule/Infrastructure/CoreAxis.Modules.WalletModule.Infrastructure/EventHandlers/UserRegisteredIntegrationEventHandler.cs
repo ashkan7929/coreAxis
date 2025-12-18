@@ -47,7 +47,7 @@ public class UserRegisteredIntegrationEventHandler : IIntegrationEventHandler<Us
                 }
 
                 // Create wallet
-                var wallet = new Wallet(@event.UserId, type.Id, "USD");
+                var wallet = new Wallet(@event.UserId, type.Id);
                 await _walletRepository.AddAsync(wallet);
                 _logger.LogInformation("Created default wallet of type {TypeName} for UserId: {UserId}", type.Name, @event.UserId);
             }

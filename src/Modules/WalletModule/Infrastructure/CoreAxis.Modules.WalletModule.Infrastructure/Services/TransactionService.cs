@@ -70,6 +70,7 @@ public class TransactionService : ITransactionService
         {
             // Get wallet with row-level locking
             var wallet = await _context.Wallets
+                .Include(w => w.WalletType)
                 .Where(w => w.Id == walletId)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -262,6 +263,7 @@ public class TransactionService : ITransactionService
         {
             // Get wallet with row-level locking
             var wallet = await _context.Wallets
+                .Include(w => w.WalletType)
                 .Where(w => w.Id == walletId)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -277,7 +279,7 @@ public class TransactionService : ITransactionService
             }
 
             // Policy enforcement
-            var policy = await _walletPolicyService.GetPolicyAsync("default", wallet.Currency, cancellationToken);
+            var policy = await _walletPolicyService.GetPolicyAsync("default", wallet.WalletType.Currency, cancellationToken);
 
             // Enforce lock: withdrawals from locked wallets are blocked
             if (wallet.IsLocked)
@@ -408,6 +410,7 @@ public class TransactionService : ITransactionService
             // Get both wallets with row-level locking (order by ID to prevent deadlocks)
             var walletIds = new[] { fromWalletId, toWalletId }.OrderBy(id => id).ToArray();
             var wallets = await _context.Wallets
+                .Include(w => w.WalletType)
                 .Where(w => walletIds.Contains(w.Id))
                 .OrderBy(w => w.Id)
                 .ToListAsync(cancellationToken);
@@ -425,7 +428,7 @@ public class TransactionService : ITransactionService
             {
                 throw new InvalidOperationException("Invalid transfer: source and destination are the same");
             }
-            if (!string.Equals(fromWallet.Currency, toWallet.Currency, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(fromWallet.WalletType.Currency, toWallet.WalletType.Currency, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException("Invalid transfer: currency mismatch");
             }
@@ -437,7 +440,7 @@ public class TransactionService : ITransactionService
             }
 
             // Policy enforcement on source wallet
-            var fromPolicy = await _walletPolicyService.GetPolicyAsync("default", fromWallet.Currency, cancellationToken);
+            var fromPolicy = await _walletPolicyService.GetPolicyAsync("default", fromWallet.WalletType.Currency, cancellationToken);
 
             if (fromWallet.IsLocked)
             {

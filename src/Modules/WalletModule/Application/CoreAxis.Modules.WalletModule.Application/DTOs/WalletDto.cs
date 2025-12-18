@@ -17,7 +17,6 @@ public class CreateWalletDto
 {
     public Guid UserId { get; set; }
     public Guid WalletTypeId { get; set; }
-    public string Currency { get; set; } = "USD";
 }
 
 public class WalletBalanceDto

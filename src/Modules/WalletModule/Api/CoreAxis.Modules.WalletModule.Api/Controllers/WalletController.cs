@@ -65,8 +65,7 @@ public class WalletController : ControllerBase
         var command = new CreateWalletCommand
         {
             UserId = request.UserId,
-            WalletTypeId = request.WalletTypeId,
-            Currency = request.Currency
+            WalletTypeId = request.WalletTypeId
         };
 
         var result = await _mediator.Send(command);

@@ -6,6 +6,7 @@ public class WalletType : EntityBase
 {
     public string Name { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;
+    public string Currency { get; private set; } = "USD";
     public bool IsActive { get; private set; } = true;
     public bool IsDefault { get; private set; } = false;
 
@@ -14,20 +15,22 @@ public class WalletType : EntityBase
 
     private WalletType() { } // For EF Core
 
-    public WalletType(string name, string description, bool isDefault = false)
+    public WalletType(string name, string description, string currency, bool isDefault = false)
     {
         Name = name;
         Description = description;
+        Currency = currency;
         IsDefault = isDefault;
         CreatedOn = DateTime.UtcNow;
         CreatedBy = "System";
         LastModifiedBy = "System";
     }
 
-    public void UpdateDetails(string name, string description, bool? isDefault = null)
+    public void UpdateDetails(string name, string description, string currency, bool? isDefault = null)
     {
         Name = name;
         Description = description;
+        Currency = currency;
         if (isDefault.HasValue)
         {
             IsDefault = isDefault.Value;

@@ -8,7 +8,6 @@ public class Wallet : EntityBase
     public Guid UserId { get; private set; }
     public Guid WalletTypeId { get; private set; }
     public decimal Balance { get; private set; } = 0;
-    public string Currency { get; private set; } = "USD";
     public bool IsLocked { get; private set; } = false;
     public string? LockReason { get; private set; }
     public byte[] RowVersion { get; private set; } = new byte[0];
@@ -20,11 +19,10 @@ public class Wallet : EntityBase
 
     private Wallet() { } // For EF Core
 
-    public Wallet(Guid userId, Guid walletTypeId, string currency = "USD")
+    public Wallet(Guid userId, Guid walletTypeId)
     {
         UserId = userId;
         WalletTypeId = walletTypeId;
-        Currency = currency;
         CreatedOn = DateTime.UtcNow;
         CreatedBy = "System";
         LastModifiedBy = "System";

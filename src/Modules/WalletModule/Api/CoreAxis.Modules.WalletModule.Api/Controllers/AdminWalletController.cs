@@ -91,13 +91,14 @@ public class AdminWalletController : ControllerBase
         // Load transactions in range with required navigation properties
         var txs = await _context.Transactions
             .Include(t => t.Wallet)
+                .ThenInclude(w => w.WalletType)
             .Include(t => t.TransactionType)
             .Where(t => t.CreatedOn >= start && t.CreatedOn <= end)
             .OrderBy(t => t.CreatedOn).ThenBy(t => t.Id)
             .ToListAsync(cancellationToken);
 
         var perAccount = txs
-            .GroupBy(t => new { t.WalletId, t.Wallet.Currency })
+            .GroupBy(t => new { t.WalletId, Currency = t.Wallet.WalletType.Currency })
             .Select(g =>
             {
                 var credits = g.Where(t => creditCodes.Contains(t.TransactionType.Code)).Sum(t => t.Amount);

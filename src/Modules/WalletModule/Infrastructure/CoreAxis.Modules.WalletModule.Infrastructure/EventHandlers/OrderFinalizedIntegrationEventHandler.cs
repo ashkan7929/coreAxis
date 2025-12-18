@@ -79,7 +79,7 @@ public class OrderFinalizedIntegrationEventHandler : IIntegrationEventHandler<Or
                 var wallet = await _walletRepository.GetByUserAndTypeAsync(commission.UserId, commissionWalletType.Id);
                 if (wallet == null)
                 {
-                    wallet = new Wallet(commission.UserId, commissionWalletType.Id, @event.Currency);
+                    wallet = new Wallet(commission.UserId, commissionWalletType.Id);
                     await _walletRepository.AddAsync(wallet);
                     await _walletRepository.SaveChangesAsync();
                     _logger.LogInformation("Created Commission wallet {WalletId} for user {UserId}", wallet.Id, commission.UserId);
