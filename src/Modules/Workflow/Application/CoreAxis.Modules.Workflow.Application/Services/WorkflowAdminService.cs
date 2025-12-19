@@ -1,5 +1,6 @@
 using CoreAxis.Modules.Workflow.Domain.Entities;
 using CoreAxis.Modules.Workflow.Infrastructure.Data;
+using CoreAxis.SharedKernel.Versioning;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
@@ -8,16 +9,18 @@ namespace CoreAxis.Modules.Workflow.Application.Services;
 public class WorkflowAdminService : IWorkflowAdminService
 {
     private readonly WorkflowDbContext _db;
+    private readonly IWorkflowValidator _validator;
 
-    public WorkflowAdminService(WorkflowDbContext db)
+    public WorkflowAdminService(WorkflowDbContext db, IWorkflowValidator validator)
     {
         _db = db;
+        _validator = validator;
     }
 
     public async Task<IReadOnlyList<WorkflowDefinition>> ListDefinitionsAsync(CancellationToken ct = default)
     {
         return await _db.WorkflowDefinitions
-            .OrderByDescending(w => w.CreatedAt)
+            .OrderByDescending(w => w.CreatedOn)
             .ToListAsync(ct);
     }
 
@@ -30,7 +33,7 @@ public class WorkflowAdminService : IWorkflowAdminService
             Name = name,
             Description = description,
             CreatedBy = createdBy,
-            CreatedAt = DateTime.UtcNow
+            CreatedOn = DateTime.UtcNow
         };
         _db.WorkflowDefinitions.Add(def);
         await _db.SaveChangesAsync(ct);
@@ -44,11 +47,10 @@ public class WorkflowAdminService : IWorkflowAdminService
             Id = Guid.NewGuid(),
             WorkflowDefinitionId = workflowId,
             VersionNumber = versionNumber,
-            IsPublished = false,
+            Status = VersionStatus.Draft,
             DslJson = dslJson,
-            SchemaVersion = 1,
             Changelog = changelog,
-            CreatedAt = DateTime.UtcNow,
+            CreatedOn = DateTime.UtcNow,
             CreatedBy = createdBy
         };
         _db.WorkflowDefinitionVersions.Add(ver);
@@ -61,7 +63,18 @@ public class WorkflowAdminService : IWorkflowAdminService
         var ver = await _db.WorkflowDefinitionVersions
             .FirstOrDefaultAsync(v => v.WorkflowDefinitionId == workflowId && v.VersionNumber == versionNumber, ct);
         if (ver == null) return false;
-        ver.IsPublished = true;
+
+        var validationResult = await _validator.ValidateDslAsync(ver.DslJson);
+        if (!validationResult.IsSuccess)
+        {
+            // Ideally we should return the errors, but the interface returns bool.
+            // For now, let's assume if validation fails we don't publish.
+            // In a real scenario, we should probably change the return type to Result<bool>.
+            return false;
+        }
+
+        ver.Status = VersionStatus.Published;
+        ver.PublishedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
         return true;
     }
@@ -71,7 +84,7 @@ public class WorkflowAdminService : IWorkflowAdminService
         var ver = await _db.WorkflowDefinitionVersions
             .FirstOrDefaultAsync(v => v.WorkflowDefinitionId == workflowId && v.VersionNumber == versionNumber, ct);
         if (ver == null) return false;
-        ver.IsPublished = false;
+        ver.Status = VersionStatus.Draft;
         await _db.SaveChangesAsync(ct);
         return true;
     }

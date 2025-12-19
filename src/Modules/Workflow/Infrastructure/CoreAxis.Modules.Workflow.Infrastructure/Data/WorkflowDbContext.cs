@@ -1,47 +1,52 @@
 using CoreAxis.Modules.Workflow.Domain.Entities;
+using CoreAxis.SharedKernel;
+using CoreAxis.SharedKernel.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace CoreAxis.Modules.Workflow.Infrastructure.Data;
 
-public class WorkflowDbContext : DbContext
+public class WorkflowDbContext : DbContext, IUnitOfWork
 {
-    public WorkflowDbContext(DbContextOptions<WorkflowDbContext> options) : base(options)
+    private readonly IDomainEventDispatcher _dispatcher;
+
+    public WorkflowDbContext(DbContextOptions<WorkflowDbContext> options, IDomainEventDispatcher dispatcher) : base(options)
     {
+        _dispatcher = dispatcher;
     }
 
     public DbSet<WorkflowDefinition> WorkflowDefinitions { get; set; } = null!;
     public DbSet<WorkflowDefinitionVersion> WorkflowDefinitionVersions { get; set; } = null!;
     public DbSet<WorkflowRun> WorkflowRuns { get; set; } = null!;
     public DbSet<WorkflowRunStep> WorkflowRunSteps { get; set; } = null!;
+    public DbSet<WorkflowSignal> WorkflowSignals { get; set; } = null!;
+    public DbSet<WorkflowTransition> WorkflowTransitions { get; set; } = null!;
     public DbSet<IdempotencyKey> IdempotencyKeys { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        
+        modelBuilder.Ignore<CoreAxis.SharedKernel.DomainEvents.DomainEvent>();
 
         modelBuilder.Entity<WorkflowDefinition>(entity =>
         {
-            entity.ToTable("WorkflowDefinition", "workflow");
+            entity.ToTable("WorkflowDefinitions", "workflow");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Code).IsRequired().HasMaxLength(128);
             entity.Property(e => e.Name).IsRequired().HasMaxLength(256);
-            entity.Property(e => e.Description).HasMaxLength(int.MaxValue);
-            entity.Property(e => e.CreatedBy).IsRequired().HasMaxLength(128);
-            entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.TenantId).IsRequired().HasMaxLength(64);
             entity.HasIndex(e => e.Code).IsUnique();
         });
 
         modelBuilder.Entity<WorkflowDefinitionVersion>(entity =>
         {
-            entity.ToTable("WorkflowDefinitionVersion", "workflow");
+            entity.ToTable("WorkflowDefinitionVersions", "workflow");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.DslJson).IsRequired();
-            entity.Property(e => e.SchemaVersion).HasDefaultValue(1);
             entity.Property(e => e.VersionNumber).IsRequired();
-            entity.Property(e => e.IsPublished).HasDefaultValue(false);
-            entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
-            entity.Property(e => e.CreatedBy).IsRequired().HasMaxLength(128);
-            entity.HasOne<WorkflowDefinition>()
+            entity.Property(e => e.Status).IsRequired();
+            entity.HasOne(v => v.WorkflowDefinition)
                 .WithMany(d => d.Versions)
                 .HasForeignKey(e => e.WorkflowDefinitionId);
             entity.HasIndex(e => new { e.WorkflowDefinitionId, e.VersionNumber }).IsUnique();
@@ -49,35 +54,51 @@ public class WorkflowDbContext : DbContext
 
         modelBuilder.Entity<WorkflowRun>(entity =>
         {
-            entity.ToTable("WorkflowRun", "workflow");
+            entity.ToTable("WorkflowRuns", "workflow");
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.WorkflowDefinitionCode).IsRequired().HasMaxLength(128);
             entity.Property(e => e.Status).IsRequired().HasMaxLength(32);
-            entity.Property(e => e.InputContextJson).IsRequired();
-            entity.Property(e => e.OutputContextJson);
+            entity.Property(e => e.ContextJson).IsRequired();
             entity.Property(e => e.CorrelationId).IsRequired().HasMaxLength(64);
-            entity.Property(e => e.InitiatedBy).HasMaxLength(128);
-            entity.Property(e => e.StartedAt).HasColumnType("datetime2");
-            entity.Property(e => e.EndedAt).HasColumnType("datetime2");
-            entity.Property(e => e.LastError);
-            entity.HasIndex(e => e.DefinitionId);
             entity.HasIndex(e => e.CorrelationId);
         });
 
         modelBuilder.Entity<WorkflowRunStep>(entity =>
         {
-            entity.ToTable("WorkflowRunStep", "workflow");
+            entity.ToTable("WorkflowRunSteps", "workflow");
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.StepKey).IsRequired().HasMaxLength(128);
-            entity.Property(e => e.Type).IsRequired().HasMaxLength(64);
+            entity.Property(e => e.StepId).IsRequired().HasMaxLength(128);
+            entity.Property(e => e.StepType).IsRequired().HasMaxLength(64);
             entity.Property(e => e.Status).IsRequired().HasMaxLength(32);
-            entity.Property(e => e.Attempt).HasDefaultValue(0);
-            entity.Property(e => e.RequestJson);
-            entity.Property(e => e.ResponseJson);
-            entity.Property(e => e.Error);
-            entity.Property(e => e.IdempotencyKey).HasMaxLength(128);
-            entity.Property(e => e.StartedAt).HasColumnType("datetime2");
-            entity.Property(e => e.EndedAt).HasColumnType("datetime2");
-            entity.HasIndex(e => e.RunId);
+            entity.Property(e => e.Attempts).HasDefaultValue(0);
+            entity.Property(e => e.LogJson);
+            entity.HasOne(s => s.WorkflowRun)
+                .WithMany(r => r.Steps)
+                .HasForeignKey(s => s.WorkflowRunId);
+        });
+
+        modelBuilder.Entity<WorkflowSignal>(entity =>
+        {
+            entity.ToTable("WorkflowSignals", "workflow");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(128);
+            entity.Property(e => e.PayloadJson);
+            entity.HasOne(s => s.WorkflowRun)
+                .WithMany()
+                .HasForeignKey(s => s.WorkflowRunId);
+        });
+
+        modelBuilder.Entity<WorkflowTransition>(entity =>
+        {
+            entity.ToTable("WorkflowTransitions", "workflow");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.FromStepId).IsRequired().HasMaxLength(128);
+            entity.Property(e => e.ToStepId).IsRequired().HasMaxLength(128);
+            entity.Property(e => e.Condition);
+            entity.Property(e => e.TraceJson);
+            entity.HasOne(t => t.WorkflowRun)
+                .WithMany()
+                .HasForeignKey(t => t.WorkflowRunId);
         });
 
         modelBuilder.Entity<IdempotencyKey>(entity =>
@@ -92,5 +113,69 @@ public class WorkflowDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
             entity.HasIndex(e => new { e.Route, e.Key, e.BodyHash }).IsUnique();
         });
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        await DispatchDomainEventsAsync();
+        return await base.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task DispatchDomainEventsAsync()
+    {
+        var entities = ChangeTracker.Entries<EntityBase>()
+            .Where(e => e.Entity.DomainEvents.Any())
+            .Select(e => e.Entity);
+
+        var domainEvents = entities
+            .SelectMany(e => e.DomainEvents)
+            .ToList();
+
+        entities.ToList().ForEach(e => e.ClearDomainEvents());
+
+        if (domainEvents.Any())
+            await _dispatcher.DispatchAsync(domainEvents);
+    }
+
+    public async Task<int> SaveChangesAsync()
+    {
+        return await SaveChangesAsync(CancellationToken.None);
+    }
+
+    public async Task BeginTransactionAsync()
+    {
+        if (Database.CurrentTransaction != null) return;
+        await Database.BeginTransactionAsync();
+    }
+
+    public async Task CommitTransactionAsync()
+    {
+        if (Database.CurrentTransaction == null) return;
+        try
+        {
+            await SaveChangesAsync();
+            await Database.CurrentTransaction.CommitAsync();
+        }
+        catch
+        {
+            await RollbackTransactionAsync();
+            throw;
+        }
+    }
+
+    public async Task RollbackTransactionAsync()
+    {
+        if (Database.CurrentTransaction == null) return;
+        try
+        {
+            await Database.CurrentTransaction.RollbackAsync();
+        }
+        finally
+        {
+            if (Database.CurrentTransaction != null)
+            {
+                await Database.CurrentTransaction.DisposeAsync();
+            }
+        }
     }
 }

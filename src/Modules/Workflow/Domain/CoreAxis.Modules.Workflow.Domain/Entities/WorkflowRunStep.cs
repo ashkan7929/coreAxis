@@ -1,19 +1,18 @@
-using System;
+using CoreAxis.SharedKernel;
 
 namespace CoreAxis.Modules.Workflow.Domain.Entities;
 
-public class WorkflowRunStep
+public class WorkflowRunStep : EntityBase
 {
-    public Guid Id { get; set; }
-    public Guid RunId { get; set; }
-    public string StepKey { get; set; } = null!;
-    public string Type { get; set; } = null!;
+    public Guid WorkflowRunId { get; set; }
+    public string StepId { get; set; } = null!;
+    public string StepType { get; set; } = null!;
     public string Status { get; set; } = null!;
-    public int Attempt { get; set; }
-    public string? RequestJson { get; set; }
-    public string? ResponseJson { get; set; }
-    public string? Error { get; set; }
-    public string? IdempotencyKey { get; set; }
+    public int Attempts { get; set; }
     public DateTime StartedAt { get; set; }
     public DateTime? EndedAt { get; set; }
+    public string? Error { get; set; }
+    public string? LogJson { get; set; }
+    
+    public WorkflowRun WorkflowRun { get; set; } = null!;
 }

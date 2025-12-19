@@ -17,10 +17,27 @@ namespace CoreAxis.Modules.Workflow.Api.Controllers;
 public class WorkflowAdminController : ControllerBase
 {
     private readonly IWorkflowAdminService _service;
+    private readonly IWorkflowStepRegistry _stepRegistry;
 
-    public WorkflowAdminController(IWorkflowAdminService service)
+    public WorkflowAdminController(IWorkflowAdminService service, IWorkflowStepRegistry stepRegistry)
     {
         _service = service;
+        _stepRegistry = stepRegistry;
+    }
+
+    /// <summary>
+    /// List available workflow step types.
+    /// </summary>
+    /// <remarks>
+    /// Returns a registry of all supported step types with their configuration schemas.
+    /// This is used by the frontend designer to render configuration forms.
+    /// </remarks>
+    [HttpGet("step-types")]
+    [Produces(MediaTypeNames.Application.Json)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public IActionResult ListStepTypes()
+    {
+        return Ok(_stepRegistry.GetAllStepTypes());
     }
 
     /// <summary>
@@ -47,7 +64,7 @@ public class WorkflowAdminController : ControllerBase
     public async Task<IActionResult> List(CancellationToken ct)
     {
         var defs = await _service.ListDefinitionsAsync(ct);
-        var result = defs.Select(d => new { id = d.Id, code = d.Code, name = d.Name, createdAt = d.CreatedAt });
+        var result = defs.Select(d => new { id = d.Id, code = d.Code, name = d.Name, createdAt = d.CreatedOn });
         return Ok(result);
     }
 

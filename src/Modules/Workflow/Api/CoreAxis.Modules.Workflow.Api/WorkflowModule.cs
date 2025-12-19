@@ -7,7 +7,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using CoreAxis.Modules.Workflow.Infrastructure.Data;
 using CoreAxis.Modules.Workflow.Application.Services;
+using CoreAxis.Modules.Workflow.Application.Services.StepHandlers;
 using CoreAxis.Modules.Workflow.Application.Idempotency;
+using CoreAxis.Modules.Workflow.Application.EventHandlers;
+using CoreAxis.Modules.Workflow.Domain.Events;
+using CoreAxis.SharedKernel.Domain;
 using CoreAxis.Modules.Workflow.Api.Filters;
 using System.Linq;
 
@@ -25,6 +29,7 @@ public class WorkflowModule : IModule
     {
         // Register handler for DI
         services.AddTransient<OrderFinalizedStartPostFinalizeHandler>();
+        services.AddTransient<TaskCompletedIntegrationEventHandler>();
 
         // Register Workflow DbContext (SQL Server via env var or fallback localdb)
         var connectionString = Environment.GetEnvironmentVariable("COREAXIS_CONNECTION_STRING")
@@ -42,6 +47,26 @@ public class WorkflowModule : IModule
         // Register admin service
         services.AddScoped<IWorkflowAdminService, WorkflowAdminService>();
 
+        // Register workflow executor
+        services.AddScoped<IWorkflowExecutor, WorkflowExecutor>();
+
+        // Register domain event handlers
+        services.AddScoped<IDomainEventHandler<WorkflowRunStartedDomainEvent>, WorkflowRunStartedDomainEventHandler>();
+
+        // Register step registry
+        services.AddSingleton<IWorkflowStepRegistry, WorkflowStepRegistry>();
+
+        // Register step handlers
+        services.AddScoped<IWorkflowStepHandler, DecisionStepHandler>();
+        services.AddScoped<IWorkflowStepHandler, FormStepHandler>();
+        services.AddScoped<IWorkflowStepHandler, ServiceTaskStepHandler>();
+        services.AddScoped<IWorkflowStepHandler, HumanTaskStepHandler>();
+        services.AddScoped<IWorkflowStepHandler, CalculationStepHandler>();
+        services.AddScoped<IWorkflowStepHandler, WaitForEventStepHandler>();
+
+        // Register validator
+        services.AddScoped<IWorkflowValidator, WorkflowValidator>();
+
         // Register idempotency service
         services.AddScoped<IIdempotencyService, IdempotencyService>();
         services.AddScoped<IdempotencyFilter>();
@@ -58,6 +83,7 @@ public class WorkflowModule : IModule
 
         // Subscribe to OrderFinalized to start post-finalize workflow
         eventBus.Subscribe<OrderFinalized, OrderFinalizedStartPostFinalizeHandler>();
+        eventBus.Subscribe<HumanTaskCompleted, TaskCompletedIntegrationEventHandler>();
 
         // Ensure DB is migrated and seed a sample DSL (Alborz) published
         using var scope = serviceProvider.CreateScope();

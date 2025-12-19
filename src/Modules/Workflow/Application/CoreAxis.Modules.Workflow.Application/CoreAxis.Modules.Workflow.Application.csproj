@@ -14,5 +14,7 @@
     <ProjectReference Include="..\..\..\..\BuildingBlocks\SharedKernel\CoreAxis.SharedKernel\CoreAxis.SharedKernel.csproj" />
     <ProjectReference Include="..\..\Infrastructure\CoreAxis.Modules.Workflow.Infrastructure\CoreAxis.Modules.Workflow.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Domain\CoreAxis.Modules.Workflow.Domain\CoreAxis.Modules.Workflow.Domain.csproj" />
+    <ProjectReference Include="..\..\..\ApiManager\Application\CoreAxis.Modules.ApiManager.Application\CoreAxis.Modules.ApiManager.Application.csproj" />
+    <ProjectReference Include="..\..\..\MappingModule\Application\CoreAxis.Modules.MappingModule.Application.csproj" />
   </ItemGroup>
 </Project>

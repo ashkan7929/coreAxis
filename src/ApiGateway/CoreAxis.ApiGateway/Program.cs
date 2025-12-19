@@ -3,10 +3,12 @@ using CoreAxis.ApiGateway.Logging;
 using CoreAxis.BuildingBlocks;
 using CoreAxis.EventBus;
 using CoreAxis.SharedKernel.Eventing;
+using CoreAxis.SharedKernel.Domain;
 using CoreAxis.Modules.AuthModule.API;
 using CoreAxis.Modules.WalletModule.Api;
 using CoreAxis.Modules.ProductOrderModule.Api;
 using CoreAxis.Modules.ApiManager.API;
+using CoreAxis.Modules.MappingModule.Api;
 using static CoreAxis.Modules.ApiManager.API.DependencyInjection;
 using CoreAxis.Modules.AuthModule.Infrastructure.Data;
  
@@ -16,10 +18,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
-using System;
 using DotNetEnv;
 using AspNetCoreRateLimit;
-using System.Linq;
 using System.Text.Json.Serialization;
 
 try
@@ -164,6 +164,9 @@ try
 
     // Register event bus
     builder.Services.AddSingleton<IEventBus, InMemoryEventBus>();
+    
+    // Register DomainEventDispatcher
+    builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 
     // Add JWT Authentication (centralized configuration)
     builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
@@ -198,6 +201,7 @@ try
 
     // Force load AuthModule assembly
     var authModuleAssembly = typeof(CoreAxis.Modules.AuthModule.API.AuthModule).Assembly;
+    var productBuilderModuleAssembly = typeof(CoreAxis.Modules.ProductBuilderModule.Api.ProductBuilderModule).Assembly;
     Console.WriteLine($"AuthModule assembly loaded: {authModuleAssembly.FullName}");
 
     // Force load WalletModule assembly
@@ -215,6 +219,14 @@ try
     // Force load Workflow module assembly
     var workflowModuleAssembly = typeof(CoreAxis.Modules.Workflow.Api.WorkflowModule).Assembly;
     Console.WriteLine($"Workflow assembly loaded: {workflowModuleAssembly.FullName}");
+
+    // Force load TaskModule assembly
+    var taskModuleAssembly = typeof(CoreAxis.Modules.TaskModule.Api.TaskModule).Assembly;
+    Console.WriteLine($"TaskModule assembly loaded: {taskModuleAssembly.FullName}");
+
+    // Force load MappingModule assembly
+    var mappingModuleAssembly = typeof(CoreAxis.Modules.MappingModule.Api.MappingModule).Assembly;
+    Console.WriteLine($"MappingModule assembly loaded: {mappingModuleAssembly.FullName}");
 
     // Debug: List all loaded assemblies
     var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
@@ -249,6 +261,11 @@ try
     builder.Host.UseSerilog();
 
     var app = builder.Build();
+
+    // Add Correlation and ProblemDetails middleware early in the pipeline
+    app.UseMiddleware<CoreAxis.SharedKernel.Observability.CorrelationMiddleware>();
+    app.UseMiddleware<CoreAxis.SharedKernel.Observability.ProblemDetailsMiddleware>();
+
     app.UseCors("DefaultCorsPolicy");
 
     // Honor PathBase when hosted behind IIS virtual directories or reverse proxies

@@ -1,18 +1,16 @@
-using System;
+using CoreAxis.SharedKernel;
+using CoreAxis.SharedKernel.Versioning;
 
 namespace CoreAxis.Modules.Workflow.Domain.Entities;
 
-public class WorkflowDefinitionVersion
+public class WorkflowDefinitionVersion : EntityBase
 {
-    public Guid Id { get; set; }
     public Guid WorkflowDefinitionId { get; set; }
     public int VersionNumber { get; set; }
-    public bool IsPublished { get; set; }
+    public VersionStatus Status { get; set; }
     public string DslJson { get; set; } = null!;
-    public int SchemaVersion { get; set; }
     public string? Changelog { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public string CreatedBy { get; set; } = null!;
+    public DateTime? PublishedAt { get; set; }
 
     public WorkflowDefinition? WorkflowDefinition { get; set; }
 }

@@ -1,3 +1,5 @@
+using CoreAxis.SharedKernel.Domain;
+using CoreAxis.SharedKernel.DomainEvents;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
@@ -18,6 +20,15 @@ public class WorkflowDbContextFactory : IDesignTimeDbContextFactory<WorkflowDbCo
             sql.EnableRetryOnFailure(3, TimeSpan.FromSeconds(30), null);
         });
 
-        return new WorkflowDbContext(optionsBuilder.Options);
+        return new WorkflowDbContext(optionsBuilder.Options, new NoOpDomainEventDispatcher());
+    }
+
+    private sealed class NoOpDomainEventDispatcher : IDomainEventDispatcher
+    {
+        public Task DispatchAsync<TDomainEvent>(TDomainEvent domainEvent) where TDomainEvent : DomainEvent
+            => Task.CompletedTask;
+
+        public Task DispatchAsync(IEnumerable<DomainEvent> domainEvents)
+            => Task.CompletedTask;
     }
 }
