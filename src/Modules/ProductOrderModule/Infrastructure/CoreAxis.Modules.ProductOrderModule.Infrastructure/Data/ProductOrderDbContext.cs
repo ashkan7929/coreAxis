@@ -7,6 +7,7 @@ using CoreAxis.SharedKernel.Outbox;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using CoreAxis.Modules.ProductOrderModule.Infrastructure.Entities;
+using CoreAxis.Modules.ProductOrderModule.Domain.Quotes;
 
 namespace CoreAxis.Modules.ProductOrderModule.Infrastructure.Data;
 
@@ -25,6 +26,7 @@ public class ProductOrderDbContext : DbContext
     public DbSet<OutboxMessage> OutboxMessages { get; set; }
     public DbSet<IdempotencyEntry> IdempotencyEntries { get; set; }
     public DbSet<Supplier> Suppliers { get; set; }
+    public DbSet<Quote> Quotes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -19,6 +19,11 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using CoreAxis.Modules.ProductOrderModule.Application.Services;
 using CoreAxis.Modules.ProductOrderModule.Domain.Suppliers;
+using CoreAxis.Modules.ProductOrderModule.Domain.Quotes;
+using CoreAxis.Modules.ProductOrderModule.Infrastructure.Connectors;
+using CoreAxis.Modules.ProductOrderModule.Application.Interfaces.Connectors;
+using CoreAxis.Modules.ProductOrderModule.Infrastructure.Options;
+using Microsoft.Extensions.Configuration;
 
 namespace CoreAxis.Modules.ProductOrderModule.Infrastructure;
 
@@ -28,6 +33,9 @@ public static class DependencyInjection
     {
         // Add SharedKernel services
         services.AddSharedKernel();
+
+        // Configure Options
+        services.Configure<FanavaranOptions>(configuration.GetSection("Fanavaran"));
         
         // Add DbContext
         services.AddDbContext<ProductOrderDbContext>(options =>
@@ -41,6 +49,11 @@ public static class DependencyInjection
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<ISupplierRepository, SupplierRepository>();
+        services.AddScoped<IQuoteRepository, QuoteRepository>();
+        
+        // Register connectors
+        services.AddHttpClient<IFanavaranConnector, FanavaranConnector>();
+        services.AddHttpClient<IRiskConnector, RiskConnector>();
         services.AddScoped<IOutboxRepository, OutboxRepository>();
         
         // Register domain event handlers
