@@ -1,20 +1,31 @@
+using CoreAxis.BuildingBlocks;
 using CoreAxis.Modules.MappingModule.Infrastructure.Data;
 using CoreAxis.Modules.MappingModule.Application;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 
 namespace CoreAxis.Modules.MappingModule.Api;
 
+/// <summary>
+/// Module definition for the Mapping Module.
+/// Registers services and middleware for mapping functionality.
+/// </summary>
 public class MappingModule : IModule
 {
+    /// <inheritdoc/>
     public string Name => "Mapping Module";
+
+    /// <inheritdoc/>
     public string Version => "1.0.0";
 
+    /// <inheritdoc/>
     public void RegisterServices(IServiceCollection services)
     {
         // Add Application services
         services.AddMappingModuleApplication();
-
+        
         // DbContext
         var connectionString = Environment.GetEnvironmentVariable("COREAXIS_CONNECTION_STRING")
             ?? "Server=(localdb)\\mssqllocaldb;Database=CoreAxis_Mapping;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
@@ -36,6 +47,7 @@ public class MappingModule : IModule
             .AddApplicationPart(typeof(MappingModule).Assembly);
     }
 
+    /// <inheritdoc/>
     public void ConfigureApplication(IApplicationBuilder app)
     {
         // Migrate DB

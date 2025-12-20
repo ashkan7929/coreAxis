@@ -13,6 +13,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Application\CoreAxis.Modules.MappingModule.Application.csproj" />
     <ProjectReference Include="..\Infrastructure\CoreAxis.Modules.MappingModule.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks\CoreAxis.BuildingBlocks\CoreAxis.BuildingBlocks.csproj" />
   </ItemGroup>
 
 </Project>

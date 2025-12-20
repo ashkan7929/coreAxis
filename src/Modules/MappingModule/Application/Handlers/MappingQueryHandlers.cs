@@ -3,9 +3,16 @@ using CoreAxis.Modules.MappingModule.Application.Queries;
 using CoreAxis.Modules.MappingModule.Infrastructure.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CoreAxis.Modules.MappingModule.Application.Handlers;
 
+/// <summary>
+/// Handlers for mapping-related queries.
+/// </summary>
 public class MappingQueryHandlers :
     IRequestHandler<GetMappingDefinitionByIdQuery, MappingDefinitionDto?>,
     IRequestHandler<GetMappingDefinitionsQuery, List<MappingDefinitionDto>>,
@@ -18,12 +25,15 @@ public class MappingQueryHandlers :
         _context = context;
     }
 
+    /// <summary>
+    /// Handles retrieving a mapping definition by ID.
+    /// </summary>
     public async Task<MappingDefinitionDto?> Handle(GetMappingDefinitionByIdQuery request, CancellationToken cancellationToken)
     {
         var mapping = await _context.MappingDefinitions.AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken);
 
-        if (mapping == null) return null;
+        if (mapping is null) return null;
 
         return new MappingDefinitionDto
         {
@@ -38,6 +48,9 @@ public class MappingQueryHandlers :
         };
     }
 
+    /// <summary>
+    /// Handles retrieving a list of mapping definitions.
+    /// </summary>
     public async Task<List<MappingDefinitionDto>> Handle(GetMappingDefinitionsQuery request, CancellationToken cancellationToken)
     {
         var query = _context.MappingDefinitions.AsNoTracking();
@@ -62,12 +75,15 @@ public class MappingQueryHandlers :
         }).ToList();
     }
 
+    /// <summary>
+    /// Handles retrieving a mapping set by ID.
+    /// </summary>
     public async Task<MappingSetDto?> Handle(GetMappingSetByIdQuery request, CancellationToken cancellationToken)
     {
         var mappingSet = await _context.MappingSets.AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == request.Id, cancellationToken);
 
-        if (mappingSet == null) return null;
+        if (mappingSet is null) return null;
 
         return new MappingSetDto
         {

@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 
 namespace CoreAxis.SharedKernel
 {
@@ -77,6 +80,26 @@ namespace CoreAxis.SharedKernel
 
             var totalCount = source.Count();
             var items = source.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+            return new PaginatedList<T>(items, totalCount, pageNumber, pageSize);
+        }
+
+        /// <summary>
+        /// Creates a paginated list from a queryable source asynchronously.
+        /// </summary>
+        /// <param name="source">The queryable source.</param>
+        /// <param name="pageNumber">The page number (1-based).</param>
+        /// <param name="pageSize">The page size.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A paginated list.</returns>
+        public static async Task<PaginatedList<T>> CreateAsync(IQueryable<T> source, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+        {
+            if (pageNumber < 1)
+                throw new ArgumentException("Page number must be greater than 0.", nameof(pageNumber));
+            if (pageSize < 1)
+                throw new ArgumentException("Page size must be greater than 0.", nameof(pageSize));
+
+            var totalCount = await source.CountAsync(cancellationToken);
+            var items = await source.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
             return new PaginatedList<T>(items, totalCount, pageNumber, pageSize);
         }
 

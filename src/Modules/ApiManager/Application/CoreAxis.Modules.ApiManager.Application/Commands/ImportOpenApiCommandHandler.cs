@@ -1,5 +1,13 @@
 using CoreAxis.Modules.ApiManager.Domain;
+using CoreAxis.Modules.ApiManager.Domain.Repositories;
+using CoreAxis.SharedKernel;
 using MediatR;
+using Microsoft.OpenApi.Readers;
+using Microsoft.OpenApi.Models;
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CoreAxis.Modules.ApiManager.Application.Commands;
 
@@ -7,13 +15,16 @@ public class ImportOpenApiCommandHandler : IRequestHandler<ImportOpenApiCommand,
 {
     private readonly IWebServiceRepository _serviceRepository;
     private readonly IWebServiceMethodRepository _methodRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
     public ImportOpenApiCommandHandler(
         IWebServiceRepository serviceRepository,
-        IWebServiceMethodRepository methodRepository)
+        IWebServiceMethodRepository methodRepository,
+        IUnitOfWork unitOfWork)
     {
         _serviceRepository = serviceRepository;
         _methodRepository = methodRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<ImportOpenApiResult> Handle(ImportOpenApiCommand request, CancellationToken cancellationToken)
@@ -35,7 +46,7 @@ public class ImportOpenApiCommandHandler : IRequestHandler<ImportOpenApiCommand,
                 request.BaseUrl,
                 document.Info?.Description ?? "Imported from OpenAPI"
             );
-            await _serviceRepository.AddAsync(service, cancellationToken);
+            await _serviceRepository.AddAsync(service);
         }
         else
         {
@@ -44,9 +55,10 @@ public class ImportOpenApiCommandHandler : IRequestHandler<ImportOpenApiCommand,
                 request.BaseUrl,
                 !string.IsNullOrEmpty(document.Info?.Description) ? document.Info.Description : service.Description
             );
-            await _serviceRepository.UpdateAsync(service, cancellationToken);
+            _serviceRepository.Update(service);
         }
 
+        
         int imported = 0;
         int updated = 0;
 
@@ -64,9 +76,9 @@ public class ImportOpenApiCommandHandler : IRequestHandler<ImportOpenApiCommand,
                 if (isNew)
                 {
                     method = new WebServiceMethod(
-                        service.Id,
-                        path,
-                        methodType,
+                        webServiceId: service.Id,
+                        path: path,
+                        httpMethod: methodType,
                         timeoutMs: 30000
                     );
                 }
@@ -77,16 +89,18 @@ public class ImportOpenApiCommandHandler : IRequestHandler<ImportOpenApiCommand,
                 
                 if (isNew)
                 {
-                    await _methodRepository.AddAsync(method, cancellationToken);
+                    await _methodRepository.AddAsync(method);
                     imported++;
                 }
                 else
                 {
-                    await _methodRepository.UpdateAsync(method, cancellationToken);
+                    _methodRepository.Update(method);
                     updated++;
                 }
             }
         }
+
+        await _unitOfWork.SaveChangesAsync();
 
         return new ImportOpenApiResult(imported, updated);
     }

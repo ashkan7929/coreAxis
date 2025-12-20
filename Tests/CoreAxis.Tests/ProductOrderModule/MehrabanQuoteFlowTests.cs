@@ -1,6 +1,7 @@
 using CoreAxis.Modules.ProductOrderModule.Application.Flows.Mehraban;
 using CoreAxis.Modules.ProductOrderModule.Application.Interfaces.Connectors;
 using CoreAxis.Modules.ProductOrderModule.Application.DTOs.Quotes;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
 
@@ -10,13 +11,15 @@ public class MehrabanQuoteFlowTests
 {
     private readonly Mock<IRiskConnector> _riskConnectorMock;
     private readonly Mock<IFanavaranConnector> _fanavaranConnectorMock;
+    private readonly Mock<ILogger<MehrabanQuoteFlow>> _loggerMock;
     private readonly MehrabanQuoteFlow _flow;
 
     public MehrabanQuoteFlowTests()
     {
         _riskConnectorMock = new Mock<IRiskConnector>();
         _fanavaranConnectorMock = new Mock<IFanavaranConnector>();
-        _flow = new MehrabanQuoteFlow(_riskConnectorMock.Object, _fanavaranConnectorMock.Object);
+        _loggerMock = new Mock<ILogger<MehrabanQuoteFlow>>();
+        _flow = new MehrabanQuoteFlow(_riskConnectorMock.Object, _fanavaranConnectorMock.Object, _loggerMock.Object);
     }
 
     [Fact]

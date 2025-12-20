@@ -1,12 +1,11 @@
-using CoreAxis.Modules.ApiManager.Domain.Entities;
-using CoreAxis.Shared.Abstractions.Repositories;
-using CoreAxis.Shared.Abstractions.Pagination;
+using CoreAxis.Modules.ApiManager.Domain;
+using CoreAxis.SharedKernel;
 
-namespace CoreAxis.Modules.ApiManager.Infrastructure.Repositories;
+namespace CoreAxis.Modules.ApiManager.Domain.Repositories;
 
 public interface IWebServiceCallLogRepository : IRepository<WebServiceCallLog>
 {
-    Task<PagedResult<WebServiceCallLog>> GetPagedAsync(
+    Task<PaginatedList<WebServiceCallLog>> GetPagedAsync(
         Guid? webServiceId = null,
         Guid? methodId = null,
         bool? isSuccess = null,

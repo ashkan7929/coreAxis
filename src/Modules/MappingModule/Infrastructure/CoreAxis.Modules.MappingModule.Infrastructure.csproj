@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Domain\CoreAxis.Modules.MappingModule.Domain.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\SharedKernel\CoreAxis.SharedKernel\CoreAxis.SharedKernel.csproj" />
   </ItemGroup>
 
   <ItemGroup>

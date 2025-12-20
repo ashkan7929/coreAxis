@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using CoreAxis.Modules.ApiManager.Domain.Entities;
-using CoreAxis.Modules.ApiManager.Infrastructure.Repositories;
+using CoreAxis.Modules.ApiManager.Domain;
+using CoreAxis.Modules.ApiManager.Domain.Repositories;
+using CoreAxis.SharedKernel;
 using CoreAxis.Shared.Infrastructure.Repositories;
 
 namespace CoreAxis.Modules.ApiManager.Infrastructure.Repositories;

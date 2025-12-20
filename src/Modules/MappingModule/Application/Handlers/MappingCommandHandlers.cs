@@ -6,9 +6,16 @@ using CoreAxis.Modules.MappingModule.Infrastructure.Data;
 using CoreAxis.SharedKernel.Versioning;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CoreAxis.Modules.MappingModule.Application.Handlers;
 
+/// <summary>
+/// Handlers for mapping-related commands.
+/// </summary>
 public class MappingCommandHandlers : 
     IRequestHandler<CreateMappingDefinitionCommand, Guid>,
     IRequestHandler<UpdateMappingDefinitionCommand, bool>,
@@ -32,6 +39,9 @@ public class MappingCommandHandlers :
         _logger = logger;
     }
 
+    /// <summary>
+    /// Handles the creation of a new mapping definition.
+    /// </summary>
     public async Task<Guid> Handle(CreateMappingDefinitionCommand request, CancellationToken cancellationToken)
     {
         var mapping = new MappingDefinition
@@ -50,10 +60,13 @@ public class MappingCommandHandlers :
         return mapping.Id;
     }
 
+    /// <summary>
+    /// Handles the update of an existing mapping definition.
+    /// </summary>
     public async Task<bool> Handle(UpdateMappingDefinitionCommand request, CancellationToken cancellationToken)
     {
         var mapping = await _context.MappingDefinitions.FindAsync(new object[] { request.Id }, cancellationToken);
-        if (mapping == null) return false;
+        if (mapping is null) return false;
 
         if (mapping.Status != VersionStatus.Draft)
         {
@@ -69,10 +82,13 @@ public class MappingCommandHandlers :
         return true;
     }
 
+    /// <summary>
+    /// Handles publishing a mapping definition.
+    /// </summary>
     public async Task<bool> Handle(PublishMappingDefinitionCommand request, CancellationToken cancellationToken)
     {
         var mapping = await _context.MappingDefinitions.FindAsync(new object[] { request.Id }, cancellationToken);
-        if (mapping == null) return false;
+        if (mapping is null) return false;
 
         if (mapping.Status == VersionStatus.Published) return true;
 
@@ -85,10 +101,13 @@ public class MappingCommandHandlers :
         return true;
     }
 
+    /// <summary>
+    /// Handles testing a mapping definition.
+    /// </summary>
     public async Task<TestMappingResponseDto> Handle(TestMappingDefinitionCommand request, CancellationToken cancellationToken)
     {
         var mapping = await _context.MappingDefinitions.FindAsync(new object[] { request.Id }, cancellationToken);
-        if (mapping == null) 
+        if (mapping is null) 
             return new TestMappingResponseDto { Success = false, Error = "Mapping not found" };
 
         try
@@ -102,6 +121,9 @@ public class MappingCommandHandlers :
         }
     }
 
+    /// <summary>
+    /// Handles creation of a mapping set.
+    /// </summary>
     public async Task<Guid> Handle(CreateMappingSetCommand request, CancellationToken cancellationToken)
     {
         var mappingSet = new MappingSet
@@ -117,10 +139,13 @@ public class MappingCommandHandlers :
         return mappingSet.Id;
     }
 
+    /// <summary>
+    /// Handles update of a mapping set.
+    /// </summary>
     public async Task<bool> Handle(UpdateMappingSetCommand request, CancellationToken cancellationToken)
     {
         var mappingSet = await _context.MappingSets.FindAsync(new object[] { request.Id }, cancellationToken);
-        if (mappingSet == null) return false;
+        if (mappingSet is null) return false;
 
         if (request.Name != null) mappingSet.Name = request.Name;
         if (request.ItemsJson != null) mappingSet.ItemsJson = request.ItemsJson;
@@ -129,12 +154,15 @@ public class MappingCommandHandlers :
         return true;
     }
 
+    /// <summary>
+    /// Handles execution of a mapping at runtime.
+    /// </summary>
     public async Task<TestMappingResponseDto> Handle(ExecuteMappingCommand request, CancellationToken cancellationToken)
     {
         var mapping = await _context.MappingDefinitions.AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == request.MappingId, cancellationToken);
             
-        if (mapping == null) 
+        if (mapping is null) 
             return new TestMappingResponseDto { Success = false, Error = "Mapping not found" };
 
         if (mapping.Status != VersionStatus.Published)

@@ -71,15 +71,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Domain", "Domain", "{C9D5E8
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreAxis.Modules.CommerceModule.Domain", "src\Modules\CommerceModule\Domain\CoreAxis.Modules.CommerceModule.Domain\CoreAxis.Modules.CommerceModule.Domain.csproj", "{DAE6F9FB-A4C7-4D8E-BF2A-3B5C6D7E8F9A}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Infrastructure", "Infrastructure", "{EBF7AAFC-B5D8-4E9F-CA3B-4C6D7E8F9AAB}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreAxis.Modules.CommerceModule.Infrastructure", "src\Modules\CommerceModule\Infrastructure\CoreAxis.Modules.CommerceModule.Infrastructure\CoreAxis.Modules.CommerceModule.Infrastructure.csproj", "{7F479F57-404F-0688-19EE-B47DD21AA638}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreAxis.Modules.AuthModule.SwaggerTests", "tests\CoreAxis.Modules.AuthModule.SwaggerTests\CoreAxis.Modules.AuthModule.SwaggerTests.csproj", "{6871451A-0835-4B42-9B49-1F31B282601B}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ApiGateway", "ApiGateway", "{FCA01246-F2C6-0AA7-D43F-FD13BE0B9D88}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -319,18 +311,6 @@ Global
 		{DAE6F9FB-A4C7-4D8E-BF2A-3B5C6D7E8F9A}.Release|x64.Build.0 = Release|Any CPU
 		{DAE6F9FB-A4C7-4D8E-BF2A-3B5C6D7E8F9A}.Release|x86.ActiveCfg = Release|Any CPU
 		{DAE6F9FB-A4C7-4D8E-BF2A-3B5C6D7E8F9A}.Release|x86.Build.0 = Release|Any CPU
-		{6871451A-0835-4B42-9B49-1F31B282601B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6871451A-0835-4B42-9B49-1F31B282601B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6871451A-0835-4B42-9B49-1F31B282601B}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{6871451A-0835-4B42-9B49-1F31B282601B}.Debug|x64.Build.0 = Debug|Any CPU
-		{6871451A-0835-4B42-9B49-1F31B282601B}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{6871451A-0835-4B42-9B49-1F31B282601B}.Debug|x86.Build.0 = Debug|Any CPU
-		{6871451A-0835-4B42-9B49-1F31B282601B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6871451A-0835-4B42-9B49-1F31B282601B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6871451A-0835-4B42-9B49-1F31B282601B}.Release|x64.ActiveCfg = Release|Any CPU
-		{6871451A-0835-4B42-9B49-1F31B282601B}.Release|x64.Build.0 = Release|Any CPU
-		{6871451A-0835-4B42-9B49-1F31B282601B}.Release|x86.ActiveCfg = Release|Any CPU
-		{6871451A-0835-4B42-9B49-1F31B282601B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -369,8 +349,5 @@ Global
 		{B8C4D7F9-E2A5-4B6C-9D0E-1F3A4B5C6D7E} = {EC447DCF-ABFA-6E24-52A5-D7FD48A5C558}
 		{C9D5E8FA-F3B6-4C7D-AE1F-2A4B5C6D7E8F} = {B8C4D7F9-E2A5-4B6C-9D0E-1F3A4B5C6D7E}
 		{DAE6F9FB-A4C7-4D8E-BF2A-3B5C6D7E8F9A} = {C9D5E8FA-F3B6-4C7D-AE1F-2A4B5C6D7E8F}
-		{EBF7AAFC-B5D8-4E9F-CA3B-4C6D7E8F9AAB} = {B8C4D7F9-E2A5-4B6C-9D0E-1F3A4B5C6D7E}
-		{6871451A-0835-4B42-9B49-1F31B282601B} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
-		{FCA01246-F2C6-0AA7-D43F-FD13BE0B9D88} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

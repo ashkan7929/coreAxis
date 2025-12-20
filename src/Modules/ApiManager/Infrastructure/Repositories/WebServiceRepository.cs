@@ -20,6 +20,11 @@ public class WebServiceRepository : Repository<WebService>, IWebServiceRepositor
             .FirstOrDefaultAsync(ws => ws.Id == id, cancellationToken);
     }
 
+    public async Task<WebService?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
+    {
+        return await DbSet.FirstOrDefaultAsync(ws => ws.Name == name, cancellationToken);
+    }
+
     public async Task<IEnumerable<WebService>> GetAllWithSecurityProfileAsync(bool? isActive = null, CancellationToken cancellationToken = default)
     {
         var query = DbSet.Include(ws => ws.SecurityProfile).AsQueryable();

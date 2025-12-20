@@ -12,7 +12,7 @@ public class WebServiceCallLogRepository : Repository<WebServiceCallLog>, IWebSe
     {
     }
 
-    public async Task<PagedResult<WebServiceCallLog>> GetPagedAsync(
+    public async Task<PaginatedList<WebServiceCallLog>> GetPagedAsync(
         Guid? webServiceId = null,
         Guid? methodId = null,
         bool? isSuccess = null,
@@ -54,13 +54,8 @@ public class WebServiceCallLogRepository : Repository<WebServiceCallLog>, IWebSe
 
         query = query.OrderByDescending(log => log.CalledAt);
 
-        var totalCount = await query.CountAsync(cancellationToken);
-        var items = await query
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
-
-        return new PagedResult<WebServiceCallLog>(items, totalCount, pageNumber, pageSize);
+        // Use PaginatedList.CreateAsync instead of manually creating PagedResult
+        return await PaginatedList<WebServiceCallLog>.CreateAsync(query, pageNumber, pageSize);
     }
 
     public async Task<IEnumerable<WebServiceCallLog>> GetByWebServiceIdAsync(Guid webServiceId, int? limit = null, CancellationToken cancellationToken = default)

@@ -1,7 +1,7 @@
-using CoreAxis.Modules.ApiManager.Domain.Entities;
-using CoreAxis.Shared.Abstractions.Repositories;
+using CoreAxis.Modules.ApiManager.Domain;
+using CoreAxis.SharedKernel;
 
-namespace CoreAxis.Modules.ApiManager.Infrastructure.Repositories;
+namespace CoreAxis.Modules.ApiManager.Domain.Repositories;
 
 public interface ISecurityProfileRepository : IRepository<SecurityProfile>
 {

@@ -1,5 +1,5 @@
-using CoreAxis.Modules.ApiManager.Infrastructure.Repositories;
-using CoreAxis.Shared.Abstractions.Repositories;
+using CoreAxis.Modules.ApiManager.Domain.Repositories;
+using CoreAxis.SharedKernel;
 
 namespace CoreAxis.Modules.ApiManager.Infrastructure;
 
