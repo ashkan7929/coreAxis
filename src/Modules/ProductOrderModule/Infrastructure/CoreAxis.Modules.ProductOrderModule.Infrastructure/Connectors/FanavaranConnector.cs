@@ -308,7 +308,7 @@ public class FanavaranConnector : IFanavaranConnector
                             BeneficiaryKindId = 791, 
                             BeneficiaryRelationId = 101, // Bimegozar
                             CapitalPercent = 100, 
-                            PriorityId = 1 
+                            PriorityId = 40 // Fixed Priority ID from lookup
                         },
                         // Survival Beneficiary (Kind 792) - Policyholder (101)
                         new Beneficiary 
@@ -317,7 +317,7 @@ public class FanavaranConnector : IFanavaranConnector
                             BeneficiaryKindId = 792, 
                             BeneficiaryRelationId = 101, // Bimegozar
                             CapitalPercent = 100, 
-                            PriorityId = 1 
+                            PriorityId = 40 // Fixed Priority ID from lookup
                         }
                     },
                     MedicalHistories = new List<MedicalHistory>
