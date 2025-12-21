@@ -304,7 +304,7 @@ public class FanavaranConnector : IFanavaranConnector
         // We will skip actual file upload for MVP or send dummy bytes
         var fileContent = new ByteArrayContent(new byte[0]); 
         fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/png");
-        content.Add(fileContent, "", "mock.png");
+        content.Add(fileContent, "\"\"", "mock.png");
         
         // Add Name field
         content.Add(new StringContent("1"), "\"name\"");
