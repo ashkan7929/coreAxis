@@ -29,7 +29,7 @@ public class UniversalLifeRequest
     public string? PersonnelCode { get; set; }
     public int PlanId { get; set; } = 21;
     public int PrmChangePercent { get; set; }
-    public int SaleManagerId { get; set; } = 40185;
+    public int SaleManagerId { get; set; } = 1035;
     public string SpecialCondition { get; set; } = "شرايط خصوصي";
     public int? WithMedicalExperiment { get; set; }
     public int? MarketerId { get; set; }
@@ -37,7 +37,7 @@ public class UniversalLifeRequest
     public int? SalesTeamCompId { get; set; }
     
     public List<InsuredPerson> InsuredPeople { get; set; } = new();
-    public List<FileItem> Files { get; set; } = new();
+    // public List<FileItem> Files { get; set; } = new();
 }
 
 public class InsuredPerson
