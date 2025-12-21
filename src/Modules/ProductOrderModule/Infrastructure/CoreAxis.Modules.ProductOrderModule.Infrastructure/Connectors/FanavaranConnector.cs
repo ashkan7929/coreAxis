@@ -301,21 +301,21 @@ public class FanavaranConnector : IFanavaranConnector
                     MedicalRate = 0,
                     Beneficiaries = new List<Beneficiary>
                     {
-                        // Death Beneficiary (Kind 791) - Self for testing/MVP if no other ID
+                        // Death Beneficiary (Kind 791) - Policyholder (101)
                         new Beneficiary 
                         { 
                             BeneficiaryId = insuredPersonId, 
                             BeneficiaryKindId = 791, 
-                            BeneficiaryRelationId = 105, 
+                            BeneficiaryRelationId = 101, // Bimegozar
                             CapitalPercent = 100, 
                             PriorityId = 1 
                         },
-                        // Survival Beneficiary (Kind 792) - Self
+                        // Survival Beneficiary (Kind 792) - Policyholder (101)
                         new Beneficiary 
                         { 
                             BeneficiaryId = insuredPersonId, 
                             BeneficiaryKindId = 792, 
-                            BeneficiaryRelationId = 105, 
+                            BeneficiaryRelationId = 101, // Bimegozar
                             CapitalPercent = 100, 
                             PriorityId = 1 
                         }
