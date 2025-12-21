@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace CoreAxis.Modules.ProductOrderModule.Infrastructure.Connectors;
 
@@ -169,6 +170,21 @@ public class FanavaranConnector : IFanavaranConnector
             {
                 var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
                 _logger.LogError("Failed to Create Customer. Status: {StatusCode}, Content: {Content}", response.StatusCode, errorContent);
+
+                // Handle "Person already exists" error (500 InternalServerError with specific message)
+                if (response.StatusCode == System.Net.HttpStatusCode.InternalServerError)
+                {
+                    // Regex to find "شخص با کد رایانه ... دارای نقش بيمه گذار است"
+                    // Example: "شخص با کد رایانه 3977188 دارای نقش بيمه گذار است"
+                    var match = Regex.Match(errorContent, @"شخص با کد رایانه\s+(\d+)\s+دارای نقش");
+                    if (match.Success)
+                    {
+                        var existingCustomerId = match.Groups[1].Value;
+                        _logger.LogInformation("Customer already exists. Using existing CustomerId: {CustomerId}", existingCustomerId);
+                        return existingCustomerId;
+                    }
+                }
+
                 // Throw specific exception with content to be visible in API response
                 throw new HttpRequestException($"Fanavaran CreateCustomer Failed: {response.StatusCode}. Content: {errorContent}");
             }
