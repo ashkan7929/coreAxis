@@ -203,9 +203,13 @@ public class FanavaranConnector : IFanavaranConnector
             {
                 return idElement.ToString();
             }
-             if (doc.RootElement.TryGetProperty("id", out var idElement2))
+            if (doc.RootElement.TryGetProperty("id", out var idElement2))
             {
                 return idElement2.ToString();
+            }
+            if (doc.RootElement.TryGetProperty("Id", out var idElement3))
+            {
+                return idElement3.ToString();
             }
             return content; // Fallback
         }
