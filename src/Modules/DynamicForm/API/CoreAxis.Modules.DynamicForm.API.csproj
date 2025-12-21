@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
 
@@ -22,6 +22,7 @@
     <ProjectReference Include="..\Application\CoreAxis.Modules.DynamicForm.Application.csproj" />
     <ProjectReference Include="..\Infrastructure\CoreAxis.Modules.DynamicForm.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\SharedKernel\CoreAxis.SharedKernel\CoreAxis.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks\CoreAxis.BuildingBlocks\CoreAxis.BuildingBlocks.csproj" />
   </ItemGroup>
 
 </Project>

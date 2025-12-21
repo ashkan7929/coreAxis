@@ -67,7 +67,12 @@ public class ApiProxy : IApiProxy
         public T MaskSensitiveProperties<T>(T obj) where T : class => obj;
     }
 
-    public async Task<ApiProxyResult> InvokeAsync(Guid webServiceMethodId, Dictionary<string, object> parameters, CancellationToken cancellationToken = default)
+    public async Task<ApiProxyResult> InvokeAsync(
+        Guid webServiceMethodId, 
+        Dictionary<string, object> parameters, 
+        Guid? workflowRunId = null,
+        string? stepId = null,
+        CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
         var httpContext = _httpContextAccessor.HttpContext;
@@ -94,7 +99,7 @@ public class ApiProxy : IApiProxy
             }
 
             // Create call log
-            var callLog = new WebServiceCallLog(method.WebServiceId, method.Id, correlationId);
+            var callLog = new WebServiceCallLog(method.WebServiceId, method.Id, correlationId, workflowRunId, stepId);
             callLog.CreatedBy = "system"; // TODO: Get from current user context
             callLog.LastModifiedBy = "system";
             _dbContext.Set<WebServiceCallLog>().Add(callLog);
@@ -204,6 +209,35 @@ public class ApiProxy : IApiProxy
 
             return ApiProxyResult.Failure(ex.Message, stopwatch.ElapsedMilliseconds);
         }
+    }
+
+    public async Task<ApiProxyResult> InvokeAsync(
+        string serviceName,
+        string methodName,
+        Dictionary<string, object> parameters,
+        Guid? workflowRunId = null,
+        string? stepId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var method = await _dbContext.Set<WebServiceMethod>()
+            .Include(m => m.WebService)
+            .Where(m => m.WebService.Name == serviceName && m.Path == methodName)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (method == null)
+        {
+             method = await _dbContext.Set<WebServiceMethod>()
+                .Include(m => m.WebService)
+                .Where(m => m.WebService.Name == serviceName && m.Path == "/" + methodName)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        if (method == null)
+        {
+            return ApiProxyResult.Failure($"Method '{methodName}' not found in service '{serviceName}'", 0, 404);
+        }
+
+        return await InvokeAsync(method.Id, parameters, workflowRunId, stepId, cancellationToken);
     }
 
     private IAsyncPolicy<HttpResponseMessage> CreateResiliencePipeline(WebServiceMethod method)

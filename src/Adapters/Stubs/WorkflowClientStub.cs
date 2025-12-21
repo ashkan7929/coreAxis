@@ -28,16 +28,16 @@ public class WorkflowClientStub : IWorkflowClient
         Directory.CreateDirectory(_storeRoot);
     }
 
-    public async Task<WorkflowResult> StartAsync(string definitionId, object context, CancellationToken cancellationToken = default)
+    public async Task<WorkflowResult> StartAsync(string definitionId, object context, int? version = null, CancellationToken cancellationToken = default)
     {
         var workflowId = Guid.NewGuid();
         var state = new WorkflowState(workflowId, definitionId, "Running", context);
         _workflowStates[workflowId] = state;
 
-        _logger.LogInformation("Started workflow {WorkflowId} with definition {DefinitionId}", workflowId, definitionId);
+        _logger.LogInformation("Started workflow {WorkflowId} with definition {DefinitionId} (Version: {Version})", workflowId, definitionId, version);
 
         // Persist start
-        AppendStepLog(workflowId, "workflow.start", "Running", new { definitionId });
+        AppendStepLog(workflowId, "workflow.start", "Running", new { definitionId, version });
 
         // Handle different workflow types
         switch (definitionId.ToLower())

@@ -41,6 +41,8 @@ public class MappingDbContext : DbContext, IUnitOfWork
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        
+        modelBuilder.Ignore<CoreAxis.SharedKernel.DomainEvents.DomainEvent>();
 
         modelBuilder.Entity<MappingDefinition>(entity =>
         {

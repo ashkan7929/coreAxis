@@ -28,6 +28,8 @@ public class InvokeApiMethodCommandHandler : IRequestHandler<InvokeApiMethodComm
         var result = await _apiProxy.InvokeAsync(
             request.WebServiceMethodId, 
             request.Parameters, 
+            null,
+            null,
             cancellationToken);
 
         _logger.LogInformation("API method {MethodId} invocation completed with success: {Success}, latency: {LatencyMs}ms", 

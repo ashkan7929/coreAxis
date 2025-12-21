@@ -7,7 +7,7 @@ namespace CoreAxis.Modules.Workflow.Application.Services.StepHandlers;
 public interface IWorkflowStepHandler
 {
     string StepType { get; }
-    Task<StepExecutionResult> ExecuteAsync(WorkflowRun run, StepDsl step, CancellationToken cancellationToken);
+    Task<StepExecutionResult> ExecuteAsync(WorkflowRun run, WorkflowRunStep runStep, StepDsl step, CancellationToken cancellationToken);
 }
 
 public class StepExecutionResult

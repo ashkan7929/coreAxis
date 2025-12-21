@@ -42,6 +42,8 @@ public class PriceProviderViaApiManager : IPriceProvider
                 _priceServiceName,
                 _getPriceMethodName,
                 parameters,
+                null,
+                null,
                 cancellationToken);
 
             if (response.IsSuccess && response.Data != null)

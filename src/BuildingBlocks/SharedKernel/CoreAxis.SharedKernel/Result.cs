@@ -27,6 +27,16 @@ namespace CoreAxis.SharedKernel
         public IReadOnlyList<string> Errors => _errors.AsReadOnly();
 
         /// <summary>
+        /// Alias for Value to support legacy code.
+        /// </summary>
+        public T Data => Value;
+
+        /// <summary>
+        /// Gets the first error message or null if success.
+        /// </summary>
+        public string? Error => _errors.FirstOrDefault();
+
+        /// <summary>
         /// Creates a successful result with the specified value.
         /// </summary>
         /// <param name="value">The result value.</param>

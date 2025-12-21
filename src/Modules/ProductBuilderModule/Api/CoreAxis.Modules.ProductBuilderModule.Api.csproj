@@ -11,6 +11,7 @@
     <ProjectReference Include="..\Infrastructure\CoreAxis.Modules.ProductBuilderModule.Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\SharedKernel\CoreAxis.SharedKernel\CoreAxis.SharedKernel.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks\CoreAxis.BuildingBlocks\CoreAxis.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\..\AuthModule\API\CoreAxis.Modules.AuthModule.API\CoreAxis.Modules.AuthModule.API.csproj" />
   </ItemGroup>
 
   <ItemGroup>

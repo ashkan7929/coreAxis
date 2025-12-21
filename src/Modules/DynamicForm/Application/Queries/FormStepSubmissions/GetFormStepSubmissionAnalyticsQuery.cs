@@ -9,13 +9,27 @@ namespace CoreAxis.Modules.DynamicForm.Application.Queries.FormStepSubmissions
     /// <summary>
     /// Query for retrieving analytics data for form step submissions.
     /// </summary>
-    public class GetFormStepSubmissionAnalyticsQuery : IRequest<IEnumerable<FormStepSubmissionAnalyticsDto>>
+    public class GetFormStepSubmissionAnalyticsQuery : IRequest<FormStepSubmissionAnalyticsDto>
     {
         /// <summary>
         /// Gets or sets the form identifier to get analytics for.
         /// </summary>
-        [Required]
         public Guid FormId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the form submission identifier to get analytics for.
+        /// </summary>
+        public Guid? FormSubmissionId { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to include timing analytics.
+        /// </summary>
+        public bool IncludeTimings { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to include validation error analytics.
+        /// </summary>
+        public bool IncludeValidationErrors { get; set; } = true;
 
         /// <summary>
         /// Gets or sets the tenant identifier for multi-tenancy support.

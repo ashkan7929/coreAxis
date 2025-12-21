@@ -30,6 +30,11 @@ namespace CoreAxis.Modules.DynamicForm.Application.Queries.FormStepSubmissions
         public bool IncludeInactive { get; set; } = false;
 
         /// <summary>
+        /// Gets or sets a value indicating whether to include form step details.
+        /// </summary>
+        public bool IncludeFormStep { get; set; } = false;
+
+        /// <summary>
         /// Gets or sets a value indicating whether to order submissions by step number.
         /// </summary>
         public bool OrderByStepNumber { get; set; } = true;

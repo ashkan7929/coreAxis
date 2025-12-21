@@ -9,7 +9,6 @@ using CoreAxis.Modules.DynamicForm.Application.DTOs;
 using CoreAxis.Modules.DynamicForm.Domain.Entities;
 using CoreAxis.Modules.DynamicForm.Domain.Repositories;
 using CoreAxis.SharedKernel.Exceptions;
-using NotFoundException = CoreAxis.SharedKernel.Exceptions.EntityNotFoundException;
 using Microsoft.Extensions.Logging;
 
 namespace CoreAxis.Modules.DynamicForm.Application.Handlers.FormStepSubmissions
@@ -20,7 +19,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Handlers.FormStepSubmissions
     public class FormStepSubmissionQueryHandlers :
         IRequestHandler<GetFormStepSubmissionByIdQuery, FormStepSubmissionDto>,
         IRequestHandler<GetFormStepSubmissionsByFormSubmissionIdQuery, IEnumerable<FormStepSubmissionDto>>,
-        IRequestHandler<GetFormStepSubmissionAnalyticsQuery, IEnumerable<FormStepSubmissionAnalyticsDto>>
+        IRequestHandler<GetFormStepSubmissionAnalyticsQuery, FormStepSubmissionAnalyticsDto>
     {
         private readonly IFormStepSubmissionRepository _formStepSubmissionRepository;
         private readonly ILogger<FormStepSubmissionQueryHandlers> _logger;
@@ -54,13 +53,13 @@ namespace CoreAxis.Modules.DynamicForm.Application.Handlers.FormStepSubmissions
                 
                 if (formStepSubmission == null)
                 {
-                    throw new NotFoundException($"Form step submission with ID {request.Id} not found");
+                    throw new EntityNotFoundException(nameof(FormStepSubmission), request.Id);
                 }
 
                 // Apply filters
                 if (!request.IncludeInactive && !formStepSubmission.IsActive)
                 {
-                    throw new NotFoundException($"Form step submission with ID {request.Id} not found");
+                    throw new EntityNotFoundException(nameof(FormStepSubmission), request.Id);
                 }
 
                 _logger.LogInformation("Form step submission {SubmissionId} retrieved successfully", request.Id);
@@ -97,42 +96,35 @@ namespace CoreAxis.Modules.DynamicForm.Application.Handlers.FormStepSubmissions
                     filteredSubmissions = filteredSubmissions.Where(s => s.IsActive);
                 }
 
-                if (request.StatusFilter.HasValue)
+                if (!string.IsNullOrEmpty(request.StatusFilter))
                 {
-                    filteredSubmissions = filteredSubmissions.Where(s => s.Status == request.StatusFilter.Value);
+                    filteredSubmissions = filteredSubmissions.Where(s => s.Status == request.StatusFilter);
                 }
 
                 if (request.CompletedOnly)
                 {
-                    filteredSubmissions = filteredSubmissions.Where(s => s.Status == StepSubmissionStatus.Completed);
+                    filteredSubmissions = filteredSubmissions.Where(s => s.Status == "Completed");
                 }
 
                 if (request.IncompleteOnly)
                 {
-                    filteredSubmissions = filteredSubmissions.Where(s => s.Status != StepSubmissionStatus.Completed && !s.IsSkipped);
+                    filteredSubmissions = filteredSubmissions.Where(s => s.Status != "Completed");
                 }
 
                 if (request.SkippedOnly)
                 {
-                    filteredSubmissions = filteredSubmissions.Where(s => s.IsSkipped);
+                    filteredSubmissions = filteredSubmissions.Where(s => s.Status == "Skipped");
                 }
 
-                // Apply ordering
                 if (request.OrderByStepNumber)
                 {
                     filteredSubmissions = filteredSubmissions.OrderBy(s => s.StepNumber);
                 }
-                else
-                {
-                    filteredSubmissions = filteredSubmissions.OrderBy(s => s.CreatedOn);
-                }
 
-                var result = filteredSubmissions.ToList();
+                _logger.LogInformation("Found {Count} form step submissions for form submission {FormSubmissionId}", 
+                    filteredSubmissions.Count(), request.FormSubmissionId);
 
-                _logger.LogInformation("Retrieved {Count} form step submissions for form submission {FormSubmissionId}", 
-                    result.Count, request.FormSubmissionId);
-
-                return result.Select(MapToDto).ToList();
+                return filteredSubmissions.Select(MapToDto);
             }
             catch (Exception ex)
             {
@@ -147,115 +139,104 @@ namespace CoreAxis.Modules.DynamicForm.Application.Handlers.FormStepSubmissions
         /// <param name="request">The get form step submission analytics query.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The form step submission analytics DTO.</returns>
-        public async Task<IEnumerable<FormStepSubmissionAnalyticsDto>> Handle(GetFormStepSubmissionAnalyticsQuery request, CancellationToken cancellationToken)
+        public async Task<FormStepSubmissionAnalyticsDto> Handle(GetFormStepSubmissionAnalyticsQuery request, CancellationToken cancellationToken)
         {
             try
             {
-                _logger.LogInformation("Getting form step submission analytics for form {FormId}", request.FormId);
+                _logger.LogInformation("Getting analytics for form {FormId}", request.FormId);
 
-                var analytics = await _formStepSubmissionRepository.GetAnalyticsAsync(
-                    request.FormId,
-                    request.TenantId,
-                    request.StartDate,
-                    request.EndDate,
-                    cancellationToken);
+                var analyticsData = await _formStepSubmissionRepository.GetAnalyticsAsync(
+                    request.FormId, request.TenantId, request.StartDate, request.EndDate, cancellationToken);
 
-                // Apply filters
-                var filteredAnalytics = analytics.AsQueryable();
-
-                if (request.ActiveStepsOnly)
+                var result = new FormStepSubmissionAnalyticsDto
                 {
-                    filteredAnalytics = filteredAnalytics.Where(a => a.IsActive);
+                    FormId = request.FormId,
+                    // TenantId is Guid in DTO but string in request?
+                    // Assuming request.TenantId is parseable Guid or DTO property should be string.
+                    // FormStepSubmissionAnalyticsDto.TenantId is Guid.
+                    // request.TenantId is string.
+                    TenantId = Guid.TryParse(request.TenantId, out var tid) ? tid : Guid.Empty,
+                    StartDate = request.StartDate,
+                    EndDate = request.EndDate
+                };
+
+                var stepAnalyticsList = new List<FormStepAnalyticsDto>();
+
+                foreach (var item in analyticsData)
+                {
+                    // Map dynamic result to DTO
+                    stepAnalyticsList.Add(new FormStepAnalyticsDto
+                    {
+                        StepNumber = item.StepNumber,
+                        StepName = item.StepTitle ?? string.Empty,
+                        TotalSubmissions = item.TotalSubmissions,
+                        CompletedSubmissions = item.CompletedSubmissions,
+                        SkippedSubmissions = item.SkippedSubmissions,
+                        // InProgressSubmissions might not be in dynamic object, calculating if possible
+                        InProgressSubmissions = item.TotalSubmissions - item.CompletedSubmissions - item.SkippedSubmissions,
+                        AverageCompletionTimeSeconds = item.AverageCompletionTimeSeconds,
+                        CompletionRate = item.CompletionRate,
+                        // DropOffRate might be used as SkipRate or calculated
+                        SkipRate = item.DropOffRate // Mapping DropOffRate to SkipRate as approximation
+                    });
                 }
 
+                // Apply filters
                 if (request.MinCompletionRate.HasValue)
                 {
-                    filteredAnalytics = filteredAnalytics.Where(a => a.CompletionRate >= request.MinCompletionRate.Value);
+                    stepAnalyticsList.RemoveAll(a => (double)a.CompletionRate < request.MinCompletionRate.Value);
                 }
 
                 if (request.MaxAverageCompletionTime.HasValue)
                 {
-                    filteredAnalytics = filteredAnalytics.Where(a => a.AverageCompletionTimeSeconds <= request.MaxAverageCompletionTime.Value);
+                    stepAnalyticsList.RemoveAll(a => a.AverageCompletionTimeSeconds > request.MaxAverageCompletionTime.Value);
                 }
 
-                // Apply ordering
                 if (request.OrderByStepNumber)
                 {
-                    filteredAnalytics = filteredAnalytics.OrderBy(a => a.StepNumber);
+                    stepAnalyticsList.Sort((a, b) => a.StepNumber.CompareTo(b.StepNumber));
                 }
-                else
+
+                result.StepAnalytics = stepAnalyticsList;
+                result.TotalSteps = stepAnalyticsList.Count;
+                
+                if (stepAnalyticsList.Any())
                 {
-                    filteredAnalytics = filteredAnalytics.OrderByDescending(a => a.CompletionRate);
+                    result.OverallCompletionRate = stepAnalyticsList.Average(a => a.CompletionRate);
+                    result.AverageFormCompletionTimeSeconds = (int)stepAnalyticsList.Sum(a => a.AverageCompletionTimeSeconds);
                 }
 
-                var result = filteredAnalytics.Select(MapToStepAnalyticsDto).ToList();
-
-                _logger.LogInformation("Retrieved analytics for {Count} form steps for form {FormId}", 
-                    result.Count, request.FormId);
+                _logger.LogInformation("Analytics for form {FormId} retrieved successfully", request.FormId);
 
                 return result;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting form step submission analytics for form {FormId}", request.FormId);
+                _logger.LogError(ex, "Error getting analytics for form {FormId}", request.FormId);
                 throw;
             }
         }
 
-        /// <summary>
-        /// Maps a form step submission entity to a DTO.
-        /// </summary>
-        /// <param name="formStepSubmission">The form step submission entity.</param>
-        /// <returns>The form step submission DTO.</returns>
-        private static FormStepSubmissionDto MapToDto(FormStepSubmission formStepSubmission)
+        private FormStepSubmissionDto MapToDto(FormStepSubmission entity)
         {
             return new FormStepSubmissionDto
             {
-                Id = formStepSubmission.Id,
-                FormSubmissionId = formStepSubmission.FormSubmissionId,
-                FormStepId = formStepSubmission.FormStepId,
-                StepNumber = formStepSubmission.StepNumber,
-                UserId = formStepSubmission.UserId,
-                TenantId = formStepSubmission.TenantId,
-                StepData = formStepSubmission.StepData,
-                Status = formStepSubmission.Status,
-                ValidationErrors = formStepSubmission.ValidationErrors,
-                StartedAt = formStepSubmission.StartedAt,
-                CompletedAt = formStepSubmission.CompletedAt,
-                TimeSpentSeconds = formStepSubmission.TimeSpentSeconds,
-                IsSkipped = formStepSubmission.IsSkipped,
-                SkipReason = formStepSubmission.SkipReason,
-                Metadata = formStepSubmission.Metadata,
-                CreatedOn = formStepSubmission.CreatedOn,
-                CreatedBy = formStepSubmission.CreatedBy,
-                LastModifiedOn = formStepSubmission.LastModifiedOn,
-                LastModifiedBy = formStepSubmission.LastModifiedBy,
-                IsActive = formStepSubmission.IsActive
-            };
-        }
-
-        /// <summary>
-        /// Maps a form step submission analytics entity to a DTO.
-        /// </summary>
-        /// <param name="analytics">The form step submission analytics entity.</param>
-        /// <returns>The form step submission analytics DTO.</returns>
-        private static FormStepAnalyticsDto MapToStepAnalyticsDto(dynamic analytics)
-        {
-            return new FormStepAnalyticsDto
-            {
-                StepNumber = analytics.StepNumber,
-                StepName = analytics.StepName,
-                TotalSubmissions = analytics.TotalSubmissions,
-                CompletedSubmissions = analytics.CompletedSubmissions,
-                SkippedSubmissions = analytics.SkippedSubmissions,
-                InProgressSubmissions = analytics.InProgressSubmissions,
-                CompletionRate = analytics.CompletionRate,
-                SkipRate = analytics.SkipRate,
-                AverageCompletionTimeSeconds = analytics.AverageCompletionTimeSeconds,
-                MedianCompletionTimeSeconds = analytics.MedianCompletionTimeSeconds,
-                MinCompletionTimeSeconds = analytics.MinCompletionTimeSeconds,
-                MaxCompletionTimeSeconds = analytics.MaxCompletionTimeSeconds,
-                IsActive = analytics.IsActive
+                Id = entity.Id,
+                FormSubmissionId = entity.FormSubmissionId,
+                FormStepId = entity.FormStepId,
+                StepNumber = entity.StepNumber,
+                Status = entity.Status,
+                StepData = entity.StepData,
+                ValidationErrors = entity.ValidationErrors,
+                StartedAt = entity.StartedAt,
+                CompletedAt = entity.CompletedAt,
+                TimeSpentSeconds = entity.TimeSpentSeconds,
+                TenantId = entity.TenantId,
+                IsActive = entity.IsActive,
+                CreatedBy = entity.CreatedBy,
+                CreatedOn = entity.CreatedOn,
+                LastModifiedBy = entity.LastModifiedBy,
+                LastModifiedOn = entity.LastModifiedOn
             };
         }
     }

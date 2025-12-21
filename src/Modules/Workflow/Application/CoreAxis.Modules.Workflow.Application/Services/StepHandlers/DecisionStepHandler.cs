@@ -8,7 +8,7 @@ public class DecisionStepHandler : IWorkflowStepHandler
 {
     public string StepType => "DecisionStep";
 
-    public Task<StepExecutionResult> ExecuteAsync(WorkflowRun run, StepDsl step, CancellationToken cancellationToken)
+    public Task<StepExecutionResult> ExecuteAsync(WorkflowRun run, WorkflowRunStep runStep, StepDsl step, CancellationToken cancellationToken)
     {
         // Simple logic: check "condition" in config
         // If true, go to "true" transition, else "false" transition (or default)

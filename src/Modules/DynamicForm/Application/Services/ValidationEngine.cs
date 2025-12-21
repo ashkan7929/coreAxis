@@ -6,7 +6,6 @@ using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using SystemValidationResult = System.ComponentModel.DataAnnotations.ValidationResult;
 
 namespace CoreAxis.Modules.DynamicForm.Application.Services;
 
@@ -520,7 +519,7 @@ public class ValidationEngine : IValidationEngine
     private bool IsValidEmail(string? email)
     {
         if (string.IsNullOrWhiteSpace(email)) return false;
-        return new EmailAddressAttribute().IsValid(email);
+        return new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(email);
     }
 
     private bool IsValidUrl(string? url)
@@ -532,7 +531,7 @@ public class ValidationEngine : IValidationEngine
     private bool IsValidPhone(string? phone)
     {
         if (string.IsNullOrWhiteSpace(phone)) return false;
-        return new PhoneAttribute().IsValid(phone);
+        return new System.ComponentModel.DataAnnotations.PhoneAttribute().IsValid(phone);
     }
 
     private bool IsValidNumber(object? value)

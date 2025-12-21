@@ -37,6 +37,11 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Entities
         public string Schema { get; set; }
 
         /// <summary>
+        /// Gets or sets the business identifier.
+        /// </summary>
+        public string BusinessId { get; set; }
+
+        /// <summary>
         /// Gets or sets the version of the form.
         /// </summary>
         public int Version { get; set; } = 1;
@@ -86,9 +91,9 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Entities
         /// <summary>
         /// Initializes a new instance of the <see cref="Form"/> class.
         /// </summary>
-        protected Form()
+        public Form()
         {
-            // Required for EF Core
+            // Required for EF Core and public instantiation
         }
 
         /// <summary>

@@ -20,7 +20,7 @@ public class HumanTaskStepHandler : IWorkflowStepHandler
 
     public string StepType => "HumanTaskStep";
 
-    public async Task<StepExecutionResult> ExecuteAsync(WorkflowRun run, StepDsl step, CancellationToken cancellationToken)
+    public async Task<StepExecutionResult> ExecuteAsync(WorkflowRun run, WorkflowRunStep runStep, StepDsl step, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Requesting Human Task for workflow {RunId}, step {StepId}", run.Id, step.Id);
 

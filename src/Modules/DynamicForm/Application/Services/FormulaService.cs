@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -58,7 +59,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 var latestVersionResult = await GetLatestPublishedVersionAsync(formulaId, cancellationToken);
                 if (!latestVersionResult.IsSuccess)
                 {
-                    return Result<FormulaEvaluationResult>.Failure(latestVersionResult.Error);
+                    return Result<FormulaEvaluationResult>.Failure(string.Join("; ", latestVersionResult.Errors));
                 }
 
                 var formulaVersion = latestVersionResult.Value;
@@ -125,7 +126,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 var latestVersionResult = await GetLatestPublishedVersionAsync(formulaDefinition.Id, cancellationToken);
                 if (!latestVersionResult.IsSuccess)
                 {
-                    return Result<FormulaEvaluationResult>.Failure(latestVersionResult.Error);
+                    return Result<FormulaEvaluationResult>.Failure(string.Join("; ", latestVersionResult.Errors));
                 }
 
                 return await EvaluateFormulaVersionInternalAsync(latestVersionResult.Value, inputs, context, cancellationToken);
@@ -198,7 +199,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                     return Result<FormulaVersion>.Failure($"Formula {formulaId} not found");
                 }
 
-                if (formulaDefinition.Status != FormulaStatus.Published)
+                if (!formulaDefinition.IsPublished)
                 {
                     return Result<FormulaVersion>.Failure($"Formula {formulaId} is not published");
                 }
@@ -228,20 +229,20 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 // For now, return a basic set of mathematical functions
                 var functions = new List<FunctionSignature>
                 {
-                    new FunctionSignature("ADD", "Addition", new[] { "number", "number" }, "number"),
-                    new FunctionSignature("SUBTRACT", "Subtraction", new[] { "number", "number" }, "number"),
-                    new FunctionSignature("MULTIPLY", "Multiplication", new[] { "number", "number" }, "number"),
-                    new FunctionSignature("DIVIDE", "Division", new[] { "number", "number" }, "number"),
-                    new FunctionSignature("POWER", "Power", new[] { "number", "number" }, "number"),
-                    new FunctionSignature("SQRT", "Square Root", new[] { "number" }, "number"),
-                    new FunctionSignature("ABS", "Absolute Value", new[] { "number" }, "number"),
-                    new FunctionSignature("ROUND", "Round", new[] { "number", "number" }, "number"),
-                    new FunctionSignature("MAX", "Maximum", new[] { "number", "number" }, "number"),
-                    new FunctionSignature("MIN", "Minimum", new[] { "number", "number" }, "number"),
-                    new FunctionSignature("IF", "Conditional", new[] { "boolean", "any", "any" }, "any"),
-                    new FunctionSignature("AND", "Logical AND", new[] { "boolean", "boolean" }, "boolean"),
-                    new FunctionSignature("OR", "Logical OR", new[] { "boolean", "boolean" }, "boolean"),
-                    new FunctionSignature("NOT", "Logical NOT", new[] { "boolean" }, "boolean")
+                    new FunctionSignature("ADD", typeof(decimal), new[] { typeof(decimal), typeof(decimal) }),
+                    new FunctionSignature("SUBTRACT", typeof(decimal), new[] { typeof(decimal), typeof(decimal) }),
+                    new FunctionSignature("MULTIPLY", typeof(decimal), new[] { typeof(decimal), typeof(decimal) }),
+                    new FunctionSignature("DIVIDE", typeof(decimal), new[] { typeof(decimal), typeof(decimal) }),
+                    new FunctionSignature("POWER", typeof(decimal), new[] { typeof(decimal), typeof(decimal) }),
+                    new FunctionSignature("SQRT", typeof(decimal), new[] { typeof(decimal) }),
+                    new FunctionSignature("ABS", typeof(decimal), new[] { typeof(decimal) }),
+                    new FunctionSignature("ROUND", typeof(decimal), new[] { typeof(decimal), typeof(decimal) }),
+                    new FunctionSignature("MAX", typeof(decimal), new[] { typeof(decimal), typeof(decimal) }),
+                    new FunctionSignature("MIN", typeof(decimal), new[] { typeof(decimal), typeof(decimal) }),
+                    new FunctionSignature("IF", typeof(object), new[] { typeof(bool), typeof(object), typeof(object) }),
+                    new FunctionSignature("AND", typeof(bool), new[] { typeof(bool), typeof(bool) }),
+                    new FunctionSignature("OR", typeof(bool), new[] { typeof(bool), typeof(bool) }),
+                    new FunctionSignature("NOT", typeof(bool), new[] { typeof(bool) })
                 };
 
                 return Result<IEnumerable<FunctionSignature>>.Success(functions);
@@ -267,7 +268,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 }
 
                 // Create a formula expression and try to parse it
-                var formulaExpression = new FormulaExpression(expression, ExecutionTimeCategory.Runtime);
+                var formulaExpression = new FormulaExpression(expression);
                 
                 // Try to evaluate with empty context to check syntax
                 var evalContext = BuildEvaluationContext(new Dictionary<string, object>(), context);
@@ -388,16 +389,20 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 stopwatch.Stop();
                 
                 // Create evaluation log
-                var evaluationLog = FormulaEvaluationLog.Create(
-                    evaluationLogId,
-                    formulaVersion.FormulaDefinitionId,
-                    formulaVersion.VersionNumber,
-                    inputs,
-                    normalizedValue,
-                    evaluationResult.IsSuccess,
-                    evaluationResult.ErrorMessage,
-                    stopwatch.ElapsedMilliseconds,
-                    "system");
+                var evaluationLog = new FormulaEvaluationLog
+                {
+                    Id = evaluationLogId,
+                    FormulaDefinitionId = formulaVersion.FormulaDefinitionId,
+                    FormulaVersionId = formulaVersion.Id,
+                    InputParameters = JsonSerializer.Serialize(inputs),
+                    Result = JsonSerializer.Serialize(normalizedValue),
+                    Status = evaluationResult.IsSuccess ? "Success" : "Failed",
+                    ErrorMessage = evaluationResult.ErrorMessage,
+                    ExecutionTimeMs = stopwatch.ElapsedMilliseconds,
+                    CreatedBy = "system",
+                    CreatedOn = DateTime.UtcNow,
+                    IsActive = true
+                };
                 
                 // Save evaluation log
                 await _evaluationLogRepository.AddAsync(evaluationLog, cancellationToken);
@@ -429,16 +434,20 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                     formulaVersion.FormulaDefinitionId, formulaVersion.VersionNumber);
                 
                 // Create failed evaluation log
-                var evaluationLog = FormulaEvaluationLog.Create(
-                    evaluationLogId,
-                    formulaVersion.FormulaDefinitionId,
-                    formulaVersion.VersionNumber,
-                    inputs,
-                    null,
-                    false,
-                    ex.Message,
-                    stopwatch.ElapsedMilliseconds,
-                    "system");
+                var evaluationLog = new FormulaEvaluationLog
+                {
+                    Id = evaluationLogId,
+                    FormulaDefinitionId = formulaVersion.FormulaDefinitionId,
+                    FormulaVersionId = formulaVersion.Id,
+                    InputParameters = JsonSerializer.Serialize(inputs),
+                    Result = null,
+                    Status = "Failed",
+                    ErrorMessage = ex.Message,
+                    ExecutionTimeMs = stopwatch.ElapsedMilliseconds,
+                    CreatedBy = "system",
+                    CreatedOn = DateTime.UtcNow,
+                    IsActive = true
+                };
                 
                 try
                 {

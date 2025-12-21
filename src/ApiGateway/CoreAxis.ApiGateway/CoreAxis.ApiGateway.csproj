@@ -40,6 +40,7 @@
     <ProjectReference Include="..\..\Modules\ProductBuilderModule\Api\CoreAxis.Modules.ProductBuilderModule.Api.csproj" />
     <ProjectReference Include="..\..\Modules\Workflow\Application\CoreAxis.Modules.Workflow.Application\CoreAxis.Modules.Workflow.Application.csproj" />
     <!-- DynamicForm API temporarily decoupled due to build errors; loaded at runtime if available -->
+    <ProjectReference Include="..\..\Modules\DynamicForm\Infrastructure\CoreAxis.Modules.DynamicForm.Infrastructure.csproj" />
     <ProjectReference Include="..\..\EventBus\CoreAxis.EventBus\CoreAxis.EventBus.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\SharedKernel\CoreAxis.SharedKernel\CoreAxis.SharedKernel.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\BuildingBlocks\CoreAxis.BuildingBlocks\CoreAxis.BuildingBlocks.csproj" />

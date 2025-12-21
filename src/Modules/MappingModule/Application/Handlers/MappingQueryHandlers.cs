@@ -38,11 +38,13 @@ public class MappingQueryHandlers :
         return new MappingDefinitionDto
         {
             Id = mapping.Id,
+            Code = mapping.Code,
             Name = mapping.Name,
             SourceSchemaRef = mapping.SourceSchemaRef,
             TargetSchemaRef = mapping.TargetSchemaRef,
             RulesJson = mapping.RulesJson,
             Status = mapping.Status,
+            Version = mapping.Version,
             CreatedOn = mapping.CreatedOn,
             PublishedAt = mapping.PublishedAt
         };
@@ -65,11 +67,13 @@ public class MappingQueryHandlers :
         return mappings.Select(m => new MappingDefinitionDto
         {
             Id = m.Id,
+            Code = m.Code,
             Name = m.Name,
             SourceSchemaRef = m.SourceSchemaRef,
             TargetSchemaRef = m.TargetSchemaRef,
             RulesJson = m.RulesJson,
             Status = m.Status,
+            Version = m.Version,
             CreatedOn = m.CreatedOn,
             PublishedAt = m.PublishedAt
         }).ToList();

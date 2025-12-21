@@ -1,3 +1,5 @@
+using CoreAxis.Modules.Workflow.Domain.Entities;
+using CoreAxis.SharedKernel;
 using CoreAxis.BuildingBlocks;
 using CoreAxis.EventBus;
 using CoreAxis.SharedKernel.Contracts.Events;
@@ -8,11 +10,15 @@ using Microsoft.EntityFrameworkCore;
 using CoreAxis.Modules.Workflow.Infrastructure.Data;
 using CoreAxis.Modules.Workflow.Application.Services;
 using CoreAxis.Modules.Workflow.Application.Services.StepHandlers;
+using CoreAxis.Modules.Workflow.Application.Services.Compensation;
 using CoreAxis.Modules.Workflow.Application.Idempotency;
 using CoreAxis.Modules.Workflow.Application.EventHandlers;
 using CoreAxis.Modules.Workflow.Domain.Events;
+using CoreAxis.Modules.Workflow.Infrastructure.Services;
+using CoreAxis.SharedKernel.Ports;
 using CoreAxis.SharedKernel.Domain;
 using CoreAxis.Modules.Workflow.Api.Filters;
+using CoreAxis.Modules.Workflow.Api.Services;
 using System.Linq;
 
 namespace CoreAxis.Modules.Workflow.Api;
@@ -49,6 +55,7 @@ public class WorkflowModule : IModule
 
         // Register workflow executor
         services.AddScoped<IWorkflowExecutor, WorkflowExecutor>();
+        services.AddScoped<ICompensationExecutor, CompensationExecutor>();
 
         // Register domain event handlers
         services.AddScoped<IDomainEventHandler<WorkflowRunStartedDomainEvent>, WorkflowRunStartedDomainEventHandler>();
@@ -63,6 +70,8 @@ public class WorkflowModule : IModule
         services.AddScoped<IWorkflowStepHandler, HumanTaskStepHandler>();
         services.AddScoped<IWorkflowStepHandler, CalculationStepHandler>();
         services.AddScoped<IWorkflowStepHandler, WaitForEventStepHandler>();
+        services.AddScoped<IWorkflowStepHandler, TimerStepHandler>();
+        services.AddScoped<IWorkflowStepHandler, CompensationStepHandler>();
 
         // Register validator
         services.AddScoped<IWorkflowValidator, WorkflowValidator>();
@@ -70,6 +79,15 @@ public class WorkflowModule : IModule
         // Register idempotency service
         services.AddScoped<IIdempotencyService, IdempotencyService>();
         services.AddScoped<IdempotencyFilter>();
+
+        // Register SharedKernel Clients
+        services.AddScoped<IWorkflowDefinitionClient, WorkflowDefinitionClient>();
+
+        // Register Repositories
+        services.AddScoped<IRepository<WorkflowTimer>, WorkflowRepository<WorkflowTimer>>();
+
+        // Register background services
+        services.AddHostedService<WorkflowTimerBackgroundService>();
 
         // Add controllers from this module
         services.AddControllers()

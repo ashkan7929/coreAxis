@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CoreAxis.Modules.DynamicForm.Application.DTOs;
 using CoreAxis.Modules.DynamicForm.Application.Queries.Submissions;
 using CoreAxis.Modules.DynamicForm.Domain.Entities;
@@ -25,10 +26,15 @@ public class GetSubmissionByIdQueryHandler : IRequestHandler<GetSubmissionByIdQu
     {
         try
         {
-            var submission = await _submissionRepository.GetByIdWithIncludesAsync(
-                request.Id,
-                includeForm: request.IncludeForm,
-                cancellationToken: cancellationToken);
+            FormSubmission? submission;
+            if (request.IncludeForm)
+            {
+                submission = await _submissionRepository.GetByIdWithFormAsync(request.Id, cancellationToken);
+            }
+            else
+            {
+                submission = await _submissionRepository.GetByIdAsync(request.Id, cancellationToken);
+            }
 
             if (submission == null)
             {
@@ -51,15 +57,19 @@ public class GetSubmissionByIdQueryHandler : IRequestHandler<GetSubmissionByIdQu
         {
             Id = submission.Id,
             FormId = submission.FormId,
-            SubmissionData = submission.SubmissionData,
-            UserId = submission.UserId,
+            SubmissionData = !string.IsNullOrEmpty(submission.Data) 
+                ? JsonSerializer.Deserialize<Dictionary<string, object>>(submission.Data) ?? new()
+                : new(),
+            UserId = submission.UserId.ToString(),
             SessionId = submission.SessionId,
             IpAddress = submission.IpAddress,
             UserAgent = submission.UserAgent,
             Status = submission.Status,
-            Metadata = submission.Metadata,
-            SubmittedAt = submission.SubmittedAt,
-            UpdatedAt = submission.UpdatedAt
+            Metadata = !string.IsNullOrEmpty(submission.Metadata)
+                ? JsonSerializer.Deserialize<Dictionary<string, object>>(submission.Metadata)
+                : null,
+            SubmittedAt = submission.SubmittedAt ?? submission.CreatedOn, // Fallback to CreatedOn if SubmittedAt is null
+            UpdatedAt = submission.LastModifiedOn
         };
 
         if (includeForm && submission.Form != null)
@@ -69,15 +79,17 @@ public class GetSubmissionByIdQueryHandler : IRequestHandler<GetSubmissionByIdQu
                 Id = submission.Form.Id,
                 Name = submission.Form.Name,
                 Description = submission.Form.Description,
-                SchemaJson = submission.Form.SchemaJson,
+                SchemaJson = submission.Form.Schema, // Mapped from Schema
                 IsActive = submission.Form.IsActive,
                 TenantId = submission.Form.TenantId,
                 BusinessId = submission.Form.BusinessId,
-                Metadata = submission.Form.Metadata,
-                CreatedAt = submission.Form.CreatedAt,
-                UpdatedAt = submission.Form.UpdatedAt,
+                Metadata = !string.IsNullOrEmpty(submission.Form.Metadata)
+                    ? JsonSerializer.Deserialize<Dictionary<string, object>>(submission.Form.Metadata)
+                    : null,
+                CreatedAt = submission.Form.CreatedOn,
+                UpdatedAt = submission.Form.LastModifiedOn,
                 CreatedBy = submission.Form.CreatedBy,
-                UpdatedBy = submission.Form.UpdatedBy,
+                UpdatedBy = submission.Form.LastModifiedBy,
                 Version = submission.Form.Version
             };
         }
@@ -103,16 +115,23 @@ public class GetSubmissionsQueryHandler : IRequestHandler<GetSubmissionsQuery, R
     {
         try
         {
+            Guid? userId = null;
+            if (Guid.TryParse(request.UserId, out var parsedUserId))
+            {
+                userId = parsedUserId;
+            }
+
             var (submissions, totalCount) = await _submissionRepository.GetPagedAsync(
-                request.FormId,
-                request.UserId,
-                request.Status,
-                request.FromDate,
-                request.ToDate,
+                request.TenantId,
                 request.PageNumber,
                 request.PageSize,
-                request.IncludeForm,
-                cancellationToken);
+                formId: request.FormId,
+                status: request.Status,
+                userId: userId,
+                fromDate: request.FromDate,
+                toDate: request.ToDate,
+                includeForm: request.IncludeForm,
+                cancellationToken: cancellationToken);
 
             var submissionDtos = submissions.Select(s => MapToDto(s, request.IncludeForm)).ToList();
 
@@ -121,8 +140,8 @@ public class GetSubmissionsQueryHandler : IRequestHandler<GetSubmissionsQuery, R
                 Items = submissionDtos,
                 TotalCount = totalCount,
                 PageNumber = request.PageNumber,
-                PageSize = request.PageSize,
-                TotalPages = (int)Math.Ceiling((double)totalCount / request.PageSize)
+                PageSize = request.PageSize
+                // TotalPages is calculated, do not assign
             };
 
             return Result<PagedResult<FormSubmissionDto>>.Success(pagedResult);
@@ -140,15 +159,19 @@ public class GetSubmissionsQueryHandler : IRequestHandler<GetSubmissionsQuery, R
         {
             Id = submission.Id,
             FormId = submission.FormId,
-            SubmissionData = submission.SubmissionData,
-            UserId = submission.UserId,
+            SubmissionData = !string.IsNullOrEmpty(submission.Data) 
+                ? JsonSerializer.Deserialize<Dictionary<string, object>>(submission.Data) ?? new()
+                : new(),
+            UserId = submission.UserId.ToString(),
             SessionId = submission.SessionId,
             IpAddress = submission.IpAddress,
             UserAgent = submission.UserAgent,
             Status = submission.Status,
-            Metadata = submission.Metadata,
-            SubmittedAt = submission.SubmittedAt,
-            UpdatedAt = submission.UpdatedAt
+            Metadata = !string.IsNullOrEmpty(submission.Metadata)
+                ? JsonSerializer.Deserialize<Dictionary<string, object>>(submission.Metadata)
+                : null,
+            SubmittedAt = submission.SubmittedAt ?? submission.CreatedOn,
+            UpdatedAt = submission.LastModifiedOn
         };
 
         if (includeForm && submission.Form != null)
@@ -158,15 +181,17 @@ public class GetSubmissionsQueryHandler : IRequestHandler<GetSubmissionsQuery, R
                 Id = submission.Form.Id,
                 Name = submission.Form.Name,
                 Description = submission.Form.Description,
-                SchemaJson = submission.Form.SchemaJson,
+                SchemaJson = submission.Form.Schema,
                 IsActive = submission.Form.IsActive,
                 TenantId = submission.Form.TenantId,
                 BusinessId = submission.Form.BusinessId,
-                Metadata = submission.Form.Metadata,
-                CreatedAt = submission.Form.CreatedAt,
-                UpdatedAt = submission.Form.UpdatedAt,
+                Metadata = !string.IsNullOrEmpty(submission.Form.Metadata)
+                    ? JsonSerializer.Deserialize<Dictionary<string, object>>(submission.Form.Metadata)
+                    : null,
+                CreatedAt = submission.Form.CreatedOn,
+                UpdatedAt = submission.Form.LastModifiedOn,
                 CreatedBy = submission.Form.CreatedBy,
-                UpdatedBy = submission.Form.UpdatedBy,
+                UpdatedBy = submission.Form.LastModifiedBy,
                 Version = submission.Form.Version
             };
         }
@@ -192,16 +217,23 @@ public class GetSubmissionsByFormQueryHandler : IRequestHandler<GetSubmissionsBy
     {
         try
         {
-            var (submissions, totalCount) = await _submissionRepository.GetByFormIdPagedAsync(
-                request.FormId,
-                request.UserId,
-                request.Status,
-                request.FromDate,
-                request.ToDate,
+            Guid? userId = null;
+            if (Guid.TryParse(request.UserId, out var parsedUserId))
+            {
+                userId = parsedUserId;
+            }
+
+            var (submissions, totalCount) = await _submissionRepository.GetPagedAsync(
+                request.TenantId,
                 request.PageNumber,
                 request.PageSize,
-                request.IncludeForm,
-                cancellationToken);
+                formId: request.FormId,
+                status: request.Status,
+                userId: userId,
+                fromDate: request.FromDate,
+                toDate: request.ToDate,
+                includeForm: request.IncludeForm,
+                cancellationToken: cancellationToken);
 
             var submissionDtos = submissions.Select(s => MapToDto(s, request.IncludeForm)).ToList();
 
@@ -210,8 +242,8 @@ public class GetSubmissionsByFormQueryHandler : IRequestHandler<GetSubmissionsBy
                 Items = submissionDtos,
                 TotalCount = totalCount,
                 PageNumber = request.PageNumber,
-                PageSize = request.PageSize,
-                TotalPages = (int)Math.Ceiling((double)totalCount / request.PageSize)
+                PageSize = request.PageSize
+                // TotalPages is calculated, do not assign
             };
 
             return Result<PagedResult<FormSubmissionDto>>.Success(pagedResult);
@@ -229,15 +261,19 @@ public class GetSubmissionsByFormQueryHandler : IRequestHandler<GetSubmissionsBy
         {
             Id = submission.Id,
             FormId = submission.FormId,
-            SubmissionData = submission.SubmissionData,
-            UserId = submission.UserId,
+            SubmissionData = !string.IsNullOrEmpty(submission.Data) 
+                ? JsonSerializer.Deserialize<Dictionary<string, object>>(submission.Data) ?? new()
+                : new(),
+            UserId = submission.UserId.ToString(),
             SessionId = submission.SessionId,
             IpAddress = submission.IpAddress,
             UserAgent = submission.UserAgent,
             Status = submission.Status,
-            Metadata = submission.Metadata,
-            SubmittedAt = submission.SubmittedAt,
-            UpdatedAt = submission.UpdatedAt
+            Metadata = !string.IsNullOrEmpty(submission.Metadata)
+                ? JsonSerializer.Deserialize<Dictionary<string, object>>(submission.Metadata)
+                : null,
+            SubmittedAt = submission.SubmittedAt ?? submission.CreatedOn,
+            UpdatedAt = submission.LastModifiedOn
         };
 
         if (includeForm && submission.Form != null)
@@ -247,15 +283,17 @@ public class GetSubmissionsByFormQueryHandler : IRequestHandler<GetSubmissionsBy
                 Id = submission.Form.Id,
                 Name = submission.Form.Name,
                 Description = submission.Form.Description,
-                SchemaJson = submission.Form.SchemaJson,
+                SchemaJson = submission.Form.Schema,
                 IsActive = submission.Form.IsActive,
                 TenantId = submission.Form.TenantId,
                 BusinessId = submission.Form.BusinessId,
-                Metadata = submission.Form.Metadata,
-                CreatedAt = submission.Form.CreatedAt,
-                UpdatedAt = submission.Form.UpdatedAt,
+                Metadata = !string.IsNullOrEmpty(submission.Form.Metadata)
+                    ? JsonSerializer.Deserialize<Dictionary<string, object>>(submission.Form.Metadata)
+                    : null,
+                CreatedAt = submission.Form.CreatedOn,
+                UpdatedAt = submission.Form.LastModifiedOn,
                 CreatedBy = submission.Form.CreatedBy,
-                UpdatedBy = submission.Form.UpdatedBy,
+                UpdatedBy = submission.Form.LastModifiedBy,
                 Version = submission.Form.Version
             };
         }

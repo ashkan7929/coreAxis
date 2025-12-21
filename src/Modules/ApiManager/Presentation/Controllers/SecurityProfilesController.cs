@@ -198,6 +198,7 @@ public class SecurityProfilesController : ControllerBase
         {
             var command = new UpdateSecurityProfileCommand(
                 id,
+                null, // Name not exposed in request yet
                 request.ConfigJson,
                 request.RotationPolicy
             );

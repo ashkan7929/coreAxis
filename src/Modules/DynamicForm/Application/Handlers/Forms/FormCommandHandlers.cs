@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CoreAxis.Modules.DynamicForm.Application.Commands.Forms;
 using CoreAxis.Modules.DynamicForm.Application.DTOs;
 using CoreAxis.Modules.DynamicForm.Application.Services;
@@ -30,10 +31,10 @@ public class CreateFormCommandHandler : IRequestHandler<CreateFormCommand, Resul
         try
         {
             // Validate schema
-            var schemaValidation = await _schemaValidator.ValidateAsync(request.SchemaJson, cancellationToken);
-            if (!schemaValidation.IsValid)
+            var schemaValidation = await _schemaValidator.ValidateJsonAsync(request.SchemaJson);
+            if (!schemaValidation.IsSuccess)
             {
-                return Result<FormDto>.Failure(schemaValidation.Errors.Select(e => e.Message).ToArray());
+                return Result<FormDto>.Failure(schemaValidation.Errors.ToArray());
             }
 
             // Check if form with same name exists in tenant
@@ -49,12 +50,12 @@ public class CreateFormCommandHandler : IRequestHandler<CreateFormCommand, Resul
                 Id = Guid.NewGuid(),
                 Name = request.Name,
                 Description = request.Description,
-                SchemaJson = request.SchemaJson,
+                Schema = request.SchemaJson,
                 IsActive = request.IsActive,
                 TenantId = request.TenantId,
                 BusinessId = request.BusinessId,
-                Metadata = request.Metadata,
-                CreatedAt = DateTime.UtcNow,
+                Metadata = request.Metadata != null ? JsonSerializer.Serialize(request.Metadata) : null,
+                CreatedOn = DateTime.UtcNow,
                 Version = 1
             };
 
@@ -81,15 +82,15 @@ public class CreateFormCommandHandler : IRequestHandler<CreateFormCommand, Resul
             Id = form.Id,
             Name = form.Name,
             Description = form.Description,
-            SchemaJson = form.SchemaJson,
+            SchemaJson = form.Schema,
             IsActive = form.IsActive,
             TenantId = form.TenantId,
             BusinessId = form.BusinessId,
-            Metadata = form.Metadata,
-            CreatedAt = form.CreatedAt,
-            UpdatedAt = form.UpdatedAt,
+            Metadata = !string.IsNullOrEmpty(form.Metadata) ? JsonSerializer.Deserialize<Dictionary<string, object>>(form.Metadata) : null,
+            CreatedAt = form.CreatedOn,
+            UpdatedAt = form.LastModifiedOn,
             CreatedBy = form.CreatedBy,
-            UpdatedBy = form.UpdatedBy,
+            UpdatedBy = form.LastModifiedBy,
             Version = form.Version
         };
     }
@@ -122,19 +123,19 @@ public class UpdateFormCommandHandler : IRequestHandler<UpdateFormCommand, Resul
             }
 
             // Validate schema
-            var schemaValidation = await _schemaValidator.ValidateAsync(request.SchemaJson, cancellationToken);
-            if (!schemaValidation.IsValid)
+            var schemaValidation = await _schemaValidator.ValidateJsonAsync(request.SchemaJson);
+            if (!schemaValidation.IsSuccess)
             {
-                return Result<FormDto>.Failure(schemaValidation.Errors.Select(e => e.Message).ToArray());
+                return Result<FormDto>.Failure(schemaValidation.Errors.ToArray());
             }
 
             // Update form properties
             form.Name = request.Name;
             form.Description = request.Description;
-            form.SchemaJson = request.SchemaJson;
+            form.Schema = request.SchemaJson;
             form.IsActive = request.IsActive;
-            form.Metadata = request.Metadata;
-            form.UpdatedAt = DateTime.UtcNow;
+            form.Metadata = request.Metadata != null ? JsonSerializer.Serialize(request.Metadata) : null;
+            form.LastModifiedOn = DateTime.UtcNow;
             form.Version++;
 
             await _formRepository.UpdateAsync(form, cancellationToken);
@@ -159,15 +160,15 @@ public class UpdateFormCommandHandler : IRequestHandler<UpdateFormCommand, Resul
             Id = form.Id,
             Name = form.Name,
             Description = form.Description,
-            SchemaJson = form.SchemaJson,
+            SchemaJson = form.Schema,
             IsActive = form.IsActive,
             TenantId = form.TenantId,
             BusinessId = form.BusinessId,
-            Metadata = form.Metadata,
-            CreatedAt = form.CreatedAt,
-            UpdatedAt = form.UpdatedAt,
+            Metadata = !string.IsNullOrEmpty(form.Metadata) ? JsonSerializer.Deserialize<Dictionary<string, object>>(form.Metadata) : null,
+            CreatedAt = form.CreatedOn,
+            UpdatedAt = form.LastModifiedOn,
             CreatedBy = form.CreatedBy,
-            UpdatedBy = form.UpdatedBy,
+            UpdatedBy = form.LastModifiedBy,
             Version = form.Version
         };
     }
@@ -196,7 +197,7 @@ public class DeleteFormCommandHandler : IRequestHandler<DeleteFormCommand, Resul
                 return Result<bool>.Failure($"Form with ID {request.Id} not found.");
             }
 
-            await _formRepository.DeleteAsync(form, cancellationToken);
+            await _formRepository.RemoveAsync(form, cancellationToken);
             await _formRepository.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Form deleted successfully with ID: {FormId}", request.Id);
@@ -237,82 +238,69 @@ public class ValidateFormCommandHandler : IRequestHandler<ValidateFormCommand, R
             }
 
             // Convert form fields to field definitions for validation
-            var fieldDefinitions = form.Fields?.Select(f => new FieldDefinition
-            {
-                Name = f.Name,
-                Type = f.FieldType,
-                IsRequired = f.IsRequired,
-                ValidationRules = f.ValidationRules?.Select(vr => new ValidationRule
+            var fieldDefinitions = form.Fields?.Select(f => {
+                var validationRules = !string.IsNullOrEmpty(f.ValidationRules) 
+                    ? JsonSerializer.Deserialize<Dictionary<string, object>>(f.ValidationRules) 
+                    : new Dictionary<string, object>();
+                
+                var options = !string.IsNullOrEmpty(f.Options)
+                    ? JsonSerializer.Deserialize<Dictionary<string, object>>(f.Options)
+                    : new Dictionary<string, object>();
+
+                return new FieldDefinition
                 {
-                    Type = vr.Key,
-                    Parameters = vr.Value as Dictionary<string, object> ?? new Dictionary<string, object>()
-                }).ToList() ?? new List<ValidationRule>(),
-                Options = f.Options?.Select(o => new FieldOption
-                {
-                    Value = o.Key,
-                    Label = o.Value?.ToString() ?? o.Key
-                }).ToList() ?? new List<FieldOption>()
+                    Name = f.Name,
+                    Type = f.FieldType,
+                    IsRequired = f.IsRequired,
+                    ValidationRules = validationRules?.Select(vr => new ValidationRule
+                    {
+                        Type = vr.Key,
+                        Parameters = vr.Value as Dictionary<string, object> ?? new Dictionary<string, object>()
+                    }).ToList() ?? new List<ValidationRule>(),
+                    Options = options?.Select(o => new FieldOption
+                    {
+                        Value = o.Key,
+                        Label = o.Value?.ToString() ?? o.Key
+                    }).ToList() ?? new List<FieldOption>()
+                };
             }).ToList() ?? new List<FieldDefinition>();
 
             var validationResult = await _validationEngine.ValidateAsync(
-                request.FormData,
+                request.FormData.ToDictionary(k => k.Key, v => (object?)v.Value),
                 fieldDefinitions,
-                request.CultureCode,
-                cancellationToken);
+                !string.IsNullOrEmpty(request.CultureCode) ? new System.Globalization.CultureInfo(request.CultureCode) : null);
 
             var resultDto = new ValidationResultDto
             {
                 IsValid = validationResult.IsValid,
-                Errors = validationResult.Errors.Select(e => new ValidationErrorDto
+                Errors = validationResult.FormErrors.Select(e => new ValidationErrorDto
                 {
-                    FieldName = e.FieldName,
-                    ErrorCode = e.ErrorCode,
+                    FieldName = e.FieldName ?? string.Empty,
+                    ErrorCode = e.Code,
                     Message = e.Message,
-                    AttemptedValue = e.AttemptedValue,
-                    Context = e.Context
+                    Context = e.Context.ToDictionary(k => k.Key, v => (object)v.Value!)
                 }).ToList(),
-                Warnings = validationResult.Warnings.Select(w => new ValidationWarningDto
-                {
-                    FieldName = w.FieldName,
-                    WarningCode = w.WarningCode,
-                    Message = w.Message,
-                    AttemptedValue = w.AttemptedValue,
-                    Context = w.Context
-                }).ToList(),
+                Warnings = new List<ValidationWarningDto>(),
                 FieldResults = validationResult.FieldResults.Select(fr => new FieldValidationResultDto
                 {
-                    FieldName = fr.FieldName,
-                    IsValid = fr.IsValid,
-                    Errors = fr.Errors.Select(e => new ValidationErrorDto
+                    FieldName = fr.Key,
+                    IsValid = fr.Value.IsValid,
+                    Errors = fr.Value.Errors.Select(e => new ValidationErrorDto
                     {
-                        FieldName = e.FieldName,
-                        ErrorCode = e.ErrorCode,
+                        FieldName = e.FieldName ?? fr.Key,
+                        ErrorCode = e.Code,
                         Message = e.Message,
-                        AttemptedValue = e.AttemptedValue,
-                        Context = e.Context
+                        Context = e.Context.ToDictionary(k => k.Key, v => (object)v.Value!)
                     }).ToList(),
-                    Warnings = fr.Warnings.Select(w => new ValidationWarningDto
+                    Warnings = fr.Value.Warnings.Select(w => new ValidationWarningDto
                     {
-                        FieldName = w.FieldName,
-                        WarningCode = w.WarningCode,
-                        Message = w.Message,
-                        AttemptedValue = w.AttemptedValue,
-                        Context = w.Context
-                    }).ToList(),
-                    ValidatedValue = fr.ValidatedValue
-                }).ToList(),
-                Metrics = validationResult.Metrics != null ? new ValidationMetricsDto
-                {
-                    ValidationDuration = validationResult.Metrics.ValidationDuration,
-                    TotalFieldsValidated = validationResult.Metrics.TotalFieldsValidated,
-                    FieldsWithErrors = validationResult.Metrics.FieldsWithErrors,
-                    FieldsWithWarnings = validationResult.Metrics.FieldsWithWarnings,
-                    RulesEvaluated = validationResult.Metrics.RulesEvaluated,
-                    AdditionalMetrics = validationResult.Metrics.AdditionalMetrics
-                } : null
+                        FieldName = w.FieldName ?? fr.Key,
+                        WarningCode = w.Code,
+                        Message = w.Message
+                    }).ToList()
+                }).ToList()
             };
 
-            _logger.LogInformation("Form validation completed for FormId: {FormId}, IsValid: {IsValid}", request.FormId, validationResult.IsValid);
             return Result<ValidationResultDto>.Success(resultDto);
         }
         catch (Exception ex)

@@ -62,6 +62,7 @@ public class MappingsAdminController : ControllerBase
     public async Task<ActionResult<Guid>> CreateMapping([FromBody] CreateMappingDefinitionDto dto)
     {
         var id = await _mediator.Send(new CreateMappingDefinitionCommand(
+            string.IsNullOrWhiteSpace(dto.Code) ? dto.Name : dto.Code,
             dto.Name, 
             dto.SourceSchemaRef, 
             dto.TargetSchemaRef, 

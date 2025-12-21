@@ -9,6 +9,7 @@ namespace CoreAxis.Modules.ApiManager.Application.Commands;
 
 public record UpdateSecurityProfileCommand(
     Guid Id,
+    string? Name,
     string? ConfigJson,
     string? RotationPolicy
 ) : IRequest<bool>;
@@ -40,10 +41,12 @@ public class UpdateSecurityProfileCommandHandler : IRequestHandler<UpdateSecurit
         }
 
         // Update only provided fields
+        var name = !string.IsNullOrEmpty(request.Name) ? request.Name : profile.Name;
         var configJson = !string.IsNullOrEmpty(request.ConfigJson) ? request.ConfigJson : profile.ConfigJson;
         var rotationPolicy = !string.IsNullOrEmpty(request.RotationPolicy) ? request.RotationPolicy : profile.RotationPolicy;
 
         profile.Update(
+            name,
             profile.Type,
             configJson,
             rotationPolicy

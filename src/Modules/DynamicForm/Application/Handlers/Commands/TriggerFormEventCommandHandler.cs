@@ -62,7 +62,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Handlers.Commands
                 else
                 {
                     _logger.LogWarning("Failed to trigger {EventType} event for form {FormId}. Error: {Error}", 
-                        request.EventType, request.FormId, result.Error);
+                        request.EventType, request.FormId, string.Join(", ", result.Errors));
                 }
 
                 return result;

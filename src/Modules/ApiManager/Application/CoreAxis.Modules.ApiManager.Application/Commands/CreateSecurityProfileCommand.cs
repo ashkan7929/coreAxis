@@ -7,6 +7,7 @@ using CoreAxis.Modules.ApiManager.Infrastructure.Logging;
 namespace CoreAxis.Modules.ApiManager.Application.Commands;
 
 public record CreateSecurityProfileCommand(
+    string Name,
     string Type,
     string ConfigJson,
     string? RotationPolicy = null
@@ -25,7 +26,7 @@ public class CreateSecurityProfileCommandHandler : IRequestHandler<CreateSecurit
 
     public async Task<Guid> Handle(CreateSecurityProfileCommand request, CancellationToken cancellationToken)
     {
-        _logger.LogSensitiveOperation("Creating security profile", new { Type = request.Type, HasConfig = !string.IsNullOrEmpty(request.ConfigJson) });
+        _logger.LogSensitiveOperation("Creating security profile", new { Name = request.Name, Type = request.Type, HasConfig = !string.IsNullOrEmpty(request.ConfigJson) });
 
         // Parse the security type
         if (!Enum.TryParse<SecurityType>(request.Type, true, out var securityType))
@@ -35,6 +36,7 @@ public class CreateSecurityProfileCommandHandler : IRequestHandler<CreateSecurit
         }
 
         var profile = new SecurityProfile(
+            request.Name,
             securityType,
             request.ConfigJson,
             request.RotationPolicy
@@ -43,7 +45,7 @@ public class CreateSecurityProfileCommandHandler : IRequestHandler<CreateSecurit
         _dbContext.Set<SecurityProfile>().Add(profile);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        _logger.LogSecurityProfileOperation("Created", profile.Id.ToString(), $"Type: {request.Type}");
+        _logger.LogSecurityProfileOperation("Created", profile.Id.ToString(), $"Name: {request.Name}, Type: {request.Type}");
         _logger.LogConfigurationAccess("Stored configuration", profile.Id.ToString());
 
         return profile.Id;

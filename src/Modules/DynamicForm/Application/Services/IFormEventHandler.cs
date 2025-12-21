@@ -79,6 +79,16 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
         public string? ErrorMessage { get; set; }
 
         /// <summary>
+        /// Gets or sets a success or information message.
+        /// </summary>
+        public string? Message { get; set; }
+
+        /// <summary>
+        /// Gets or sets validation errors if the event validation failed.
+        /// </summary>
+        public List<string> ValidationErrors { get; set; } = new();
+
+        /// <summary>
         /// Gets or sets additional data to be returned from the event handler.
         /// </summary>
         public Dictionary<string, object?> Data { get; set; } = new();

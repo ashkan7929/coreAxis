@@ -10,4 +10,7 @@ public class WorkflowStepTypeDescriptor
     public string Category { get; set; } = "General";
     public string? Icon { get; set; }
     public JsonElement ConfigSchema { get; set; }
+    public List<string> RequiredContextPaths { get; set; } = new();
+    public List<string> ProducedContextPaths { get; set; } = new();
+    public List<string> PauseSignalNames { get; set; } = new();
 }

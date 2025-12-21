@@ -7,7 +7,7 @@ public class CalculationStepHandler : IWorkflowStepHandler
 {
     public string StepType => "CalculationStep";
 
-    public Task<StepExecutionResult> ExecuteAsync(WorkflowRun run, StepDsl step, CancellationToken cancellationToken)
+    public Task<StepExecutionResult> ExecuteAsync(WorkflowRun run, WorkflowRunStep runStep, StepDsl step, CancellationToken cancellationToken)
     {
         // Placeholder calculation
         var output = new Dictionary<string, object>();

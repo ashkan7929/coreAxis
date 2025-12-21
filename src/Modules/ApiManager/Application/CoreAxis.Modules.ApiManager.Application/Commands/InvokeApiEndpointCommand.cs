@@ -54,7 +54,7 @@ public class InvokeApiEndpointCommandHandler : IRequestHandler<InvokeApiEndpoint
 
         try
         {
-            var result = await _apiProxy.InvokeAsync(method.Id, request.Parameters, cancellationToken);
+            var result = await _apiProxy.InvokeAsync(method.Id, request.Parameters, null, null, cancellationToken);
             _logger.LogInformation("Endpoint invoked. Success={IsSuccess}, Status={Status}", result.IsSuccess, result.StatusCode);
             return result;
         }

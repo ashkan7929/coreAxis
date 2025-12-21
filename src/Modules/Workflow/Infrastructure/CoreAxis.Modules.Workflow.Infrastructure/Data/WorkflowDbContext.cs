@@ -21,6 +21,7 @@ public class WorkflowDbContext : DbContext, IUnitOfWork
     public DbSet<WorkflowSignal> WorkflowSignals { get; set; } = null!;
     public DbSet<WorkflowTransition> WorkflowTransitions { get; set; } = null!;
     public DbSet<IdempotencyKey> IdempotencyKeys { get; set; } = null!;
+    public DbSet<WorkflowTimer> WorkflowTimers { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -99,6 +100,16 @@ public class WorkflowDbContext : DbContext, IUnitOfWork
             entity.HasOne(t => t.WorkflowRun)
                 .WithMany()
                 .HasForeignKey(t => t.WorkflowRunId);
+        });
+
+        modelBuilder.Entity<WorkflowTimer>(entity =>
+        {
+            entity.ToTable("WorkflowTimers", "workflow");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.StepId).IsRequired().HasMaxLength(128);
+            entity.Property(e => e.SignalName).IsRequired().HasMaxLength(128);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(32);
+            entity.HasIndex(e => new { e.DueAt, e.Status });
         });
 
         modelBuilder.Entity<IdempotencyKey>(entity =>

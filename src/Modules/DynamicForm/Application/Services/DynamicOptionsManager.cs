@@ -58,9 +58,9 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
 
                 // Parse expression to determine the type of dynamic options
                 var options = await EvaluateExpressionAsync(expression, context, cancellationToken);
-                if (options.IsFailure)
+                if (!options.IsSuccess)
                 {
-                    return Result.Failure<List<FieldOption>>(options.Error);
+                    return Result.Failure<List<FieldOption>>(string.Join("; ", options.Errors));
                 }
 
                 // Cache the results
@@ -114,7 +114,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                     else
                     {
                         _logger.LogWarning("Failed to evaluate dynamic options for field {FieldName}: {Error}", 
-                            fieldName, result.Error);
+                            fieldName, string.Join("; ", result.Errors));
                         results[fieldName] = new List<FieldOption>();
                     }
                 }
@@ -222,8 +222,12 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                         }
                     };
 
-                    var formulaExpression = FormulaExpression.Conditional(filterExpression);
-                    var evaluationResult = await _expressionEngine.EvaluateAsync(formulaExpression, optionContext, cancellationToken);
+                    var formulaExpression = FormulaExpression.Boolean(filterExpression);
+                    var evalContext = new ExpressionEvaluationContext
+                    {
+                        Variables = optionContext
+                    };
+                    var evaluationResult = await _expressionEngine.EvaluateAsync(formulaExpression, evalContext, cancellationToken);
                     if (evaluationResult.IsSuccess && evaluationResult.Value is bool shouldInclude && shouldInclude)
                     {
                         filteredOptions.Add(option);
@@ -321,11 +325,15 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 else
                 {
                     // Use expression engine for complex expressions
-                    var result = await _expressionEngine.EvaluateAsync(expression, context, cancellationToken);
-                    if (result.IsFailure)
-                {
-                    return Result.Failure<List<FieldOption>>(result.Error);
-                }
+                    var evalContext = new ExpressionEvaluationContext
+                    {
+                        Variables = context.ToDictionary(k => k.Key, v => v.Value ?? new object(), StringComparer.OrdinalIgnoreCase)
+                    };
+                    var result = await _expressionEngine.EvaluateAsync(new FormulaExpression(expression), evalContext, cancellationToken);
+                    if (!result.IsSuccess)
+                    {
+                        return Result<List<FieldOption>>.Failure(result.ErrorMessage);
+                    }
 
                     // Convert result to field options
                     var options = ConvertToFieldOptions(result.Value);

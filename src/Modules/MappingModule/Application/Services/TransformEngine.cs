@@ -32,11 +32,106 @@ public class TransformEngine : ITransformEngine
             var value = await EvaluateExpressionAsync(rule.Expression, root, cancellationToken);
             if (value != null)
             {
-                output[rule.Target] = value;
+                SetValueByPath(output, rule.Target, value);
             }
         }
         
         return JsonSerializer.Serialize(output);
+    }
+
+    private void SetValueByPath(Dictionary<string, object> root, string path, object value)
+    {
+        // Normalize path: replace [ with . and remove ]
+        // e.g. "orders[0].name" -> "orders.0.name"
+        var normalized = path.Replace("[", ".").Replace("]", "");
+        var parts = normalized.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        
+        object current = root;
+        
+        for (int i = 0; i < parts.Length; i++)
+        {
+            var part = parts[i];
+            var isLast = i == parts.Length - 1;
+            
+            if (current is Dictionary<string, object> dict)
+            {
+                // Handle quoted keys in path (e.g. ['key.with.dot']) - naive cleanup
+                part = part.Trim('\'', '"');
+
+                if (isLast)
+                {
+                    dict[part] = value;
+                }
+                else
+                {
+                    // Check next part to decide structure
+                    var nextPart = parts[i+1];
+                    var isNextArray = int.TryParse(nextPart, out _);
+                    
+                    if (!dict.TryGetValue(part, out var nextVal) || nextVal == null)
+                    {
+                        nextVal = isNextArray ? new List<object>() : new Dictionary<string, object>();
+                        dict[part] = nextVal;
+                    }
+                    else if (isNextArray && !(nextVal is List<object>))
+                    {
+                         // Conflict: expected list but found something else. Overwrite?
+                         // For now, keep existing unless it's incompatible type?
+                         // If we need list but have dict, we have a problem.
+                         // Let's assume we overwrite if type mismatch
+                         nextVal = new List<object>();
+                         dict[part] = nextVal;
+                    }
+                    else if (!isNextArray && !(nextVal is Dictionary<string, object>))
+                    {
+                        nextVal = new Dictionary<string, object>();
+                        dict[part] = nextVal;
+                    }
+                    
+                    current = nextVal;
+                }
+            }
+            else if (current is List<object> list)
+            {
+                if (!int.TryParse(part, out var index))
+                {
+                    // Trying to access property on list? Invalid path for this structure.
+                    return;
+                }
+                
+                // Ensure capacity
+                while (list.Count <= index) list.Add(null);
+                
+                if (isLast)
+                {
+                    list[index] = value;
+                }
+                else
+                {
+                    var nextPart = parts[i+1];
+                    var isNextArray = int.TryParse(nextPart, out _);
+                    
+                    var nextVal = list[index];
+                    if (nextVal == null)
+                    {
+                        nextVal = isNextArray ? new List<object>() : new Dictionary<string, object>();
+                        list[index] = nextVal;
+                    }
+                    else if (isNextArray && !(nextVal is List<object>))
+                    {
+                        nextVal = new List<object>();
+                        list[index] = nextVal;
+                    }
+                    else if (!isNextArray && !(nextVal is Dictionary<string, object>))
+                    {
+                        nextVal = new Dictionary<string, object>();
+                        list[index] = nextVal;
+                    }
+                    
+                    current = nextVal;
+                }
+            }
+        }
     }
 
     public Task<object?> EvaluateExpressionAsync(string expression, JsonElement context, CancellationToken cancellationToken = default)
@@ -154,6 +249,50 @@ public class TransformEngine : ITransformEngine
                     return Task.FromResult<object?>(fdt.ToString(fmt));
                 return Task.FromResult<object?>(null);
 
+            case "regex_replace":
+                // regex_replace(input, pattern, replacement)
+                if (values.Count >= 3 && values[0] is string inputStr && values[1] is string pattern && values[2] is string replacement)
+                {
+                    try { return Task.FromResult<object?>(Regex.Replace(inputStr, pattern, replacement)); }
+                    catch { return Task.FromResult<object?>(inputStr); }
+                }
+                return Task.FromResult<object?>(null);
+
+            case "if":
+                // if(condition, trueVal, falseVal)
+                if (values.Count >= 3 && values[0] is bool condition)
+                    return Task.FromResult(condition ? values[1] : values[2]);
+                return Task.FromResult<object?>(null);
+
+            case "round":
+                // round(value, decimals)
+                if (values.Count >= 1 && decimal.TryParse(values[0]?.ToString(), out var valToRound))
+                {
+                    int decimals = 0;
+                    if (values.Count >= 2 && int.TryParse(values[1]?.ToString(), out var d)) decimals = d;
+                    return Task.FromResult<object?>(Math.Round(valToRound, decimals));
+                }
+                return Task.FromResult<object?>(null);
+
+            case "lookup":
+                // lookup(key, dictionaryJson)
+                // Dictionary must be a JSON object string or JsonElement
+                if (values.Count >= 2 && values[0] is string key)
+                {
+                    try 
+                    {
+                        var dict = values[1] is JsonElement je ? je : 
+                                   values[1] is string js ? JsonDocument.Parse(json: js).RootElement : default;
+                        
+                        if (dict.ValueKind == JsonValueKind.Object && dict.TryGetProperty(key, out var val))
+                        {
+                            return Task.FromResult<object?>(val.ToString());
+                        }
+                    }
+                    catch {}
+                }
+                return Task.FromResult<object?>(null);
+
             default:
                 return Task.FromResult<object?>(null);
         }
@@ -161,18 +300,38 @@ public class TransformEngine : ITransformEngine
 
     private object? GetValueByPath(JsonElement element, string path)
     {
-        var parts = path.Split('.');
+        // Normalize path: replace [ with . and remove ]
+        // e.g. "orders[0].name" -> "orders.0.name"
+        // "matrix[0][1]" -> "matrix.0.1"
+        
+        var normalized = path.Replace("[", ".").Replace("]", "");
+        var parts = normalized.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        
         var current = element;
         
         foreach (var part in parts)
         {
-            if (current.ValueKind == JsonValueKind.Object && current.TryGetProperty(part, out var next))
+            // Check if array index
+            if (current.ValueKind == JsonValueKind.Array && int.TryParse(part, out var index))
+            {
+                if (index >= 0 && index < current.GetArrayLength())
+                {
+                    current = current[index];
+                    continue;
+                }
+                return null; // Index out of bounds
+            }
+            
+            // Assume property
+            string propName = part.Trim('\'', '"'); // Handle ['prop']
+            
+            if (current.ValueKind == JsonValueKind.Object && current.TryGetProperty(propName, out var next))
             {
                 current = next;
             }
             else
             {
-                return null;
+                return null; // Property not found or not an object
             }
         }
         

@@ -7,8 +7,16 @@ using CoreAxis.Modules.ApiManager.Domain;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Polly;
 
 namespace CoreAxis.Modules.ApiManager.Application.Services;
+
+public class RetryPolicyConfig
+{
+    public int MaxRetries { get; set; } = 3;
+    public int BaseDelayMs { get; set; } = 100;
+    public bool ExponentialBackoff { get; set; } = true;
+}
 
 public class ApiProxyService : IApiProxy
 {
@@ -30,6 +38,8 @@ public class ApiProxyService : IApiProxy
     public async Task<ApiProxyResult> InvokeAsync(
         Guid webServiceMethodId,
         Dictionary<string, object> parameters,
+        Guid? workflowRunId = null,
+        string? stepId = null,
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -48,14 +58,14 @@ public class ApiProxyService : IApiProxy
             {
                 var errorMsg = $"WebService method not found: MethodId={webServiceMethodId}";
                 _logger.LogError(errorMsg);
-                callLog = new WebServiceCallLog(Guid.Empty, webServiceMethodId);
+                callLog = new WebServiceCallLog(Guid.Empty, webServiceMethodId, null, workflowRunId, stepId);
                 callLog.SetError(errorMsg, stopwatch.ElapsedMilliseconds);
                 await SaveCallLogAsync(callLog, cancellationToken);
                 return ApiProxyResult.Failure(errorMsg, stopwatch.ElapsedMilliseconds, 404);
             }
 
             // Create call log with correct WebServiceId
-            callLog = new WebServiceCallLog(method.WebServiceId, webServiceMethodId);
+            callLog = new WebServiceCallLog(method.WebServiceId, webServiceMethodId, null, workflowRunId, stepId);
 
             if (!method.IsActive || !method.WebService.IsActive)
             {
@@ -112,40 +122,84 @@ public class ApiProxyService : IApiProxy
                 requestUrl += "?" + string.Join("&", queryParams);
             }
 
-            // Create HTTP request
-            using var request = new HttpRequestMessage(new HttpMethod(method.HttpMethod), requestUrl);
-
-            // Add headers
-            foreach (var header in headers)
-            {
-                request.Headers.TryAddWithoutValidation(header.Key, header.Value);
-            }
-
-            // Apply pluggable authentication via resolver if security profile exists
-            if (method.WebService.SecurityProfile != null)
-            {
-                await _authResolver.ApplyAsync(request, method.WebService.SecurityProfile, cancellationToken);
-            }
-
-            // Add request body for POST/PUT/PATCH
-            if (!string.IsNullOrEmpty(requestBody) && 
-                (method.HttpMethod == "POST" || method.HttpMethod == "PUT" || method.HttpMethod == "PATCH"))
-            {
-                request.Content = new StringContent(requestBody, Encoding.UTF8, "application/json");
-            }
-
-            // Set timeout
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            cts.CancelAfter(TimeSpan.FromMilliseconds(method.TimeoutMs));
-
             // Determine masking rules and log masked request
             var maskingRules = MaskingHelper.ExtractRules(method);
             var maskedRequestBody = string.IsNullOrEmpty(requestBody) ? requestBody : MaskingHelper.MaskBody(requestBody, _maskingService, maskingRules);
             callLog.SetRequest(maskedRequestBody);
-            _logger.LogInformation("Invoking {Method} {Url}", method.HttpMethod, requestUrl);
+            _logger.LogInformation("Invoking {Method} {Url} (Run={RunId}, Step={StepId})", method.HttpMethod, requestUrl, workflowRunId, stepId);
 
-            // Execute request
-            using var response = await _httpClient.SendAsync(request, cts.Token);
+            // Configure Policy
+            AsyncPolicy<HttpResponseMessage> policy = Policy.NoOpAsync<HttpResponseMessage>();
+            if (!string.IsNullOrEmpty(method.RetryPolicyJson))
+            {
+                try
+                {
+                    var retryConfig = JsonSerializer.Deserialize<RetryPolicyConfig>(method.RetryPolicyJson);
+                    if (retryConfig != null && retryConfig.MaxRetries > 0)
+                    {
+                        var builder = Policy
+                            .HandleResult<HttpResponseMessage>(r => !r.IsSuccessStatusCode)
+                            .Or<HttpRequestException>()
+                            .Or<TimeoutException>();
+
+                        if (retryConfig.ExponentialBackoff)
+                        {
+                            policy = builder.WaitAndRetryAsync(
+                                retryConfig.MaxRetries, 
+                                retryAttempt => TimeSpan.FromMilliseconds(retryConfig.BaseDelayMs * Math.Pow(2, retryAttempt - 1)));
+                        }
+                        else
+                        {
+                            policy = builder.WaitAndRetryAsync(
+                                retryConfig.MaxRetries,
+                                _ => TimeSpan.FromMilliseconds(retryConfig.BaseDelayMs));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to parse retry policy for method {MethodId}", webServiceMethodId);
+                }
+            }
+
+            // Execute request with policy
+            using var response = await policy.ExecuteAsync(async (ct) => 
+            {
+                using var request = new HttpRequestMessage(new HttpMethod(method.HttpMethod), requestUrl);
+
+                // Add headers
+                foreach (var header in headers)
+                {
+                    request.Headers.TryAddWithoutValidation(header.Key, header.Value);
+                }
+
+                // Apply pluggable authentication via resolver if security profile exists
+                if (method.WebService.SecurityProfile != null)
+                {
+                    await _authResolver.ApplyAsync(request, method.WebService.SecurityProfile, ct);
+                }
+
+                // Add request body for POST/PUT/PATCH
+                if (!string.IsNullOrEmpty(requestBody) && 
+                    (method.HttpMethod == "POST" || method.HttpMethod == "PUT" || method.HttpMethod == "PATCH"))
+                {
+                    request.Content = new StringContent(requestBody, Encoding.UTF8, "application/json");
+                }
+
+                // Set per-attempt timeout
+                using var attemptCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                attemptCts.CancelAfter(TimeSpan.FromMilliseconds(method.TimeoutMs));
+
+                try 
+                {
+                    return await _httpClient.SendAsync(request, attemptCts.Token);
+                }
+                catch (OperationCanceledException) when (attemptCts.IsCancellationRequested && !ct.IsCancellationRequested)
+                {
+                    throw new TimeoutException($"Request timed out after {method.TimeoutMs}ms");
+                }
+            }, cancellationToken);
+            
             stopwatch.Stop();
 
             // Read response
@@ -174,40 +228,57 @@ public class ApiProxyService : IApiProxy
             stopwatch.Stop();
             var errorMsg = "Request was cancelled";
             _logger.LogWarning(errorMsg);
-            callLog.SetError(errorMsg, stopwatch.ElapsedMilliseconds);
-            await SaveCallLogAsync(callLog, cancellationToken);
+            if (callLog != null)
+            {
+                callLog.SetError(errorMsg, stopwatch.ElapsedMilliseconds);
+                await SaveCallLogAsync(callLog, cancellationToken);
+            }
             return ApiProxyResult.Failure(errorMsg, stopwatch.ElapsedMilliseconds, 408);
         }
-        catch (TaskCanceledException)
+        catch (Exception ex) // Catch TimeoutException and others
         {
             stopwatch.Stop();
-            var errorMsg = "Request timeout";
-            _logger.LogError(errorMsg);
-            callLog.SetError(errorMsg, stopwatch.ElapsedMilliseconds);
-            await SaveCallLogAsync(callLog, cancellationToken);
-            return ApiProxyResult.Failure(errorMsg, stopwatch.ElapsedMilliseconds, 408);
-        }
-        catch (HttpRequestException ex)
-        {
-            stopwatch.Stop();
-            var errorMsg = $"HTTP request failed: {ex.Message}";
+            var errorMsg = $"Request failed: {ex.Message}";
             _logger.LogError(ex, errorMsg);
-            callLog.SetError(errorMsg, stopwatch.ElapsedMilliseconds);
-            await SaveCallLogAsync(callLog, cancellationToken);
-            return ApiProxyResult.Failure(errorMsg, stopwatch.ElapsedMilliseconds, 500);
-        }
-        catch (Exception ex)
-        {
-            stopwatch.Stop();
-            var errorMsg = $"Unexpected error: {ex.Message}";
-            _logger.LogError(ex, errorMsg);
-            callLog.SetError(errorMsg, stopwatch.ElapsedMilliseconds);
-            await SaveCallLogAsync(callLog, cancellationToken);
+            if (callLog != null)
+            {
+                callLog.SetError(errorMsg, stopwatch.ElapsedMilliseconds);
+                await SaveCallLogAsync(callLog, cancellationToken);
+            }
             return ApiProxyResult.Failure(errorMsg, stopwatch.ElapsedMilliseconds, 500);
         }
     }
 
     // Authentication is handled by IAuthSchemeHandlerResolver; legacy method removed.
+
+    public async Task<ApiProxyResult> InvokeAsync(
+        string serviceName,
+        string methodName,
+        Dictionary<string, object> parameters,
+        Guid? workflowRunId = null,
+        string? stepId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var method = await _dbContext.Set<WebServiceMethod>()
+            .Include(m => m.WebService)
+            .Where(m => m.WebService.Name == serviceName && m.Path == methodName)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (method == null)
+        {
+             method = await _dbContext.Set<WebServiceMethod>()
+                .Include(m => m.WebService)
+                .Where(m => m.WebService.Name == serviceName && m.Path == "/" + methodName)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        if (method == null)
+        {
+            return ApiProxyResult.Failure($"Method '{methodName}' not found in service '{serviceName}'", 0, 404);
+        }
+
+        return await InvokeAsync(method.Id, parameters, workflowRunId, stepId, cancellationToken);
+    }
 
     private async Task SaveCallLogAsync(WebServiceCallLog callLog, CancellationToken cancellationToken)
     {

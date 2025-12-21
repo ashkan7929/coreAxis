@@ -88,6 +88,7 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Interfaces
             DateTime? fromDate = null,
             DateTime? toDate = null,
             bool includeInactive = false,
+            bool includeForm = false,
             CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -245,5 +246,15 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Interfaces
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The number of affected records.</returns>
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets submission statistics for a form.
+        /// </summary>
+        /// <param name="formId">The form identifier.</param>
+        /// <param name="fromDate">Optional start date filter.</param>
+        /// <param name="toDate">Optional end date filter.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>Submission statistics.</returns>
+        Task<ValueObjects.SubmissionStats> GetStatsAsync(Guid formId, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default);
     }
 }

@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using CoreAxis.Modules.ApiManager.Domain.Entities;
-using CoreAxis.Modules.ApiManager.Infrastructure.Repositories;
-using CoreAxis.Shared.Infrastructure.Repositories;
+using CoreAxis.Modules.ApiManager.Domain;
+using CoreAxis.Modules.ApiManager.Domain.Repositories;
+using CoreAxis.SharedKernel;
+using CoreAxis.Modules.ApiManager.Infrastructure;
 
 namespace CoreAxis.Modules.ApiManager.Infrastructure.Repositories;
 
@@ -13,7 +14,7 @@ public class WebServiceRepository : Repository<WebService>, IWebServiceRepositor
 
     public async Task<WebService?> GetByIdWithDetailsAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return await DbSet
+        return await _dbSet
             .Include(ws => ws.SecurityProfile)
             .Include(ws => ws.Methods.Where(m => m.IsActive))
                 .ThenInclude(m => m.Parameters)
@@ -22,12 +23,12 @@ public class WebServiceRepository : Repository<WebService>, IWebServiceRepositor
 
     public async Task<WebService?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
     {
-        return await DbSet.FirstOrDefaultAsync(ws => ws.Name == name, cancellationToken);
+        return await _dbSet.FirstOrDefaultAsync(ws => ws.Name == name, cancellationToken);
     }
 
     public async Task<IEnumerable<WebService>> GetAllWithSecurityProfileAsync(bool? isActive = null, CancellationToken cancellationToken = default)
     {
-        var query = DbSet.Include(ws => ws.SecurityProfile).AsQueryable();
+        var query = _dbSet.Include(ws => ws.SecurityProfile).AsQueryable();
 
         if (isActive.HasValue)
         {
@@ -39,7 +40,7 @@ public class WebServiceRepository : Repository<WebService>, IWebServiceRepositor
 
     public async Task<bool> ExistsByNameAsync(string name, Guid? excludeId = null, CancellationToken cancellationToken = default)
     {
-        var query = DbSet.Where(ws => ws.Name == name);
+        var query = _dbSet.Where(ws => ws.Name == name);
         
         if (excludeId.HasValue)
         {
@@ -51,7 +52,7 @@ public class WebServiceRepository : Repository<WebService>, IWebServiceRepositor
 
     public async Task<bool> ExistsByBaseUrlAsync(string baseUrl, Guid? excludeId = null, CancellationToken cancellationToken = default)
     {
-        var query = DbSet.Where(ws => ws.BaseUrl == baseUrl);
+        var query = _dbSet.Where(ws => ws.BaseUrl == baseUrl);
         
         if (excludeId.HasValue)
         {

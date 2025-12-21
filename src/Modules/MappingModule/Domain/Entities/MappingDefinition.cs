@@ -6,7 +6,9 @@ namespace CoreAxis.Modules.MappingModule.Domain.Entities;
 public class MappingDefinition : EntityBase
 {
     public string TenantId { get; set; } = "default";
+    public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;
+    public int Version { get; set; } = 1;
     public string? SourceSchemaRef { get; set; }
     public string? TargetSchemaRef { get; set; }
     public string RulesJson { get; set; } = "[]";

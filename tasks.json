@@ -1,0 +1,793 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2025-12-20T08:19:41.655652",
+  "based_on_repo_zip": {
+    "path": "/mnt/data/coreAxis-develop.zip",
+    "label": "coreAxis-develop.zip",
+    "note": "Remaining work computed by static inspection of the codebase inside the zip."
+  },
+  "definition_of_done_100_percent": [
+    "Design-time APIs: product wizard + workflow designer + form builder + mapping designer + api manager + formula designer are complete, secure, and versioned (draft/published immutable).",
+    "Run-time: product start creates a pinned instance and runs workflow end-to-end with pause/resume (forms, human tasks, external events like payment) without manual DB intervention.",
+    "Integrations: ApiManager supports policies, secrets, and OpenAPI import; Mapping supports robust JSONPath + transforms + trace.",
+    "Business flows: order + payment intent + callback/webhook + workflow event integration; wallet support; compensation on failure/cancel.",
+    "Operational: audit/timeline, correlation/tracing, tests, CI gates, and optional multi-tenancy+secrets."
+  ],
+  "critical_path_order": [
+    "CP-01: Fix workflow context serialization and ensure ContextJson is valid JSON at all times",
+    "CP-02: Make workflow resume automatically after Form submit and HumanTask actions (end-to-end)",
+    "CP-03: Ensure MappingModule persists (migrations) and ServiceTask uses mapping reliably",
+    "CP-04: ProductBuilder runtime start + security + publish immutability",
+    "CP-05: TimerStep + CompensationStep handlers (runtime completeness)",
+    "CP-06: DynamicForm evaluate/prefill + field type catalog (to enable full designer UX)",
+    "CP-07: Payment intents/callback + workflow wait-for-event integration",
+    "CP-08: Hardening: timeline/audit, notifications, files, multi-tenancy+secrets"
+  ],
+  "remaining_epics": [
+    {
+      "id": "EPIC-FIX",
+      "title": "Critical fixes for current develop branch",
+      "priority": "P0",
+      "tasks": [
+        {
+          "id": "TASK-FIX-01",
+          "title": "Fix ContextJson serialization bug in ServiceTaskStepHandler",
+          "priority": "P0",
+          "status": "done",
+          "why": "Workflow run context becomes invalid/non-JSON after service steps, breaking downstream steps and history.",
+          "repo_evidence": {
+            "file": "src/Modules/Workflow/Application/.../StepHandlers/ServiceTaskStepHandler.cs",
+            "pattern": "run.ContextJson = runCtx.ToString();"
+          },
+          "what_to_do": [
+            "Replace all uses of runCtx.ToString() with runCtx.ToJson() when persisting.",
+            "Add a guard: after persisting, validate JSON (quick parse) in debug/test builds.",
+            "Add integration test: workflow with ServiceTask modifies context; run.ContextJson remains valid JSON and contains expected updates."
+          ],
+          "acceptance_criteria": [
+            "ContextJson is valid JSON after any step that writes it.",
+            "Integration test passes and would fail with previous ToString() behavior."
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "TASK-FIX-02",
+          "title": "End-to-end workflow resume after Task actions (approve/reject/return/delegate)",
+          "priority": "P0",
+          "status": "done",
+          "why": "Workflow pauses at HumanTaskStep and TaskModule creates tasks, but workflow does not continue automatically after actions.",
+          "repo_evidence": {
+            "files": [
+              "src/Modules/Workflow/.../StepHandlers/HumanTaskStepHandler.cs",
+              "src/Modules/TaskModule/... (command handlers/controllers)"
+            ],
+            "note": "Task creation is event-driven, but completion->workflow resume is missing."
+          },
+          "what_to_do": [
+            "Define an integration event contract: HumanTaskCompleted (taskId, workflowId, stepKey, outcome, actorId, payload).",
+            "On each task action handler (approve/reject/return/delegate): publish HumanTaskCompleted.",
+            "In Workflow module: subscribe to HumanTaskCompleted and call IWorkflowExecutor.Signal/Resume for the matching workflowId, passing outcome payload.",
+            "Update HumanTaskStepHandler to wait for this signal name (e.g., 'HumanTaskCompleted') or step-key-specific signal.",
+            "Add integration test: workflow pauses -> task created -> approve -> workflow resumes and progresses to next step."
+          ],
+          "acceptance_criteria": [
+            "No manual /api/workflows/{id}/resume call is required after task actions.",
+            "Workflow history shows a signal entry and subsequent step execution."
+          ],
+          "dependencies": [
+            "TASK-FIX-01"
+          ]
+        },
+        {
+          "id": "TASK-FIX-03",
+          "title": "End-to-end workflow resume after Form submission",
+          "priority": "P0",
+          "status": "done",
+          "why": "Workflow pauses at FormStep but there is no automatic resume when a form is submitted.",
+          "repo_evidence": {
+            "files": [
+              "src/Modules/Workflow/.../StepHandlers/FormStepHandler.cs",
+              "src/Modules/DynamicForm/... (submission endpoints/handlers)"
+            ]
+          },
+          "what_to_do": [
+            "Emit FormSubmitted integration event from DynamicForm when a submission is finalized (submissionId, workflowId, stepKey/formKey, actorId, payload).",
+            "Workflow module subscribes to FormSubmitted and signals/resumes the workflow instance with that payload.",
+            "FormStepHandler should pause awaiting FormSubmitted signal (global or step-key-specific).",
+            "Add integration test: workflow pauses on FormStep -> submit form -> workflow resumes."
+          ],
+          "acceptance_criteria": [
+            "Form submission automatically advances workflow.",
+            "Workflow history includes form submission signal details."
+          ],
+          "dependencies": [
+            "TASK-FIX-01"
+          ]
+        },
+        {
+          "id": "TASK-FIX-04",
+          "title": "Add EF Core migrations for MappingModule",
+          "priority": "P0",
+          "status": "done",
+          "why": "Mapping definitions cannot persist across restarts/environments; runtime will break when DB is reset.",
+          "repo_evidence": {
+            "module": "src/Modules/MappingModule",
+            "note": "No Migrations folder found in MappingModule."
+          },
+          "what_to_do": [
+            "Create MappingDbContext migrations (InitialCreate).",
+            "Ensure migrations are applied in local/dev runbook (or at startup if project uses auto-migrate).",
+            "Add minimal integration test: create mapping -> fetch mapping -> persists."
+          ],
+          "acceptance_criteria": [
+            "MappingModule schema exists in DB and CRUD works after restart."
+          ],
+          "dependencies": []
+        }
+      ]
+    },
+    {
+      "id": "EPIC-10-REMAINING",
+      "title": "ProductBuilderModule completion (design-time + runtime start + security)",
+      "priority": "P0",
+      "tasks": [
+        {
+          "id": "TASK-PB-01",
+          "title": "Add runtime Product Start endpoint (/api/products/{productKey}/start)",
+          "priority": "P0",
+          "status": "done",
+          "why": "Without runtime start, the platform cannot create instances and run workflows per product.",
+          "repo_evidence": {
+            "note": "Only ProductAdminController exists under ProductBuilderModule; no runtime controller."
+          },
+          "what_to_do": [
+            "Create ProductRuntimeController with routes: POST /api/products/{productKey}/start and GET /api/products/{productKey}.",
+            "Resolve latest Published ProductVersion for productKey (or allow version pin).",
+            "Initialize context.product metadata and store in WorkflowRun.ContextJson.",
+            "Call workflow start (definitionCode + version) and return identifiers."
+          ],
+          "acceptance_criteria": [
+            "Starting a product returns workflowId/processInstanceId.",
+            "ProductVersion is pinned and recorded in context.product."
+          ],
+          "dependencies": [
+            "TASK-FIX-01",
+            "TASK-20-START-GENERIC"
+          ]
+        },
+        {
+          "id": "TASK-PB-02",
+          "title": "Add authorization + permissions on ProductBuilder admin APIs",
+          "priority": "P0",
+          "status": "done",
+          "why": "Currently admin endpoints are unauthenticated, which is unsafe.",
+          "repo_evidence": {
+            "file": "src/Modules/ProductBuilderModule/Api/Controllers/ProductAdminController.cs",
+            "note": "No [Authorize] / RequirePermission attributes present."
+          },
+          "what_to_do": [
+            "Add [Authorize] and RequirePermission policies to all admin controllers/actions.",
+            "Align permission names with existing AuthModule conventions.",
+            "Add integration test: unauthenticated request returns 401/403."
+          ],
+          "acceptance_criteria": [
+            "Admin endpoints require auth and correct permissions."
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "TASK-PB-03",
+          "title": "Enforce immutability of Published ProductVersions",
+          "priority": "P0",
+          "status": "done",
+          "why": "Published versions must not be editable; otherwise running instances become inconsistent.",
+          "what_to_do": [
+            "In UpdateVersionCommandHandler: reject updates if Status==Published.",
+            "Similarly for bindings edits.",
+            "Add test cases verifying update fails for Published versions."
+          ],
+          "acceptance_criteria": [
+            "Published ProductVersion cannot be updated via API or repository."
+          ],
+          "dependencies": [
+            "TASK-PB-02"
+          ]
+        },
+        {
+          "id": "TASK-PB-04",
+          "title": "Fix admin route design: separate product routes from product-version routes",
+          "priority": "P1",
+          "status": "done",
+          "why": "Current routes risk ambiguity/collision and complicate API consumption.",
+          "what_to_do": [
+            "Create ProductVersionsAdminController at /api/admin/product-versions.",
+            "Keep ProductAdminController at /api/admin/products.",
+            "Update Swagger grouping and any clients/tests."
+          ],
+          "acceptance_criteria": [
+            "No route collisions, clear REST resources."
+          ],
+          "dependencies": [
+            "TASK-PB-02"
+          ]
+        },
+        {
+          "id": "TASK-PB-05",
+          "title": "Make ProductVersion Validate cross-module real (Workflow/Form/Mapping/Formula/Payment)",
+          "priority": "P0",
+          "status": "done",
+          "why": "Current validate is mostly field presence; needs real existence + published checks.",
+          "what_to_do": [
+            "Check Workflow definitionCode+version exists and is Published.",
+            "Check referenced Form exists and correct version exists and Published (or is otherwise allowed).",
+            "Check MappingSet exists and its mappings are Published.",
+            "Check Formula version exists and Published.",
+            "Check PaymentConfig exists and is valid.",
+            "Return detailed errors list."
+          ],
+          "acceptance_criteria": [
+            "Validate fails with actionable error messages when any dependency is missing/not published."
+          ],
+          "dependencies": [
+            "TASK-FIX-04"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EPIC-20-REMAINING",
+      "title": "Workflow runtime completeness (Timer/Compensation + hardening)",
+      "priority": "P0",
+      "tasks": [
+        {
+          "id": "TASK-20-START-GENERIC",
+          "title": "Ensure /api/workflows/start supports definitionCode+version (generic) and enforces Published versions",
+          "priority": "P0",
+          "status": "done",
+          "why": "Product start depends on generic workflow start; should not allow draft versions in runtime.",
+          "what_to_do": [
+            "Reject starting non-published workflow versions unless explicit debug flag.",
+            "Record correlationId and pin version in WorkflowRun."
+          ],
+          "acceptance_criteria": [
+            "Runtime start only works with Published definition versions."
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "TASK-WF-01",
+          "title": "Implement TimerStepHandler + timer persistence + background processing",
+          "priority": "P0",
+          "status": "done",
+          "why": "Timers are essential for SLA, reminders, timeouts in workflows.",
+          "what_to_do": [
+            "Add WorkflowTimers table: workflowRunId, stepId, dueAt, signalName, payloadJson, status.",
+            "Implement TimerStepHandler: create timer and pause workflow.",
+            "Add background worker (hosted service) that polls due timers and signals workflows idempotently.",
+            "Add integration test with short timer (e.g., 2s) verifying workflow continues."
+          ],
+          "acceptance_criteria": [
+            "Timer steps pause and resume automatically on due time.",
+            "No duplicate signals (idempotent)."
+          ],
+          "dependencies": [
+            "TASK-FIX-01"
+          ]
+        },
+        {
+          "id": "TASK-WF-02",
+          "title": "Implement CompensationStepHandler (rollback hooks)",
+          "priority": "P1",
+          "status": "done",
+          "why": "Real workflows need compensation on failure/cancel (refund, reverse wallet, cancel reservations).",
+          "what_to_do": [
+            "Define compensation config schema: actions list (type=apiCall|walletReverse|paymentRefund|customEvent) with mappings.",
+            "On workflow failure/cancel: execute compensation chain with logging and retry policy.",
+            "Expose in history/timeline."
+          ],
+          "acceptance_criteria": [
+            "Compensation executes deterministically on cancel/fail and logs outcomes."
+          ],
+          "dependencies": [
+            "TASK-FIX-04",
+            "TASK-WF-03"
+          ]
+        },
+        {
+          "id": "TASK-WF-03",
+          "title": "Workflow StepType registry: include required/provided context paths + signal names",
+          "priority": "P1",
+          "status": "done",
+          "why": "Frontend designer needs exact contracts to configure steps correctly.",
+          "what_to_do": [
+            "Extend step-types endpoint output to include: requiredContextPaths, producedContextPaths, pauseSignalNames, configSchema.",
+            "Document conventions in code comments + README."
+          ],
+          "acceptance_criteria": [
+            "Designer can render config UI and warn about missing bindings."
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "TASK-WF-04",
+          "title": "Step-level idempotency keys and safe retries",
+          "priority": "P1",
+          "status": "done",
+          "why": "Retries should not cause duplicate side effects (especially API calls / payments).",
+          "what_to_do": [
+            "Add StepExecutionKey to WorkflowRunSteps, derived from workflowId+stepId+attemptKey.",
+            "ServiceTaskStep should store successful result and reuse it on retry unless forced.",
+            "Add tests for retries not duplicating logs/side effects."
+          ],
+          "acceptance_criteria": [
+            "Retries are safe and idempotent at step level."
+          ],
+          "dependencies": [
+            "TASK-FIX-01",
+            "TASK-FIX-04"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EPIC-40-REMAINING",
+      "title": "Mapping module hardening (JSONPath, transforms, trace, immutability)",
+      "priority": "P1",
+      "tasks": [
+        {
+          "id": "TASK-MAP-01",
+          "title": "Implement robust JSONPath (arrays, nested objects) for mapping rules",
+          "priority": "P1",
+          "status": "done",
+          "why": "Simple dot-splitting breaks for arrays and real-world payloads.",
+          "what_to_do": [
+            "Support JSONPath-like syntax (e.g., $.context.forms.applicants[0].name).",
+            "Implement set/get for arrays (create arrays/objects as needed).",
+            "Add test matrix for common patterns."
+          ],
+          "acceptance_criteria": [
+            "Mapping can read/write array elements and nested objects reliably."
+          ],
+          "dependencies": [
+            "TASK-FIX-04"
+          ]
+        },
+        {
+          "id": "TASK-MAP-02",
+          "title": "Add missing transforms: regex/replace, lookup/dictionary, conditional if, rounding",
+          "priority": "P2",
+          "status": "done",
+          "why": "Real mappings require text normalization and lookup tables.",
+          "what_to_do": [
+            "Add transform library functions with safe execution and strict limits.",
+            "Provide trace/explain output per rule."
+          ],
+          "acceptance_criteria": [
+            "Transform library covers typical integration needs."
+          ],
+          "dependencies": [
+            "TASK-MAP-01"
+          ]
+        },
+        {
+          "id": "TASK-MAP-03",
+          "title": "Publish immutability + versioning for mappings (draft/published)",
+          "priority": "P1",
+          "status": "done",
+          "why": "Published mappings must not change or running instances become inconsistent.",
+          "what_to_do": [
+            "Ensure published mappings cannot be edited; require new draft version.",
+            "If current model lacks versions, introduce MappingVersion (or immutable publish snapshots)."
+          ],
+          "acceptance_criteria": [
+            "Published mapping state is immutable and pinned by product/workflow."
+          ],
+          "dependencies": [
+            "TASK-FIX-04"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EPIC-60-REMAINING",
+      "title": "DynamicForm APIs needed for full designer/runtime UX",
+      "priority": "P1",
+      "tasks": [
+        {
+          "id": "TASK-FORM-01",
+          "title": "Expose FieldType catalog endpoint (JSON schemas)",
+          "priority": "P1",
+          "status": "done",
+          "why": "Frontend FormBuilder needs to know supported field types and their config properties.",
+          "what_to_do": [
+            "Add GET /api/admin/forms/field-types returning list of field types with JSON Schema.",
+            "Include defaults and allowed validation rules."
+          ],
+          "acceptance_criteria": [
+            "Designer can render field property panels from schema."
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "TASK-FORM-02",
+          "title": "Form evaluate endpoint (conditional visibility + calculated fields + validation)",
+          "priority": "P1",
+          "status": "done",
+          "why": "To support dynamic behavior without custom frontend logic, backend should evaluate rules/expressions consistently.",
+          "what_to_do": [
+            "Add POST /api/forms/{formId}/evaluate with input: partial submission + context.",
+            "Return: calculated values, visible/hidden states, validation errors, trace."
+          ],
+          "acceptance_criteria": [
+            "Evaluate matches what runtime would do; deterministic results."
+          ],
+          "dependencies": [
+            "TASK-FIX-01"
+          ]
+        },
+        {
+          "id": "TASK-FORM-03",
+          "title": "Form prefill endpoint using ApiManager + Mapping",
+          "priority": "P2",
+          "status": "done",
+          "why": "Prefill is required for 'call service then fill other inputs' patterns.",
+          "what_to_do": [
+            "Add POST /api/forms/{formId}/prefill that executes one or more Service calls and maps responses to field values.",
+            "Return filled values and trace."
+          ],
+          "acceptance_criteria": [
+            "Prefill can populate fields from external services reliably."
+          ],
+          "dependencies": [
+            "TASK-FIX-04",
+            "TASK-MAP-01"
+          ]
+        },
+        {
+          "id": "TASK-FORM-04",
+          "title": "Emit FormSubmitted integration event and auto-resume workflow",
+          "priority": "P0",
+          "status": "done",
+          "why": "Required to make FormStep end-to-end.",
+          "what_to_do": [
+            "Emit FormSubmitted event on final submit.",
+            "Workflow subscribes and resumes (covered also by TASK-FIX-03)."
+          ],
+          "acceptance_criteria": [
+            "Form submission advances workflow without manual calls."
+          ],
+          "dependencies": [
+            "TASK-FIX-03"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EPIC-50-REMAINING",
+      "title": "ApiManager hardening (policies, test, secrets, schema validation)",
+      "priority": "P2",
+      "tasks": [
+        {
+          "id": "TASK-APIM-01",
+          "title": "Method test endpoint and schema validation",
+          "priority": "P2",
+          "status": "done",
+          "why": "Designers need to verify integrations and validate payloads against schemas.",
+          "what_to_do": [
+            "Add POST /api/admin/apim/methods/{id}/test with sample payload/context -> execute -> return response + log.",
+            "Validate request/response using stored schema (from OpenAPI import)."
+          ],
+          "acceptance_criteria": [
+            "Test endpoint returns response and call log; invalid payload returns validation errors."
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "TASK-APIM-02",
+          "title": "Complete policy enforcement (retry/timeout/circuit + correlation linking)",
+          "priority": "P2",
+          "status": "done",
+          "why": "Reliable integrations need strict timeouts/retries and observability.",
+          "what_to_do": [
+            "Ensure policies are applied in ApiProxyService for every call.",
+            "Link call logs to correlationId + workflowRunId + stepId when invoked from workflow."
+          ],
+          "acceptance_criteria": [
+            "Policies demonstrably work; logs contain correlation and workflow info."
+          ],
+          "dependencies": [
+            "TASK-FIX-01"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EPIC-70-REMAINING",
+      "title": "Formula/Rate Engine: versioned formulas + quote runtime + variable graph",
+      "priority": "P2",
+      "tasks": [
+        {
+          "id": "TASK-FML-01",
+          "title": "Versioned Formula CRUD (draft/publish immutable)",
+          "priority": "P2",
+          "status": "done",
+          "why": "Rate calculations must be versioned and pinned to product versions.",
+          "what_to_do": [
+            "Confirm formulas have versions; if partial, finalize immutability + publish flow.",
+            "Bind formulaId+version to ProductBindings and enforce validate rules."
+          ],
+          "acceptance_criteria": [
+            "Published formula versions are immutable; product pins exact formula version."
+          ],
+          "dependencies": [
+            "TASK-PB-05"
+          ]
+        },
+        {
+          "id": "TASK-FML-02",
+          "title": "Runtime Quote endpoint: POST /api/products/{productKey}/quote",
+          "priority": "P2",
+          "status": "done",
+          "why": "Frontend/runtime needs a stable quote API (pricing).",
+          "what_to_do": [
+            "Compute quote using pinned formula version and current context.",
+            "Return breakdown and explain trace."
+          ],
+          "acceptance_criteria": [
+            "Quote output deterministic and explainable."
+          ],
+          "dependencies": [
+            "TASK-PB-01",
+            "TASK-FML-01"
+          ]
+        },
+        {
+          "id": "TASK-FML-03",
+          "title": "Variable resolution graph (context + ApiManager) with caching",
+          "priority": "P2",
+          "status": "not_started",
+          "why": "Your rate engine requires variables that can come from API or context.",
+          "what_to_do": [
+            "Build dependency graph to resolve variables in correct order.",
+            "Support API-backed variables via ApiManager and cache with TTL.",
+            "Include trace source per variable."
+          ],
+          "acceptance_criteria": [
+            "Complex formulas with API-backed variables work and are traceable."
+          ],
+          "dependencies": [
+            "TASK-APIM-02",
+            "TASK-MAP-01"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EPIC-80-REMAINING",
+      "title": "Payments: intents/callback/webhooks + workflow integration",
+      "priority": "P2",
+      "tasks": [
+        {
+          "id": "TASK-PAY-01",
+          "title": "Implement PaymentIntent + create intent API",
+          "priority": "P2",
+          "status": "not_started",
+          "why": "End-to-end checkout requires a payment intent and a state machine.",
+          "what_to_do": [
+            "Add PaymentIntent entity/table with statuses (Initiated/Pending/Paid/Failed/Refunded).",
+            "POST /api/payments/intents creates intent and returns redirect/url payload.",
+            "Integrate with Wallet if configured."
+          ],
+          "acceptance_criteria": [
+            "Intent lifecycle persisted and queryable."
+          ],
+          "dependencies": []
+        },
+        {
+          "id": "TASK-PAY-02",
+          "title": "Provider callback/webhook endpoint + idempotent confirmation",
+          "priority": "P2",
+          "status": "not_started",
+          "why": "Payment providers call back asynchronously; must be idempotent and secure.",
+          "what_to_do": [
+            "POST /api/payments/callback/{provider} verifies signature, updates intent, publishes events.",
+            "Handle duplicate callbacks safely."
+          ],
+          "acceptance_criteria": [
+            "Duplicate callbacks do not create duplicates; events are published once."
+          ],
+          "dependencies": [
+            "TASK-PAY-01"
+          ]
+        },
+        {
+          "id": "TASK-PAY-03",
+          "title": "Workflow WaitForEventStep integration for PaymentConfirmed/PaymentFailed",
+          "priority": "P2",
+          "status": "partial",
+          "why": "Workflow must pause waiting for payment and continue on confirmation.",
+          "what_to_do": [
+            "On payment events, signal workflow with event payload.",
+            "Provide standard signal names and payload contracts."
+          ],
+          "acceptance_criteria": [
+            "Payment-driven workflow paths are possible end-to-end."
+          ],
+          "dependencies": [
+            "TASK-PAY-02",
+            "TASK-WF-03"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EPIC-90-REMAINING",
+      "title": "FileModule for attachments (forms + tasks)",
+      "priority": "P3",
+      "tasks": [
+        {
+          "id": "TASK-FILE-01",
+          "title": "Implement FileModule (upload sessions + metadata + ACL)",
+          "priority": "P3",
+          "status": "not_started",
+          "why": "Attachments are required for many forms and human tasks.",
+          "what_to_do": [
+            "Create FileModule with endpoints: upload-url/token, complete, download/metadata.",
+            "Support Local storage first; make provider abstraction for S3/MinIO later.",
+            "Enforce ACL by owner/tenant."
+          ],
+          "acceptance_criteria": [
+            "Files can be referenced by form submissions and task comments."
+          ],
+          "dependencies": [
+            "TASK-PB-02"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EPIC-100-REMAINING",
+      "title": "NotificationModule (templates + outbox dispatch)",
+      "priority": "P3",
+      "tasks": [
+        {
+          "id": "TASK-NOTIF-01",
+          "title": "Notification templates + providers + event subscribers",
+          "priority": "P3",
+          "status": "not_started",
+          "why": "Users need notifications for tasks, reminders, and payment failures.",
+          "what_to_do": [
+            "Create NotificationModule with template CRUD and provider configs.",
+            "Subscribe to TaskCreated, PaymentFailed, SLA events and enqueue notifications via outbox."
+          ],
+          "acceptance_criteria": [
+            "Notifications are enqueued and auditable; provider sending can be mocked in tests."
+          ],
+          "dependencies": [
+            "TASK-WF-01",
+            "TASK-FIX-02",
+            "TASK-PAY-02"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EPIC-110-REMAINING",
+      "title": "Admin timeline/observability endpoint",
+      "priority": "P3",
+      "tasks": [
+        {
+          "id": "TASK-TL-01",
+          "title": "Unified timeline API: workflow steps + task actions + api calls + payments",
+          "priority": "P3",
+          "status": "not_started",
+          "why": "Support/debug needs a single chronological view without DB access.",
+          "what_to_do": [
+            "Create GET /api/admin/instances/{workflowId}/timeline aggregating from Workflow, TaskModule, ApiManager logs, Payment events.",
+            "Include correlationId and filter parameters."
+          ],
+          "acceptance_criteria": [
+            "Timeline shows ordered events across modules with enough detail to debug."
+          ],
+          "dependencies": [
+            "TASK-APIM-02",
+            "TASK-FIX-02",
+            "TASK-PAY-02"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EPIC-120-REMAINING",
+      "title": "Multi-tenancy + secrets store (enterprise readiness)",
+      "priority": "P3",
+      "tasks": [
+        {
+          "id": "TASK-TENANT-01",
+          "title": "Introduce ITenantProvider and enforce tenant isolation via EF query filters",
+          "priority": "P3",
+          "status": "not_started",
+          "why": "If serving multiple clients/tenants, isolation must be enforced at the data layer.",
+          "what_to_do": [
+            "Implement ITenantProvider from auth claims.",
+            "Add TenantId to relevant entities and apply query filters in DbContexts."
+          ],
+          "acceptance_criteria": [
+            "Tenant A cannot access Tenant B resources (integration tests)."
+          ],
+          "dependencies": [
+            "TASK-PB-02"
+          ]
+        },
+        {
+          "id": "TASK-SECRETS-01",
+          "title": "Encrypted secrets store and references for ApiManager/Payments/Notifications",
+          "priority": "P3",
+          "status": "not_started",
+          "why": "Never store plaintext secrets; integrations need secret references.",
+          "what_to_do": [
+            "Create Secrets store (encrypted values + metadata).",
+            "Replace raw secrets in configs with secret references resolved at runtime."
+          ],
+          "acceptance_criteria": [
+            "No plaintext secrets stored; integrations resolve secrets by reference."
+          ],
+          "dependencies": [
+            "TASK-TENANT-01"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "EPIC-TEST-REMAINING",
+      "title": "Testing & CI coverage to reach 100% confidence",
+      "priority": "P1",
+      "tasks": [
+        {
+          "id": "TASK-TEST-01",
+          "title": "E2E scenario tests (3 golden paths)",
+          "priority": "P1",
+          "status": "not_started",
+          "why": "To ensure platform works end-to-end and stays stable as modules evolve.",
+          "what_to_do": [
+            "E2E-1: Product start -> FormStep -> ServiceTask -> Completed.",
+            "E2E-2: Product start -> HumanTask approve -> Completed.",
+            "E2E-3: Product start -> Payment Wait -> Callback -> Completed.",
+            "Use test host + in-memory or test DB + mocked external services."
+          ],
+          "acceptance_criteria": [
+            "All 3 E2E tests pass in CI and locally."
+          ],
+          "dependencies": [
+            "TASK-PB-01",
+            "TASK-FIX-03",
+            "TASK-FIX-02",
+            "TASK-PAY-03"
+          ]
+        },
+        {
+          "id": "TASK-TEST-02",
+          "title": "Contract tests for step-type schemas and mapping transforms",
+          "priority": "P2",
+          "status": "not_started",
+          "why": "Designer relies on contracts; breaking them silently is costly.",
+          "what_to_do": [
+            "Snapshot tests for /api/admin/workflows/step-types output schemas.",
+            "Unit tests for mapping transforms and path evaluation."
+          ],
+          "acceptance_criteria": [
+            "Contracts stable; breaking changes detected in tests."
+          ],
+          "dependencies": [
+            "TASK-WF-03",
+            "TASK-MAP-02"
+          ]
+        }
+      ]
+    }
+  ],
+  "notes_for_frontend_team": [
+    "Frontend can safely assume backend will expose: step-type schemas, field-type schemas, mapping test, API method test, and stable runtime start/resume/signal endpoints.",
+    "If backend chooses event-driven auto-resume, frontend does NOT need to call /resume explicitly after submit/approve; otherwise it must."
+  ]
+}

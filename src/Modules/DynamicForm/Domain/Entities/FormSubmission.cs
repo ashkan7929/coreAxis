@@ -40,6 +40,12 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Entities
         public string Data { get; set; }
 
         /// <summary>
+        /// Gets or sets the session identifier.
+        /// </summary>
+        [MaxLength(100)]
+        public string SessionId { get; set; }
+
+        /// <summary>
         /// Gets or sets the status of the submission.
         /// </summary>
         [Required]

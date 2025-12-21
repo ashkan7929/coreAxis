@@ -53,12 +53,12 @@ namespace CoreAxis.Modules.DynamicForm.Application.Handlers.FormSteps
                 
                 if (formStep == null)
                 {
-                    throw new NotFoundException($"Form step with ID {request.Id} not found");
+                    throw new NotFoundException(nameof(FormStep), request.Id);
                 }
 
                 if (!request.IncludeInactive && !formStep.IsActive)
                 {
-                    throw new NotFoundException($"Form step with ID {request.Id} is inactive");
+                    throw new NotFoundException(nameof(FormStep), request.Id);
                 }
 
                 _logger.LogInformation("Form step {StepId} retrieved successfully", request.Id);
@@ -88,11 +88,15 @@ namespace CoreAxis.Modules.DynamicForm.Application.Handlers.FormSteps
 
                 if (request.RequiredOnly)
                 {
-                    formSteps = await _formStepRepository.GetRequiredStepsAsync(request.FormId, request.TenantId, cancellationToken);
+                    var steps = await _formStepRepository.GetRequiredStepsAsync(request.FormId, cancellationToken);
+                    // Filter by tenant manually since repository method doesn't support it directly
+                    formSteps = steps.Where(s => s.TenantId == request.TenantId);
                 }
                 else if (request.SkippableOnly)
                 {
-                    formSteps = await _formStepRepository.GetSkippableStepsAsync(request.FormId, request.TenantId, cancellationToken);
+                    var steps = await _formStepRepository.GetSkippableStepsAsync(request.FormId, cancellationToken);
+                    // Filter by tenant manually since repository method doesn't support it directly
+                    formSteps = steps.Where(s => s.TenantId == request.TenantId);
                 }
                 else
                 {

@@ -55,6 +55,7 @@ public class WorkflowIntegrationService : IWorkflowIntegrationService
             var result = await _workflowClient.StartAsync(
                 "quote-workflow",
                 workflowContext,
+                null,
                 cancellationToken);
 
             _logger.LogInformation(

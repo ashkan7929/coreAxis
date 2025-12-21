@@ -7,7 +7,7 @@ public class FormStepHandler : IWorkflowStepHandler
 {
     public string StepType => "FormStep";
 
-    public Task<StepExecutionResult> ExecuteAsync(WorkflowRun run, StepDsl step, CancellationToken cancellationToken)
+    public Task<StepExecutionResult> ExecuteAsync(WorkflowRun run, WorkflowRunStep runStep, StepDsl step, CancellationToken cancellationToken)
     {
         // Form step always pauses execution to wait for user input
         return Task.FromResult(StepExecutionResult.Pause());

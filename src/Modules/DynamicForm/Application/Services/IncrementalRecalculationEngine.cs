@@ -1,4 +1,5 @@
 using CoreAxis.Modules.DynamicForm.Domain.Interfaces;
+using CoreAxis.Modules.DynamicForm.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -47,6 +48,7 @@ public class IncrementalRecalculationEngine : IIncrementalRecalculationEngine
 
         var stopwatch = Stopwatch.StartNew();
         var updatedFormData = new Dictionary<string, object?>(formData, StringComparer.OrdinalIgnoreCase);
+        List<string> fieldsToRecalculate = null;
         
         try
         {
@@ -57,7 +59,7 @@ public class IncrementalRecalculationEngine : IIncrementalRecalculationEngine
             updatedFormData[changedField] = newValue;
 
             // Get fields that need to be recalculated
-            var fieldsToRecalculate = dependencyGraph.GetFieldsToRecalculate(changedField).ToList();
+            fieldsToRecalculate = dependencyGraph.GetFieldsToRecalculate(changedField).ToList();
             
             if (fieldsToRecalculate.Count == 0)
             {
@@ -85,11 +87,10 @@ public class IncrementalRecalculationEngine : IIncrementalRecalculationEngine
                         var context = new ExpressionEvaluationContext
                         {
                             Variables = updatedFormData.ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase),
-                            Functions = new Dictionary<string, object>(),
-                            Timeout = TimeSpan.FromSeconds(5)
+                            MaxExecutionTime = TimeSpan.FromSeconds(5)
                         };
 
-                        var result = await expressionEngine.EvaluateAsync(fieldExpression, context);
+                        var result = await expressionEngine.EvaluateAsync(new FormulaExpression(fieldExpression), context);
                         
                         if (result.IsSuccess)
                         {
@@ -153,13 +154,14 @@ public class IncrementalRecalculationEngine : IIncrementalRecalculationEngine
 
         var stopwatch = Stopwatch.StartNew();
         var updatedFormData = new Dictionary<string, object?>(formData, StringComparer.OrdinalIgnoreCase);
+        List<string> fieldsInOrder = null;
         
         try
         {
             _logger.LogDebug("Starting full recalculation of all calculated fields");
 
             // Get all fields in topological order
-            var fieldsInOrder = dependencyGraph.GetTopologicalOrder().ToList();
+            fieldsInOrder = dependencyGraph.GetTopologicalOrder().ToList();
             
             if (fieldsInOrder.Count == 0)
             {
@@ -185,11 +187,10 @@ public class IncrementalRecalculationEngine : IIncrementalRecalculationEngine
                         var context = new ExpressionEvaluationContext
                         {
                             Variables = updatedFormData.ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase),
-                            Functions = new Dictionary<string, object>(),
-                            Timeout = TimeSpan.FromSeconds(5)
+                            MaxExecutionTime = TimeSpan.FromSeconds(5)
                         };
 
-                        var result = await expressionEngine.EvaluateAsync(fieldExpression, context);
+                        var result = await expressionEngine.EvaluateAsync(new FormulaExpression(fieldExpression), context);
                         
                         if (result.IsSuccess)
                         {

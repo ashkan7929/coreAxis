@@ -3,6 +3,7 @@ using CoreAxis.Modules.MappingModule.Application.Services;
 using CoreAxis.Modules.Workflow.Application.DTOs.DSL;
 using CoreAxis.Modules.Workflow.Domain.Entities;
 using CoreAxis.SharedKernel.Context;
+using CoreAxis.Modules.Workflow.Application.Idempotency;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
@@ -13,22 +14,36 @@ public class ServiceTaskStepHandler : IWorkflowStepHandler
     private readonly ILogger<ServiceTaskStepHandler> _logger;
     private readonly IApiProxy _apiProxy;
     private readonly IMappingExecutionService _mappingService;
+    private readonly IIdempotencyService _idempotencyService;
 
     public ServiceTaskStepHandler(
         ILogger<ServiceTaskStepHandler> logger,
         IApiProxy apiProxy,
-        IMappingExecutionService mappingService)
+        IMappingExecutionService mappingService,
+        IIdempotencyService idempotencyService)
     {
         _logger = logger;
         _apiProxy = apiProxy;
         _mappingService = mappingService;
+        _idempotencyService = idempotencyService;
     }
 
     public string StepType => "ServiceTaskStep";
 
-    public async Task<StepExecutionResult> ExecuteAsync(WorkflowRun run, StepDsl step, CancellationToken cancellationToken)
+    public async Task<StepExecutionResult> ExecuteAsync(WorkflowRun run, WorkflowRunStep runStep, StepDsl step, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Executing ServiceTask {StepId} for workflow {RunId}", step.Id, run.Id);
+
+        if (!string.IsNullOrEmpty(runStep.ExecutionKey))
+        {
+            var (found, statusCode, responseJson) = await _idempotencyService.TryGetAsync("ServiceTaskStep", runStep.ExecutionKey, "", cancellationToken);
+            if (found && statusCode >= 200 && statusCode < 300)
+            {
+                _logger.LogInformation("Idempotency hit for ServiceTask {StepId} Key {Key}", step.Id, runStep.ExecutionKey);
+                var output = string.IsNullOrEmpty(responseJson) ? null : JsonSerializer.Deserialize<Dictionary<string, object>>(responseJson);
+                return StepExecutionResult.Success(step.Transitions?.FirstOrDefault()?.To, output);
+            }
+        }
 
         if (step.Config == null)
         {
@@ -60,7 +75,7 @@ public class ServiceTaskStepHandler : IWorkflowStepHandler
         }
 
         // Invoke API
-        var apiResult = await _apiProxy.InvokeAsync(methodId, apiParams, cancellationToken);
+        var apiResult = await _apiProxy.InvokeAsync(methodId, apiParams, run.Id, step.Id, cancellationToken);
 
         if (!apiResult.IsSuccess)
         {
@@ -90,7 +105,7 @@ public class ServiceTaskStepHandler : IWorkflowStepHandler
 
             ctxDoc.Set("response", responseData);
             
-            var mapResult = await _mappingService.ExecuteMappingAsync(resMapId, ctxDoc.ToString(), cancellationToken);
+            var mapResult = await _mappingService.ExecuteMappingAsync(resMapId, ctxDoc.ToJson(), cancellationToken);
             
             if (!mapResult.Success)
             {
@@ -100,37 +115,31 @@ public class ServiceTaskStepHandler : IWorkflowStepHandler
             // Merge output back to workflow context
             if (!string.IsNullOrEmpty(mapResult.OutputJson))
             {
-                var outputDoc = new ContextDocument(mapResult.OutputJson);
-                var runCtx = new ContextDocument(run.ContextJson);
-                runCtx.Merge(outputDoc);
-                run.ContextJson = runCtx.ToString();
+                var output = JsonSerializer.Deserialize<Dictionary<string, object>>(mapResult.OutputJson);
+                
+                // Store result for idempotency
+                if (!string.IsNullOrEmpty(runStep.ExecutionKey))
+                {
+                    await _idempotencyService.StoreAsync("ServiceTaskStep", runStep.ExecutionKey, "", 200, JsonSerializer.Serialize(output), cancellationToken);
+                }
+
+                return StepExecutionResult.Success(step.Transitions?.FirstOrDefault()?.To, output);
             }
         }
         else
         {
-            // Default behavior: store in context.apis.{stepId}
-            var runCtx = new ContextDocument(run.ContextJson);
-            try 
-            {
-                if (!string.IsNullOrEmpty(apiResult.ResponseBody))
-                {
-                    var json = JsonSerializer.Deserialize<object>(apiResult.ResponseBody);
-                    runCtx.Set($"apis.{step.Id}.response", json);
-                }
-                else
-                {
-                    runCtx.Set($"apis.{step.Id}.response", apiResult.ResponseBody);
-                }
-            } 
-            catch 
-            {
-                runCtx.Set($"apis.{step.Id}.response", apiResult.ResponseBody);
-            }
+            // No mapping, just put response in context if needed, or nothing
+            // Maybe we should store apiResult.ResponseBody as output if no mapping?
+            // For now, assume mapping is required or nothing is returned to context.
             
-            run.ContextJson = runCtx.ToString();
+            // If no response mapping, we still might want to be idempotent?
+            // Yes, preventing re-execution.
+            if (!string.IsNullOrEmpty(runStep.ExecutionKey))
+            {
+                await _idempotencyService.StoreAsync("ServiceTaskStep", runStep.ExecutionKey, "", 200, "{}", cancellationToken);
+            }
         }
-        
-        string? nextStepId = step.Transitions?.FirstOrDefault()?.To;
-        return StepExecutionResult.Success(nextStepId);
+
+        return StepExecutionResult.Success(step.Transitions?.FirstOrDefault()?.To);
     }
 }

@@ -46,7 +46,9 @@ public class TaskCommandHandlers :
         {
             TaskId = task.Id,
             Action = "Claim",
-            ActorId = request.UserId
+            ActorId = request.UserId,
+            CreatedBy = request.UserId,
+            LastModifiedBy = request.UserId
         });
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -70,7 +72,9 @@ public class TaskCommandHandlers :
             Action = "Approve",
             ActorId = request.UserId,
             Comment = request.Comment,
-            PayloadJson = request.Payload != null ? JsonSerializer.Serialize(request.Payload) : null
+            PayloadJson = request.Payload != null ? JsonSerializer.Serialize(request.Payload) : null,
+            CreatedBy = request.UserId,
+            LastModifiedBy = request.UserId
         });
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -104,7 +108,9 @@ public class TaskCommandHandlers :
             TaskId = task.Id,
             Action = "Reject",
             ActorId = request.UserId,
-            Comment = request.Comment
+            Comment = request.Comment,
+            CreatedBy = request.UserId,
+            LastModifiedBy = request.UserId
         });
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -174,7 +180,9 @@ public class TaskCommandHandlers :
             Action = "Delegate",
             ActorId = request.UserId,
             Comment = request.Comment,
-            PayloadJson = JsonSerializer.Serialize(new { to = request.TargetAssigneeId, type = request.TargetAssigneeType })
+            PayloadJson = JsonSerializer.Serialize(new { to = request.TargetAssigneeId, type = request.TargetAssigneeType }),
+            CreatedBy = request.UserId,
+            LastModifiedBy = request.UserId
         });
 
         await _context.SaveChangesAsync(cancellationToken);

@@ -94,7 +94,7 @@ namespace CoreAxis.Tests.ApiManager
         {
             // Arrange
             var configJson = "{\"headerName\": \"X-API-Key\", \"apiKey\": \"test-key\"}";
-            var securityProfile = new SecurityProfile(SecurityType.ApiKey, configJson);
+            var securityProfile = new SecurityProfile("Test Profile", SecurityType.ApiKey, configJson);
             securityProfile.CreatedBy = "test-user";
             securityProfile.LastModifiedBy = "test-user";
             _dbContext.SecurityProfiles.Add(securityProfile);

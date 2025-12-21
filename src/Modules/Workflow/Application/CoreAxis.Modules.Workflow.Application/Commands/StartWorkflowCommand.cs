@@ -6,6 +6,8 @@ using CoreAxis.SharedKernel.Versioning;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
+using System.Text.Json;
+
 namespace CoreAxis.Modules.Workflow.Application.Commands;
 
 public record StartWorkflowCommand(StartWorkflowDto Dto) : IRequest<Result<Guid>>;
@@ -46,6 +48,26 @@ public class StartWorkflowCommandHandler : IRequestHandler<StartWorkflowCommand,
 
         if (version == null)
             return Result<Guid>.Failure($"Workflow version not found for '{request.Dto.DefinitionCode}'.");
+
+        // Enforce Published status unless debug flag is present
+        if (version.Status != VersionStatus.Published)
+        {
+            bool isDebug = false;
+            try 
+            {
+                using var doc = JsonDocument.Parse(request.Dto.ContextJson);
+                if (doc.RootElement.TryGetProperty("debug", out var debugProp) && debugProp.ValueKind == JsonValueKind.True)
+                {
+                    isDebug = true;
+                }
+            } 
+            catch {}
+
+            if (!isDebug)
+            {
+                return Result<Guid>.Failure($"Cannot start workflow version {version.VersionNumber} because it is not Published. (Set 'debug': true in context to override)");
+            }
+        }
 
         // 3. Create Run
         var run = new WorkflowRun

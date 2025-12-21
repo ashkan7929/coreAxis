@@ -255,7 +255,7 @@ public class RegistryController : ControllerBase
                 var profile = await _db.SecurityProfiles.FirstOrDefaultAsync(p => p.Type == typeParsed && p.ConfigJson == cfgJson, ct);
                 if (profile is null)
                 {
-                    profile = new SecurityProfile(typeParsed, cfgJson, svc.SecurityProfile.RotationPolicy);
+                    profile = new SecurityProfile($"Imported-{typeParsed}-{Guid.NewGuid().ToString().Substring(0, 8)}", typeParsed, cfgJson, svc.SecurityProfile.RotationPolicy);
                     _db.SecurityProfiles.Add(profile);
                     await _db.SaveChangesAsync(ct);
                 }

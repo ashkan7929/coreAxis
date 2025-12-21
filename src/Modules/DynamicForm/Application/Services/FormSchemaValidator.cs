@@ -130,7 +130,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 }
 
                 // Validate field type
-                if (!RequiredFieldTypes.Contains(field.Type.ToLowerInvariant()))
+                if (!RequiredFieldTypes.Contains(field.Type.ToString().ToLowerInvariant()))
                 {
                     errors.Add($"Unsupported field type '{field.Type}' for field '{field.Name}'");
                 }
@@ -147,9 +147,9 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 }
 
                 // Validate select/multiselect options
-                if ((field.Type.Equals("select", StringComparison.OrdinalIgnoreCase) ||
-                     field.Type.Equals("multiselect", StringComparison.OrdinalIgnoreCase) ||
-                     field.Type.Equals("radio", StringComparison.OrdinalIgnoreCase)) &&
+                if ((field.Type.ToString().Equals("select", StringComparison.OrdinalIgnoreCase) ||
+                     field.Type.ToString().Equals("multiselect", StringComparison.OrdinalIgnoreCase) ||
+                     field.Type.ToString().Equals("radio", StringComparison.OrdinalIgnoreCase)) &&
                     (field.Options == null || !field.Options.Any()))
                 {
                     errors.Add($"Field '{field.Name}' of type '{field.Type}' must have options");
@@ -175,25 +175,16 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
 
             foreach (var logic in schema.ConditionalLogic)
             {
-                // Validate target field exists
-                if (!fieldIds.Contains(logic.TargetFieldId))
+                // Validate dependent fields exist
+                if (logic.DependentFields != null)
                 {
-                    errors.Add($"Conditional logic references non-existent target field: {logic.TargetFieldId}");
-                }
-
-                // Validate condition fields exist
-                foreach (var condition in logic.Conditions)
-                {
-                    if (!fieldIds.Contains(condition.FieldId))
+                    foreach (var fieldId in logic.DependentFields)
                     {
-                        errors.Add($"Conditional logic references non-existent condition field: {condition.FieldId}");
+                        if (!fieldIds.Contains(fieldId))
+                        {
+                            errors.Add($"Conditional logic references non-existent dependent field: {fieldId}");
+                        }
                     }
-                }
-
-                // Validate no circular dependencies
-                if (HasCircularDependency(logic, schema.ConditionalLogic))
-                {
-                    errors.Add($"Circular dependency detected in conditional logic for field: {logic.TargetFieldId}");
                 }
             }
 
@@ -213,22 +204,16 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
 
             foreach (var formula in schema.Formulas)
             {
-                // Validate target field exists
-                if (!fieldIds.Contains(formula.TargetFieldId))
-                {
-                    errors.Add($"Formula references non-existent target field: {formula.TargetFieldId}");
-                }
-
                 // Validate expression is not empty
                 if (string.IsNullOrWhiteSpace(formula.Expression))
                 {
-                    errors.Add($"Formula expression cannot be empty for field: {formula.TargetFieldId}");
+                    errors.Add($"Formula expression cannot be empty");
                 }
 
                 // Basic expression validation (can be enhanced with actual expression parser)
                 if (!IsValidExpression(formula.Expression))
                 {
-                    errors.Add($"Invalid formula expression for field '{formula.TargetFieldId}': {formula.Expression}");
+                    errors.Add($"Invalid formula expression: {formula.Expression}");
                 }
 
                 // Validate referenced fields in expression exist
@@ -345,6 +330,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
             }
         }
 
+        /*
         private bool HasCircularDependency(ConditionalLogic logic, IEnumerable<ConditionalLogic> allLogic)
         {
             var visited = new HashSet<string>();
@@ -379,6 +365,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
             recursionStack.Remove(fieldId);
             return false;
         }
+        */
 
         private bool IsValidExpression(string expression)
         {

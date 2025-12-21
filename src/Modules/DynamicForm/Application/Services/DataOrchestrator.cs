@@ -94,9 +94,9 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                         }
 
                         var valueRes = await GetValueAsync(methodId, parameters, cancellationToken);
-                        if (valueRes.IsFailure)
+                        if (!valueRes.IsSuccess)
                         {
-                            _logger.LogWarning("Failed to fetch external data for '{SourceKey}': {Error}", key, valueRes.Error);
+                            _logger.LogWarning("Failed to fetch external data for '{SourceKey}': {Error}", key, string.Join(", ", valueRes.Errors));
                             continue;
                         }
 
@@ -147,7 +147,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                     plainParams[kv.Key] = kv.Value!;
                 }
 
-                var proxyResult = await _apiProxy.InvokeAsync(webServiceMethodId, plainParams, cancellationToken);
+                var proxyResult = await _apiProxy.InvokeAsync(webServiceMethodId, plainParams, null, null, cancellationToken);
                 if (!proxyResult.IsSuccess)
                 {
                     var msg = proxyResult.ErrorMessage ?? "ApiProxy call failed";

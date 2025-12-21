@@ -171,7 +171,7 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Entities
         /// <summary>
         /// Initializes a new instance of the <see cref="FormulaEvaluationLog"/> class.
         /// </summary>
-        protected FormulaEvaluationLog()
+        public FormulaEvaluationLog()
         {
             // Required for EF Core
         }

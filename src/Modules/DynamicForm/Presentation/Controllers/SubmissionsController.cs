@@ -137,7 +137,7 @@ public class SubmissionsController : ControllerBase
             var query = new GetSubmissionsQuery
             {
                 FormId = formId,
-                UserId = userId,
+                UserId = userId?.ToString(),
                 Status = status,
                 FromDate = fromDate,
                 ToDate = toDate,
@@ -200,10 +200,13 @@ public class SubmissionsController : ControllerBase
         try
         {
             // Set additional context from HTTP request
-            command.IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-            command.UserAgent = HttpContext.Request.Headers.UserAgent.ToString();
+            var commandWithContext = command with
+            {
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                UserAgent = HttpContext.Request.Headers.UserAgent.ToString()
+            };
             
-            var result = await _mediator.Send(command, cancellationToken);
+            var result = await _mediator.Send(commandWithContext, cancellationToken);
             
             if (result.IsSuccess)
             {
@@ -248,8 +251,8 @@ public class SubmissionsController : ControllerBase
     {
         try
         {
-            command.Id = id;
-            var result = await _mediator.Send(command, cancellationToken);
+            var commandWithId = command with { Id = id };
+            var result = await _mediator.Send(commandWithId, cancellationToken);
             
             if (result.IsSuccess)
             {

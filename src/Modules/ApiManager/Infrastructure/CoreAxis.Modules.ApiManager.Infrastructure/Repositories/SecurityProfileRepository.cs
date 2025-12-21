@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using CoreAxis.Modules.ApiManager.Domain;
 using CoreAxis.Modules.ApiManager.Domain.Repositories;
 using CoreAxis.SharedKernel;
-using CoreAxis.Shared.Infrastructure.Repositories;
+using CoreAxis.Modules.ApiManager.Infrastructure;
 
 namespace CoreAxis.Modules.ApiManager.Infrastructure.Repositories;
 
@@ -14,7 +14,7 @@ public class SecurityProfileRepository : Repository<SecurityProfile>, ISecurityP
 
     public async Task<IEnumerable<SecurityProfile>> GetAllActiveAsync(CancellationToken cancellationToken = default)
     {
-        return await DbSet
+        return await _dbSet
             .Where(sp => sp.IsActive)
             .OrderBy(sp => sp.Name)
             .ToListAsync(cancellationToken);
@@ -22,7 +22,7 @@ public class SecurityProfileRepository : Repository<SecurityProfile>, ISecurityP
 
     public async Task<bool> ExistsByNameAsync(string name, Guid? excludeId = null, CancellationToken cancellationToken = default)
     {
-        var query = DbSet.Where(sp => sp.Name == name);
+        var query = _dbSet.Where(sp => sp.Name == name);
         
         if (excludeId.HasValue)
         {
@@ -34,7 +34,7 @@ public class SecurityProfileRepository : Repository<SecurityProfile>, ISecurityP
 
     public async Task<bool> IsUsedByWebServicesAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return await Context.Set<WebService>()
+        return await _context.Set<WebService>()
             .AnyAsync(ws => ws.SecurityProfileId == id, cancellationToken);
     }
 }

@@ -28,6 +28,15 @@ public class ProductRepository : Repository<ProductDefinition>, IProductReposito
             .FirstOrDefaultAsync(v => v.Id == versionId, cancellationToken);
     }
 
+    public async Task<ProductVersion?> GetPublishedVersionAsync(Guid productId, CancellationToken cancellationToken = default)
+    {
+        return await _context.ProductVersions
+            .Include(v => v.Binding)
+            .Where(v => v.ProductId == productId && v.Status == SharedKernel.Versioning.VersionStatus.Published)
+            .OrderByDescending(v => v.PublishedAt) // Get latest published
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task AddVersionAsync(ProductVersion version, CancellationToken cancellationToken = default)
     {
         await _context.ProductVersions.AddAsync(version, cancellationToken);

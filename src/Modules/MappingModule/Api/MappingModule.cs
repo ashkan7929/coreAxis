@@ -1,6 +1,8 @@
 using CoreAxis.BuildingBlocks;
 using CoreAxis.Modules.MappingModule.Infrastructure.Data;
 using CoreAxis.Modules.MappingModule.Application;
+using CoreAxis.Modules.MappingModule.Infrastructure.Services;
+using CoreAxis.SharedKernel.Ports;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,6 +47,9 @@ public class MappingModule : IModule
         // Add Controllers
         services.AddControllers()
             .AddApplicationPart(typeof(MappingModule).Assembly);
+
+        // Add SharedKernel Clients
+        services.AddScoped<IMappingClient, MappingClient>();
     }
 
     /// <inheritdoc/>

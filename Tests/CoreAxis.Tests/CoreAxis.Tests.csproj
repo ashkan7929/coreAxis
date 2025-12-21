@@ -40,6 +40,13 @@
     <ProjectReference Include="..\..\src\Modules\MLMModule\Domain\CoreAxis.Modules.MLMModule.Domain\CoreAxis.Modules.MLMModule.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\MLMModule\Infrastructure\CoreAxis.Modules.MLMModule.Infrastructure\CoreAxis.Modules.MLMModule.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Modules\MLMModule\Presentation\CoreAxis.Modules.MLMModule.Presentation\CoreAxis.Modules.MLMModule.Presentation.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Workflow\Application\CoreAxis.Modules.Workflow.Application\CoreAxis.Modules.Workflow.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Workflow\Domain\CoreAxis.Modules.Workflow.Domain\CoreAxis.Modules.Workflow.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\ApiManager\Application\CoreAxis.Modules.ApiManager.Application\CoreAxis.Modules.ApiManager.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\MappingModule\Application\CoreAxis.Modules.MappingModule.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\TaskModule\Application\CoreAxis.Modules.TaskModule.Application\CoreAxis.Modules.TaskModule.Application.csproj" />
+    <ProjectReference Include="..\..\src\Modules\TaskModule\Domain\CoreAxis.Modules.TaskModule.Domain\CoreAxis.Modules.TaskModule.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\TaskModule\Infrastructure\CoreAxis.Modules.TaskModule.Infrastructure\CoreAxis.Modules.TaskModule.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

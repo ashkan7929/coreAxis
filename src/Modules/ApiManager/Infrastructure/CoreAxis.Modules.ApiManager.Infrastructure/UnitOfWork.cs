@@ -1,5 +1,9 @@
 using CoreAxis.Modules.ApiManager.Domain.Repositories;
+using CoreAxis.Modules.ApiManager.Infrastructure.Repositories;
 using CoreAxis.SharedKernel;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CoreAxis.Modules.ApiManager.Infrastructure;
 
@@ -22,29 +26,35 @@ public class UnitOfWork : IUnitOfWork
     public IWebServiceCallLogRepository WebServiceCallLogs { get; }
     public ISecurityProfileRepository SecurityProfiles { get; }
 
-    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    public async Task<int> SaveChangesAsync()
+    {
+        return await _context.SaveChangesAsync();
+    }
+    
+    // Explicit implementation if needed, or overload
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken)
     {
         return await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
+    public async Task BeginTransactionAsync()
     {
-        await _context.Database.BeginTransactionAsync(cancellationToken);
+        await _context.Database.BeginTransactionAsync();
     }
 
-    public async Task CommitTransactionAsync(CancellationToken cancellationToken = default)
+    public async Task CommitTransactionAsync()
     {
         if (_context.Database.CurrentTransaction != null)
         {
-            await _context.Database.CommitTransactionAsync(cancellationToken);
+            await _context.Database.CommitTransactionAsync();
         }
     }
 
-    public async Task RollbackTransactionAsync(CancellationToken cancellationToken = default)
+    public async Task RollbackTransactionAsync()
     {
         if (_context.Database.CurrentTransaction != null)
         {
-            await _context.Database.RollbackTransactionAsync(cancellationToken);
+            await _context.Database.RollbackTransactionAsync();
         }
     }
 

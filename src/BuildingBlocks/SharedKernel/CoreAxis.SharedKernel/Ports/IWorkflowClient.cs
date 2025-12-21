@@ -2,7 +2,7 @@ namespace CoreAxis.SharedKernel.Ports;
 
 public interface IWorkflowClient
 {
-    Task<WorkflowResult> StartAsync(string definitionId, object context, CancellationToken cancellationToken = default);
+    Task<WorkflowResult> StartAsync(string definitionId, object context, int? version = null, CancellationToken cancellationToken = default);
     Task<WorkflowResult> SignalAsync(string eventName, object payload, CancellationToken cancellationToken = default);
     Task<WorkflowResult> GetWorkflowStatusAsync(Guid workflowId, CancellationToken cancellationToken = default);
 }

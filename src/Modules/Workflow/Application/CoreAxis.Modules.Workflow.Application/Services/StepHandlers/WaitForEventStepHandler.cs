@@ -15,7 +15,7 @@ public class WaitForEventStepHandler : IWorkflowStepHandler
 
     public string StepType => "WaitForEvent";
 
-    public Task<StepExecutionResult> ExecuteAsync(WorkflowRun run, StepDsl step, CancellationToken cancellationToken)
+    public Task<StepExecutionResult> ExecuteAsync(WorkflowRun run, WorkflowRunStep runStep, StepDsl step, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Workflow {RunId} waiting for event in step {StepId}", run.Id, step.Id);
         

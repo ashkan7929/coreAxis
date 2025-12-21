@@ -19,7 +19,7 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Repositories
         /// <param name="tenantId">The tenant identifier.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The form step submission if found, otherwise null.</returns>
-        Task<FormStepSubmission> GetByIdAsync(Guid id, Guid tenantId, CancellationToken cancellationToken = default);
+        Task<FormStepSubmission?> GetByIdAsync(Guid id, string tenantId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets all step submissions for a specific form submission with tenant filtering.
@@ -28,7 +28,7 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Repositories
         /// <param name="tenantId">The tenant identifier.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The collection of form step submissions.</returns>
-        Task<IEnumerable<FormStepSubmission>> GetByFormSubmissionIdAsync(Guid formSubmissionId, Guid tenantId, CancellationToken cancellationToken = default);
+        Task<IEnumerable<FormStepSubmission>> GetByFormSubmissionIdAsync(Guid formSubmissionId, string tenantId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets a specific step submission by form submission ID and step number with tenant filtering.
@@ -38,7 +38,7 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Repositories
         /// <param name="tenantId">The tenant identifier.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The form step submission if found, otherwise null.</returns>
-        Task<FormStepSubmission> GetByFormSubmissionIdAndStepNumberAsync(Guid formSubmissionId, int stepNumber, Guid tenantId, CancellationToken cancellationToken = default);
+        Task<FormStepSubmission?> GetByFormSubmissionIdAndStepNumberAsync(Guid formSubmissionId, int stepNumber, string tenantId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets analytics data for form step submissions.
@@ -49,9 +49,10 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Repositories
         /// <param name="endDate">The end date for analytics.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The collection of analytics data.</returns>
-        Task<IEnumerable<dynamic>> GetAnalyticsAsync(Guid formId, Guid tenantId, DateTime? startDate, DateTime? endDate, CancellationToken cancellationToken = default);
+        Task<IEnumerable<dynamic>> GetAnalyticsAsync(Guid formId, string tenantId, DateTime? startDate, DateTime? endDate, CancellationToken cancellationToken = default);
+
         /// <summary>
-        /// Gets all step submissions for a specific form submission ordered by step number (legacy method).
+        /// Gets all step submissions for a specific form submission ordered by step number.
         /// </summary>
         /// <param name="formSubmissionId">The form submission identifier.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
@@ -59,13 +60,13 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Repositories
         Task<IEnumerable<FormStepSubmission>> GetByFormSubmissionIdAsync(Guid formSubmissionId, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Gets a specific step submission by form submission ID and step number (legacy method).
+        /// Gets a specific step submission by form submission ID and step number.
         /// </summary>
         /// <param name="formSubmissionId">The form submission identifier.</param>
         /// <param name="stepNumber">The step number.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The form step submission if found, otherwise null.</returns>
-        Task<FormStepSubmission> GetByFormSubmissionIdAndStepNumberAsync(Guid formSubmissionId, int stepNumber, CancellationToken cancellationToken = default);
+        Task<FormStepSubmission?> GetByFormSubmissionIdAndStepNumberAsync(Guid formSubmissionId, int stepNumber, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets step submissions by form step ID.
@@ -129,7 +130,7 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Repositories
         /// <param name="formSubmissionId">The form submission identifier.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The current step submission if found, otherwise null.</returns>
-        Task<FormStepSubmission> GetCurrentStepSubmissionAsync(Guid formSubmissionId, CancellationToken cancellationToken = default);
+        Task<FormStepSubmission?> GetCurrentStepSubmissionAsync(Guid formSubmissionId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets step submissions within a specific time range.

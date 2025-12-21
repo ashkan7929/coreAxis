@@ -19,7 +19,7 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Repositories
         /// <param name="tenantId">The tenant identifier.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The form step if found, otherwise null.</returns>
-        Task<FormStep> GetByIdAsync(Guid id, Guid tenantId, CancellationToken cancellationToken = default);
+        Task<FormStep?> GetByIdAsync(Guid id, string tenantId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets all steps for a specific form with tenant filtering.
@@ -28,7 +28,8 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Repositories
         /// <param name="tenantId">The tenant identifier.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The collection of form steps.</returns>
-        Task<IEnumerable<FormStep>> GetByFormIdAsync(Guid formId, Guid tenantId, CancellationToken cancellationToken = default);
+        Task<IEnumerable<FormStep>> GetByFormIdAsync(Guid formId, string tenantId, CancellationToken cancellationToken = default);
+
         /// <summary>
         /// Gets all steps for a specific form ordered by step number.
         /// </summary>
@@ -44,7 +45,17 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Repositories
         /// <param name="stepNumber">The step number.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The form step if found, otherwise null.</returns>
-        Task<FormStep> GetByFormIdAndStepNumberAsync(Guid formId, int stepNumber, CancellationToken cancellationToken = default);
+        Task<FormStep?> GetByFormIdAndStepNumberAsync(Guid formId, int stepNumber, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets a specific step by form ID and step number with tenant filtering.
+        /// </summary>
+        /// <param name="formId">The form identifier.</param>
+        /// <param name="stepNumber">The step number.</param>
+        /// <param name="tenantId">The tenant identifier.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The form step if found, otherwise null.</returns>
+        Task<FormStep?> GetByFormIdAndStepNumberAsync(Guid formId, int stepNumber, string tenantId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gets the maximum step number for a specific form.

@@ -39,6 +39,16 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Interfaces
         Task<Form> GetByNameAsync(string name, string tenantId, CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Gets a form by its name within a tenant including related entities.
+        /// </summary>
+        /// <param name="name">The form name.</param>
+        /// <param name="tenantId">The tenant identifier.</param>
+        /// <param name="includeFields">Whether to include form fields.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The form if found; otherwise, null.</returns>
+        Task<Form> GetByNameWithIncludesAsync(string name, string tenantId, bool includeFields = false, CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Gets all forms for a specific tenant.
         /// </summary>
         /// <param name="tenantId">The tenant identifier.</param>

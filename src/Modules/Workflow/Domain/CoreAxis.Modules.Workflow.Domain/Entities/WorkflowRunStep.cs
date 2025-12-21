@@ -13,6 +13,7 @@ public class WorkflowRunStep : EntityBase
     public DateTime? EndedAt { get; set; }
     public string? Error { get; set; }
     public string? LogJson { get; set; }
+    public string? ExecutionKey { get; set; }
     
     public WorkflowRun WorkflowRun { get; set; } = null!;
 }

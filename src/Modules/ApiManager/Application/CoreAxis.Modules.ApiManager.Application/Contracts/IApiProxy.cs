@@ -2,7 +2,20 @@ namespace CoreAxis.Modules.ApiManager.Application.Contracts;
 
 public interface IApiProxy
 {
-    Task<ApiProxyResult> InvokeAsync(Guid webServiceMethodId, Dictionary<string, object> parameters, CancellationToken cancellationToken = default);
+    Task<ApiProxyResult> InvokeAsync(
+        Guid webServiceMethodId, 
+        Dictionary<string, object> parameters, 
+        Guid? workflowRunId = null,
+        string? stepId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<ApiProxyResult> InvokeAsync(
+        string serviceName,
+        string methodName,
+        Dictionary<string, object> parameters,
+        Guid? workflowRunId = null,
+        string? stepId = null,
+        CancellationToken cancellationToken = default);
 }
 
 public class ApiProxyResult

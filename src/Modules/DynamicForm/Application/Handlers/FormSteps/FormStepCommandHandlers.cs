@@ -1,3 +1,4 @@
+using CoreAxis.SharedKernel;
 using MediatR;
 using System;
 using System.Threading;
@@ -7,7 +8,6 @@ using CoreAxis.Modules.DynamicForm.Application.DTOs;
 using CoreAxis.Modules.DynamicForm.Domain.Entities;
 using CoreAxis.Modules.DynamicForm.Domain.Repositories;
 using CoreAxis.SharedKernel.Exceptions;
-using NotFoundException = CoreAxis.SharedKernel.Exceptions.EntityNotFoundException;
 using Microsoft.Extensions.Logging;
 
 namespace CoreAxis.Modules.DynamicForm.Application.Handlers.FormSteps
@@ -21,18 +21,22 @@ namespace CoreAxis.Modules.DynamicForm.Application.Handlers.FormSteps
         IRequestHandler<DeleteFormStepCommand, bool>
     {
         private readonly IFormStepRepository _formStepRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<FormStepCommandHandlers> _logger;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FormStepCommandHandlers"/> class.
         /// </summary>
         /// <param name="formStepRepository">The form step repository.</param>
+        /// <param name="unitOfWork">The unit of work.</param>
         /// <param name="logger">The logger.</param>
         public FormStepCommandHandlers(
             IFormStepRepository formStepRepository,
+            IUnitOfWork unitOfWork,
             ILogger<FormStepCommandHandlers> logger)
         {
             _formStepRepository = formStepRepository ?? throw new ArgumentNullException(nameof(formStepRepository));
+            _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -51,34 +55,36 @@ namespace CoreAxis.Modules.DynamicForm.Application.Handlers.FormSteps
 
                 // Check if step number already exists for this form
                 var existingStep = await _formStepRepository.GetByFormIdAndStepNumberAsync(
-                    request.FormId, request.StepNumber, request.TenantId, cancellationToken);
+                    request.FormId, request.StepNumber, cancellationToken);
                 
                 if (existingStep != null)
                 {
-                    throw new BusinessRuleValidationException(
+                    throw new BusinessRuleViolationException(
                         $"Step number {request.StepNumber} already exists for form {request.FormId}");
                 }
 
-                // Create new form step entity
-                var formStep = FormStep.Create(
+                // Create new form step entity using public constructor
+                var formStep = new FormStep(
                     request.FormId,
                     request.StepNumber,
                     request.Title,
-                    request.Description,
                     request.StepSchema,
-                    request.ValidationRules,
-                    request.ConditionalLogic,
-                    request.IsRequired,
-                    request.CanSkip,
-                    request.MinTimeSeconds,
-                    request.MaxTimeSeconds,
-                    request.Metadata,
                     request.TenantId,
                     request.CreatedBy);
 
+                // Set optional properties
+                formStep.Description = request.Description;
+                formStep.ValidationRules = request.ValidationRules;
+                formStep.ConditionalLogic = request.ConditionalLogic;
+                formStep.IsRequired = request.IsRequired;
+                formStep.CanSkip = request.CanSkip;
+                formStep.MinTimeSeconds = request.MinTimeSeconds;
+                formStep.MaxTimeSeconds = request.MaxTimeSeconds;
+                formStep.Metadata = request.Metadata;
+
                 // Save to repository
-                await _formStepRepository.AddAsync(formStep, cancellationToken);
-                await _formStepRepository.SaveChangesAsync(cancellationToken);
+                await _formStepRepository.AddAsync(formStep);
+                await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation("Form step {StepId} created successfully", formStep.Id);
 
@@ -104,56 +110,33 @@ namespace CoreAxis.Modules.DynamicForm.Application.Handlers.FormSteps
             {
                 _logger.LogInformation("Updating form step {StepId}", request.Id);
 
-                // Get existing form step
-                var formStep = await _formStepRepository.GetByIdAsync(request.Id, request.TenantId, cancellationToken);
+                var formStep = await _formStepRepository.GetByIdAsync(request.Id);
                 if (formStep == null)
                 {
-                    throw new NotFoundException($"Form step with ID {request.Id} not found");
+                    throw new EntityNotFoundException(nameof(FormStep), request.Id);
                 }
 
                 // Update properties
-                if (!string.IsNullOrEmpty(request.Title))
-                    formStep.UpdateTitle(request.Title);
+                if (!string.IsNullOrEmpty(request.Title)) formStep.Title = request.Title;
+                if (!string.IsNullOrEmpty(request.Description)) formStep.Description = request.Description;
+                if (!string.IsNullOrEmpty(request.StepSchema)) formStep.StepSchema = request.StepSchema;
+                if (!string.IsNullOrEmpty(request.ValidationRules)) formStep.ValidationRules = request.ValidationRules;
+                if (!string.IsNullOrEmpty(request.ConditionalLogic)) formStep.ConditionalLogic = request.ConditionalLogic;
+                if (request.IsRequired.HasValue) formStep.IsRequired = request.IsRequired.Value;
+                if (request.CanSkip.HasValue) formStep.CanSkip = request.CanSkip.Value;
+                if (request.MinTimeSeconds.HasValue) formStep.MinTimeSeconds = request.MinTimeSeconds.Value;
+                if (request.MaxTimeSeconds.HasValue) formStep.MaxTimeSeconds = request.MaxTimeSeconds.Value;
+                if (!string.IsNullOrEmpty(request.Metadata)) formStep.Metadata = request.Metadata;
+                if (request.IsActive.HasValue) formStep.IsActive = request.IsActive.Value;
                 
-                if (!string.IsNullOrEmpty(request.Description))
-                    formStep.UpdateDescription(request.Description);
-                
-                if (!string.IsNullOrEmpty(request.StepSchema))
-                    formStep.UpdateStepSchema(request.StepSchema);
-                
-                if (!string.IsNullOrEmpty(request.ValidationRules))
-                    formStep.UpdateValidationRules(request.ValidationRules);
-                
-                if (!string.IsNullOrEmpty(request.ConditionalLogic))
-                    formStep.UpdateConditionalLogic(request.ConditionalLogic);
-                
-                if (request.IsRequired.HasValue)
-                    formStep.SetRequired(request.IsRequired.Value);
-                
-                if (request.CanSkip.HasValue)
-                    formStep.SetCanSkip(request.CanSkip.Value);
-                
-                if (request.MinTimeSeconds.HasValue)
-                    formStep.SetMinTimeSeconds(request.MinTimeSeconds.Value);
-                
-                if (request.MaxTimeSeconds.HasValue)
-                    formStep.SetMaxTimeSeconds(request.MaxTimeSeconds.Value);
-                
-                if (!string.IsNullOrEmpty(request.Metadata))
-                    formStep.UpdateMetadata(request.Metadata);
-                
-                if (request.IsActive.HasValue)
-                    formStep.SetActive(request.IsActive.Value);
+                formStep.LastModifiedBy = request.LastModifiedBy;
+                formStep.LastModifiedOn = DateTime.UtcNow;
 
-                formStep.SetLastModified(request.LastModifiedBy);
+                _formStepRepository.Update(formStep);
+                await _unitOfWork.SaveChangesAsync();
 
-                // Save changes
-                await _formStepRepository.UpdateAsync(formStep, cancellationToken);
-                await _formStepRepository.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation("Form step {StepId} updated successfully", formStep.Id);
 
-                _logger.LogInformation("Form step {StepId} updated successfully", request.Id);
-
-                // Map to DTO
                 return MapToDto(formStep);
             }
             catch (Exception ex)
@@ -168,37 +151,35 @@ namespace CoreAxis.Modules.DynamicForm.Application.Handlers.FormSteps
         /// </summary>
         /// <param name="request">The delete form step command.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>True if deletion was successful.</returns>
+        /// <returns>True if deleted successfully.</returns>
         public async Task<bool> Handle(DeleteFormStepCommand request, CancellationToken cancellationToken)
         {
             try
             {
-                _logger.LogInformation("Deleting form step {StepId} (Hard delete: {HardDelete})", 
-                    request.Id, request.HardDelete);
+                _logger.LogInformation("Deleting form step {StepId}", request.Id);
 
-                // Get existing form step
-                var formStep = await _formStepRepository.GetByIdAsync(request.Id, request.TenantId, cancellationToken);
+                var formStep = await _formStepRepository.GetByIdAsync(request.Id);
                 if (formStep == null)
                 {
-                    throw new NotFoundException($"Form step with ID {request.Id} not found");
+                    throw new EntityNotFoundException(nameof(FormStep), request.Id);
                 }
 
                 if (request.HardDelete)
                 {
-                    // Hard delete - permanently remove from database
-                    await _formStepRepository.DeleteAsync(formStep, cancellationToken);
+                    _formStepRepository.Delete(formStep);
                 }
                 else
                 {
-                    // Soft delete - mark as inactive
-                    formStep.SetActive(false);
-                    formStep.SetLastModified(request.DeletedBy);
-                    await _formStepRepository.UpdateAsync(formStep, cancellationToken);
+                    formStep.IsActive = false;
+                    formStep.LastModifiedBy = request.DeletedBy;
+                    formStep.LastModifiedOn = DateTime.UtcNow;
+                    _formStepRepository.Update(formStep);
                 }
 
-                await _formStepRepository.SaveChangesAsync(cancellationToken);
+                await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation("Form step {StepId} deleted successfully", request.Id);
+
                 return true;
             }
             catch (Exception ex)

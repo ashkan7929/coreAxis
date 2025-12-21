@@ -1,3 +1,5 @@
+using CoreAxis.Modules.ApiManager.Domain.Repositories;
+using CoreAxis.Modules.ApiManager.Infrastructure.Repositories;
 using CoreAxis.Modules.ApiManager.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -33,6 +35,12 @@ public static class DependencyInjection
 
         // Register DbContext as the generic DbContext for dependency injection
         services.AddScoped<DbContext>(provider => provider.GetRequiredService<ApiManagerDbContext>());
+
+        // Register Repositories
+        services.AddScoped<IWebServiceRepository, WebServiceRepository>();
+        services.AddScoped<IWebServiceMethodRepository, WebServiceMethodRepository>();
+        services.AddScoped<IWebServiceCallLogRepository, WebServiceCallLogRepository>();
+        services.AddScoped<ISecurityProfileRepository, SecurityProfileRepository>();
 
         return services;
     }

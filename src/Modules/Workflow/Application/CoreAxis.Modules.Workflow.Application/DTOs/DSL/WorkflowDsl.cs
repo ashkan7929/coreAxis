@@ -30,6 +30,18 @@ public class StepDsl
 
     [JsonPropertyName("config")]
     public Dictionary<string, object>? Config { get; set; }
+
+    [JsonPropertyName("compensation")]
+    public List<CompensationActionDsl>? Compensation { get; set; }
+}
+
+public class CompensationActionDsl
+{
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = null!;
+
+    [JsonPropertyName("config")]
+    public Dictionary<string, object>? Config { get; set; }
 }
 
 public class TransitionDsl

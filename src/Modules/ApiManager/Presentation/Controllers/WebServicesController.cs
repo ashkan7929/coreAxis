@@ -320,6 +320,27 @@ public class WebServicesController : ControllerBase
     }
 
     /// <summary>
+    /// Test a web service method with schema validation
+    /// </summary>
+    /// <param name="methodId">Method ID</param>
+    /// <param name="request">Test request</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Test result</returns>
+    [HttpPost("methods/{methodId:guid}/test")]
+    [HasPermission("ApiManager", "Execute")]
+    [ProducesResponseType(typeof(TestApiMethodResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TestApiMethodResult>> TestMethod(
+        Guid methodId,
+        [FromBody] InvokeApiMethodRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var command = new TestApiMethodCommand(methodId, request.Parameters);
+        var result = await _mediator.Send(command, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Test/invoke a web service method
     /// </summary>
     /// <remarks>

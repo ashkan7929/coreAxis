@@ -169,7 +169,7 @@ public class FormsController : ControllerBase
             var query = new GetFormByNameQuery
             {
                 Name = name,
-                TenantId = tenantId,
+                TenantId = tenantId.ToString(),
                 IncludeFields = includeFields
             };
             
@@ -217,11 +217,11 @@ public class FormsController : ControllerBase
         {
             var query = new GetFormsQuery
             {
-                TenantId = tenantId,
-                BusinessId = businessId,
+                TenantId = tenantId?.ToString(),
+                BusinessId = businessId?.ToString(),
                 IsActive = isActive,
                 SearchTerm = searchTerm,
-                PageNumber = pageNumber,
+                Page = pageNumber,
                 PageSize = pageSize
             };
             
@@ -327,8 +327,8 @@ public class FormsController : ControllerBase
     {
         try
         {
-            command.Id = id;
-            var result = await _mediator.Send(command, cancellationToken);
+            var commandWithId = command with { Id = id };
+            var result = await _mediator.Send(commandWithId, cancellationToken);
             
             if (result.IsSuccess)
             {
@@ -396,8 +396,8 @@ public class FormsController : ControllerBase
     {
         try
         {
-            command.FormId = id;
-            var result = await _mediator.Send(command, cancellationToken);
+            var commandWithId = command with { FormId = id };
+            var result = await _mediator.Send(commandWithId, cancellationToken);
             
             if (result.IsSuccess)
             {
@@ -410,6 +410,78 @@ public class FormsController : ControllerBase
         {
             _logger.LogError(ex, "Error validating form with ID: {FormId}", id);
             return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while validating the form");
+        }
+    }
+
+    /// <summary>
+    /// Evaluate form logic (visibility, calculations)
+    /// </summary>
+    /// <param name="id">Form ID</param>
+    /// <param name="command">Evaluation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Evaluation result</returns>
+    [HttpPost("{id:guid}/evaluate")]
+    [ProducesResponseType(typeof(FormEvaluationResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string[]), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> EvaluateForm(
+        [FromRoute] Guid id,
+        [FromBody] EvaluateFormCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            command.FormId = id;
+            var result = await _mediator.Send(command, cancellationToken);
+            
+            if (result.IsSuccess)
+            {
+                return Ok(result.Data);
+            }
+            
+            return BadRequest(result.Errors);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error evaluating form with ID: {FormId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while evaluating the form");
+        }
+    }
+
+    /// <summary>
+    /// Prefill form fields using external services and mappings
+    /// </summary>
+    /// <param name="id">Form ID</param>
+    /// <param name="command">Prefill configuration</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Prefilled data</returns>
+    [HttpPost("{id:guid}/prefill")]
+    [ProducesResponseType(typeof(Dictionary<string, object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string[]), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> PrefillForm(
+        [FromRoute] Guid id,
+        [FromBody] PrefillFormCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            command.FormId = id;
+            var result = await _mediator.Send(command, cancellationToken);
+            
+            if (result.IsSuccess)
+            {
+                return Ok(result.Data);
+            }
+            
+            return BadRequest(result.Errors);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error prefilling form with ID: {FormId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while prefilling the form");
         }
     }
 
@@ -432,13 +504,14 @@ public class FormsController : ControllerBase
     {
         try
         {
-            command.FormId = id;
+            var commandWithContext = command with
+            {
+                FormId = id,
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                UserAgent = HttpContext.Request.Headers.UserAgent.ToString()
+            };
             
-            // Set additional context from HTTP request
-            command.IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-            command.UserAgent = HttpContext.Request.Headers.UserAgent.ToString();
-            
-            var result = await _mediator.Send(command, cancellationToken);
+            var result = await _mediator.Send(commandWithContext, cancellationToken);
             
             if (result.IsSuccess)
             {
@@ -490,7 +563,7 @@ public class FormsController : ControllerBase
             var query = new GetSubmissionsByFormQuery
             {
                 FormId = id,
-                UserId = userId,
+                UserId = userId?.ToString(),
                 Status = status,
                 FromDate = fromDate,
                 ToDate = toDate,

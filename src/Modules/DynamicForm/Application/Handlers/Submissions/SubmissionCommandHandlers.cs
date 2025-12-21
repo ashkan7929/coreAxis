@@ -3,6 +3,8 @@ using CoreAxis.Modules.DynamicForm.Application.DTOs;
 using CoreAxis.Modules.DynamicForm.Domain.Entities;
 using CoreAxis.Modules.DynamicForm.Domain.Interfaces;
 using CoreAxis.SharedKernel;
+using CoreAxis.SharedKernel.Contracts.Events;
+using CoreAxis.EventBus;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -13,17 +15,20 @@ public class CreateSubmissionCommandHandler : IRequestHandler<CreateSubmissionCo
     private readonly IFormSubmissionRepository _submissionRepository;
     private readonly IFormRepository _formRepository;
     private readonly IValidationEngine _validationEngine;
+    private readonly IEventBus _eventBus;
     private readonly ILogger<CreateSubmissionCommandHandler> _logger;
 
     public CreateSubmissionCommandHandler(
         IFormSubmissionRepository submissionRepository,
         IFormRepository formRepository,
         IValidationEngine validationEngine,
+        IEventBus eventBus,
         ILogger<CreateSubmissionCommandHandler> logger)
     {
         _submissionRepository = submissionRepository;
         _formRepository = formRepository;
         _validationEngine = validationEngine;
+        _eventBus = eventBus;
         _logger = logger;
     }
 
@@ -50,53 +55,76 @@ public class CreateSubmissionCommandHandler : IRequestHandler<CreateSubmissionCo
             // Validate submission data if requested
             if (request.ValidateBeforeSubmit)
             {
-                var fieldDefinitions = form.Fields?.Select(f => new FieldDefinition
-                {
-                    Name = f.Name,
-                    Type = f.FieldType,
-                    IsRequired = f.IsRequired,
-                    ValidationRules = f.ValidationRules?.Select(vr => new ValidationRule
+                var fieldDefinitions = form.Fields?.Select(f => {
+                    var validationRules = !string.IsNullOrEmpty(f.ValidationRules)
+                        ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(f.ValidationRules)
+                        : new Dictionary<string, object>();
+                    
+                    var options = !string.IsNullOrEmpty(f.Options)
+                        ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(f.Options)
+                        : new Dictionary<string, object>();
+
+                    return new FieldDefinition
                     {
-                        Type = vr.Key,
-                        Parameters = vr.Value as Dictionary<string, object> ?? new Dictionary<string, object>()
-                    }).ToList() ?? new List<ValidationRule>(),
-                    Options = f.Options?.Select(o => new FieldOption
-                    {
-                        Value = o.Key,
-                        Label = o.Value?.ToString() ?? o.Key
-                    }).ToList() ?? new List<FieldOption>()
+                        Name = f.Name,
+                        Type = f.FieldType,
+                        IsRequired = f.IsRequired,
+                        ValidationRules = validationRules?.Select(vr => new ValidationRule
+                        {
+                            Type = vr.Key,
+                            Parameters = vr.Value as Dictionary<string, object> ?? new Dictionary<string, object>()
+                        }).ToList() ?? new List<ValidationRule>(),
+                        Options = options?.Select(o => new FieldOption
+                        {
+                            Value = o.Key,
+                            Label = o.Value?.ToString() ?? o.Key
+                        }).ToList() ?? new List<FieldOption>()
+                    };
                 }).ToList() ?? new List<FieldDefinition>();
 
                 var validationResult = await _validationEngine.ValidateAsync(
-                    request.SubmissionData,
+                    request.SubmissionData.ToDictionary(k => k.Key, v => (object?)v.Value),
                     fieldDefinitions,
-                    request.CultureCode,
-                    cancellationToken);
+                    null); // CultureCode missing in command
 
                 if (!validationResult.IsValid)
                 {
-                    var errors = validationResult.Errors.Select(e => $"{e.FieldName}: {e.Message}").ToArray();
+                    var errors = validationResult.FormErrors.Select(e => $"{e.FieldName}: {e.Message}").ToArray();
                     return Result<FormSubmissionDto>.Failure(errors);
                 }
             }
 
-            // Create submission entity
-            var submission = new FormSubmission
+            if (!Guid.TryParse(request.UserId, out var userId))
             {
-                Id = Guid.NewGuid(),
-                FormId = request.FormId,
-                SubmissionData = request.SubmissionData,
-                UserId = request.UserId,
+                return Result<FormSubmissionDto>.Failure("Invalid User ID.");
+            }
+
+            // Create submission entity
+            var submission = new FormSubmission(
+                request.FormId,
+                userId,
+                "default", // TenantId placeholder
+                System.Text.Json.JsonSerializer.Serialize(request.SubmissionData),
+                request.IpAddress,
+                request.UserAgent
+            )
+            {
                 SessionId = request.SessionId,
-                IpAddress = request.IpAddress,
-                UserAgent = request.UserAgent,
-                Status = "Submitted",
-                Metadata = request.Metadata,
-                SubmittedAt = DateTime.UtcNow
+                Metadata = request.Metadata != null ? System.Text.Json.JsonSerializer.Serialize(request.Metadata) : null
             };
 
             await _submissionRepository.AddAsync(submission, cancellationToken);
             await _submissionRepository.SaveChangesAsync(cancellationToken);
+
+            // Publish integration event
+            await _eventBus.PublishAsync(new FormSubmitted(
+                submission.FormId,
+                submission.Id,
+                submission.UserId,
+                submission.Data,
+                submission.Metadata,
+                Guid.NewGuid()
+            ));
 
             _logger.LogInformation("Form submission created successfully with ID: {SubmissionId} for Form: {FormId}", submission.Id, request.FormId);
 
@@ -117,15 +145,15 @@ public class CreateSubmissionCommandHandler : IRequestHandler<CreateSubmissionCo
         {
             Id = submission.Id,
             FormId = submission.FormId,
-            SubmissionData = submission.SubmissionData,
-            UserId = submission.UserId,
+            SubmissionData = !string.IsNullOrEmpty(submission.Data) ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(submission.Data) : new Dictionary<string, object>(),
+            UserId = submission.UserId.ToString(),
             SessionId = submission.SessionId,
             IpAddress = submission.IpAddress,
             UserAgent = submission.UserAgent,
             Status = submission.Status,
-            Metadata = submission.Metadata,
-            SubmittedAt = submission.SubmittedAt,
-            UpdatedAt = submission.UpdatedAt
+            Metadata = !string.IsNullOrEmpty(submission.Metadata) ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(submission.Metadata) : null,
+            SubmittedAt = submission.SubmittedAt ?? submission.CreatedOn, // Fallback
+            UpdatedAt = submission.LastModifiedOn
         };
     }
 }
@@ -169,42 +197,51 @@ public class UpdateSubmissionCommandHandler : IRequestHandler<UpdateSubmissionCo
 
                 if (form != null)
                 {
-                    var fieldDefinitions = form.Fields?.Select(f => new FieldDefinition
-                    {
-                        Name = f.Name,
-                        Type = f.FieldType,
-                        IsRequired = f.IsRequired,
-                        ValidationRules = f.ValidationRules?.Select(vr => new ValidationRule
+                    var fieldDefinitions = form.Fields?.Select(f => {
+                        var validationRules = !string.IsNullOrEmpty(f.ValidationRules)
+                            ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(f.ValidationRules)
+                            : new Dictionary<string, object>();
+                        
+                        var options = !string.IsNullOrEmpty(f.Options)
+                            ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(f.Options)
+                            : new Dictionary<string, object>();
+
+                        return new FieldDefinition
                         {
-                            Type = vr.Key,
-                            Parameters = vr.Value as Dictionary<string, object> ?? new Dictionary<string, object>()
-                        }).ToList() ?? new List<ValidationRule>(),
-                        Options = f.Options?.Select(o => new FieldOption
-                        {
-                            Value = o.Key,
-                            Label = o.Value?.ToString() ?? o.Key
-                        }).ToList() ?? new List<FieldOption>()
+                            Name = f.Name,
+                            Type = f.FieldType,
+                            IsRequired = f.IsRequired,
+                            ValidationRules = validationRules?.Select(vr => new ValidationRule
+                            {
+                                Type = vr.Key,
+                                Parameters = vr.Value as Dictionary<string, object> ?? new Dictionary<string, object>()
+                            }).ToList() ?? new List<ValidationRule>(),
+                            Options = options?.Select(o => new FieldOption
+                            {
+                                Value = o.Key,
+                                Label = o.Value?.ToString() ?? o.Key
+                            }).ToList() ?? new List<FieldOption>()
+                        };
                     }).ToList() ?? new List<FieldDefinition>();
 
                     var validationResult = await _validationEngine.ValidateAsync(
-                        request.SubmissionData,
+                        request.SubmissionData.ToDictionary(k => k.Key, v => (object?)v.Value),
                         fieldDefinitions,
-                        request.CultureCode,
-                        cancellationToken);
+                        null);
 
                     if (!validationResult.IsValid)
                     {
-                        var errors = validationResult.Errors.Select(e => $"{e.FieldName}: {e.Message}").ToArray();
+                        var errors = validationResult.FormErrors.Select(e => $"{e.FieldName}: {e.Message}").ToArray();
                         return Result<FormSubmissionDto>.Failure(errors);
                     }
                 }
             }
 
-            // Update submission properties
-            submission.SubmissionData = request.SubmissionData;
+            // Update submission
+            submission.Data = System.Text.Json.JsonSerializer.Serialize(request.SubmissionData);
+            submission.Metadata = request.Metadata != null ? System.Text.Json.JsonSerializer.Serialize(request.Metadata) : null;
             submission.Status = request.Status;
-            submission.Metadata = request.Metadata;
-            submission.UpdatedAt = DateTime.UtcNow;
+            submission.LastModifiedOn = DateTime.UtcNow;
 
             await _submissionRepository.UpdateAsync(submission, cancellationToken);
             await _submissionRepository.SaveChangesAsync(cancellationToken);
@@ -227,15 +264,15 @@ public class UpdateSubmissionCommandHandler : IRequestHandler<UpdateSubmissionCo
         {
             Id = submission.Id,
             FormId = submission.FormId,
-            SubmissionData = submission.SubmissionData,
-            UserId = submission.UserId,
+            SubmissionData = !string.IsNullOrEmpty(submission.Data) ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(submission.Data) : new Dictionary<string, object>(),
+            UserId = submission.UserId.ToString(),
             SessionId = submission.SessionId,
             IpAddress = submission.IpAddress,
             UserAgent = submission.UserAgent,
             Status = submission.Status,
-            Metadata = submission.Metadata,
-            SubmittedAt = submission.SubmittedAt,
-            UpdatedAt = submission.UpdatedAt
+            Metadata = !string.IsNullOrEmpty(submission.Metadata) ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(submission.Metadata) : null,
+            SubmittedAt = submission.SubmittedAt ?? submission.CreatedOn,
+            UpdatedAt = submission.LastModifiedOn
         };
     }
 }
@@ -263,7 +300,7 @@ public class DeleteSubmissionCommandHandler : IRequestHandler<DeleteSubmissionCo
                 return Result<bool>.Failure($"Submission with ID {request.Id} not found.");
             }
 
-            await _submissionRepository.DeleteAsync(submission, cancellationToken);
+            await _submissionRepository.RemoveAsync(submission, cancellationToken);
             await _submissionRepository.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Form submission deleted successfully with ID: {SubmissionId}", request.Id);
@@ -308,78 +345,81 @@ public class ValidateSubmissionCommandHandler : IRequestHandler<ValidateSubmissi
             }
 
             // Convert form fields to field definitions for validation
-            var fieldDefinitions = form.Fields?.Select(f => new FieldDefinition
-            {
-                Name = f.Name,
-                Type = f.FieldType,
-                IsRequired = f.IsRequired,
-                ValidationRules = f.ValidationRules?.Select(vr => new ValidationRule
+            var fieldDefinitions = form.Fields?.Select(f => {
+                var validationRules = !string.IsNullOrEmpty(f.ValidationRules)
+                    ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(f.ValidationRules)
+                    : new Dictionary<string, object>();
+                
+                var options = !string.IsNullOrEmpty(f.Options)
+                    ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(f.Options)
+                    : new Dictionary<string, object>();
+
+                return new FieldDefinition
                 {
-                    Type = vr.Key,
-                    Parameters = vr.Value as Dictionary<string, object> ?? new Dictionary<string, object>()
-                }).ToList() ?? new List<ValidationRule>(),
-                Options = f.Options?.Select(o => new FieldOption
-                {
-                    Value = o.Key,
-                    Label = o.Value?.ToString() ?? o.Key
-                }).ToList() ?? new List<FieldOption>()
+                    Name = f.Name,
+                    Type = f.FieldType,
+                    IsRequired = f.IsRequired,
+                    ValidationRules = validationRules?.Select(vr => new ValidationRule
+                    {
+                        Type = vr.Key,
+                        Parameters = vr.Value as Dictionary<string, object> ?? new Dictionary<string, object>()
+                    }).ToList() ?? new List<ValidationRule>(),
+                    Options = options?.Select(o => new FieldOption
+                    {
+                        Value = o.Key,
+                        Label = o.Value?.ToString() ?? o.Key
+                    }).ToList() ?? new List<FieldOption>()
+                };
             }).ToList() ?? new List<FieldDefinition>();
 
             var validationResult = await _validationEngine.ValidateAsync(
-                request.SubmissionData,
+                request.SubmissionData.ToDictionary(k => k.Key, v => (object?)v.Value),
                 fieldDefinitions,
-                request.CultureCode,
-                cancellationToken);
+                !string.IsNullOrEmpty(request.CultureCode) ? new System.Globalization.CultureInfo(request.CultureCode) : null);
 
             var resultDto = new ValidationResultDto
             {
                 IsValid = validationResult.IsValid,
-                Errors = validationResult.Errors.Select(e => new ValidationErrorDto
+                Errors = validationResult.FormErrors.Select(e => new ValidationErrorDto
                 {
-                    FieldName = e.FieldName,
-                    ErrorCode = e.ErrorCode,
+                    FieldName = e.FieldName ?? string.Empty,
+                    ErrorCode = e.Code,
                     Message = e.Message,
-                    AttemptedValue = e.AttemptedValue,
-                    Context = e.Context
+                    Context = e.Context.ToDictionary(k => k.Key, v => (object)v.Value!)
                 }).ToList(),
-                Warnings = validationResult.Warnings.Select(w => new ValidationWarningDto
-                {
-                    FieldName = w.FieldName,
-                    WarningCode = w.WarningCode,
-                    Message = w.Message,
-                    AttemptedValue = w.AttemptedValue,
-                    Context = w.Context
-                }).ToList(),
+                Warnings = new List<ValidationWarningDto>(),
                 FieldResults = validationResult.FieldResults.Select(fr => new FieldValidationResultDto
                 {
-                    FieldName = fr.FieldName,
-                    IsValid = fr.IsValid,
-                    Errors = fr.Errors.Select(e => new ValidationErrorDto
+                    FieldName = fr.Key,
+                    IsValid = fr.Value.IsValid,
+                    Errors = fr.Value.Errors.Select(e => new ValidationErrorDto
                     {
-                        FieldName = e.FieldName,
-                        ErrorCode = e.ErrorCode,
+                        FieldName = e.FieldName ?? fr.Key,
+                        ErrorCode = e.Code,
                         Message = e.Message,
-                        AttemptedValue = e.AttemptedValue,
-                        Context = e.Context
+                        Context = e.Context.ToDictionary(k => k.Key, v => (object)v.Value!)
                     }).ToList(),
-                    Warnings = fr.Warnings.Select(w => new ValidationWarningDto
+                    Warnings = fr.Value.Warnings.Select(w => new ValidationWarningDto
                     {
-                        FieldName = w.FieldName,
-                        WarningCode = w.WarningCode,
-                        Message = w.Message,
-                        AttemptedValue = w.AttemptedValue,
-                        Context = w.Context
+                        FieldName = w.FieldName ?? fr.Key,
+                        WarningCode = w.Code,
+                        Message = w.Message
                     }).ToList(),
-                    ValidatedValue = fr.ValidatedValue
+                    ValidatedValue = fr.Value.SanitizedValue
                 }).ToList(),
                 Metrics = validationResult.Metrics != null ? new ValidationMetricsDto
                 {
-                    ValidationDuration = validationResult.Metrics.ValidationDuration,
-                    TotalFieldsValidated = validationResult.Metrics.TotalFieldsValidated,
-                    FieldsWithErrors = validationResult.Metrics.FieldsWithErrors,
-                    FieldsWithWarnings = validationResult.Metrics.FieldsWithWarnings,
-                    RulesEvaluated = validationResult.Metrics.RulesEvaluated,
-                    AdditionalMetrics = validationResult.Metrics.AdditionalMetrics
+                    ValidationDuration = validationResult.Metrics.TotalTime,
+                    TotalFieldsValidated = validationResult.Metrics.FieldsValidated,
+                    FieldsWithErrors = validationResult.FieldResults.Count(fr => !fr.Value.IsValid),
+                    FieldsWithWarnings = validationResult.FieldResults.Count(fr => fr.Value.Warnings.Any()),
+                    RulesEvaluated = validationResult.Metrics.ExpressionsEvaluated,
+                    AdditionalMetrics = new Dictionary<string, object>
+                    {
+                        { "CustomRulesExecuted", validationResult.Metrics.CustomRulesExecuted },
+                        { "StartTime", validationResult.Metrics.StartTime },
+                        { "EndTime", validationResult.Metrics.EndTime }
+                    }
                 } : null
             };
 

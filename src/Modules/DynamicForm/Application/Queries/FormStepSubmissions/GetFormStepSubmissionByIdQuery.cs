@@ -27,5 +27,10 @@ namespace CoreAxis.Modules.DynamicForm.Application.Queries.FormStepSubmissions
         /// Gets or sets a value indicating whether to include inactive submissions.
         /// </summary>
         public bool IncludeInactive { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether to include form step details.
+        /// </summary>
+        public bool IncludeFormStep { get; set; } = false;
     }
 }

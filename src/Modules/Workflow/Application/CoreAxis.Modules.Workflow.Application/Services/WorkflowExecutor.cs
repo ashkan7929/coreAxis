@@ -1,4 +1,5 @@
 using CoreAxis.Modules.Workflow.Application.Services.StepHandlers;
+using CoreAxis.Modules.Workflow.Application.Services.Compensation;
 using CoreAxis.Modules.Workflow.Domain.Entities;
 using CoreAxis.Modules.Workflow.Domain.Events;
 using CoreAxis.SharedKernel.Domain;
@@ -14,15 +15,18 @@ public class WorkflowExecutor : IWorkflowExecutor
 {
     private readonly WorkflowDbContext _context;
     private readonly IEnumerable<IWorkflowStepHandler> _handlers;
+    private readonly ICompensationExecutor _compensationExecutor;
     private readonly ILogger<WorkflowExecutor> _logger;
 
     public WorkflowExecutor(
         WorkflowDbContext context,
         IEnumerable<IWorkflowStepHandler> handlers,
+        ICompensationExecutor compensationExecutor,
         ILogger<WorkflowExecutor> logger)
     {
         _context = context;
         _handlers = handlers;
+        _compensationExecutor = compensationExecutor;
         _logger = logger;
     }
 
@@ -101,20 +105,31 @@ public class WorkflowExecutor : IWorkflowExecutor
             return;
         }
 
+        var existingSteps = await _context.WorkflowRunSteps
+            .CountAsync(s => s.WorkflowRunId == run.Id && s.StepId == stepDsl.Id, cancellationToken);
+        
+        var attempt = existingSteps + 1;
+        var executionKey = $"{run.Id}:{stepDsl.Id}:{attempt}";
+
         var runStep = new WorkflowRunStep
         {
             WorkflowRunId = run.Id,
             StepId = stepDsl.Id,
+            StepType = stepDsl.Type,
             Status = "Running",
-            StartedAt = DateTime.UtcNow
+            Attempts = attempt,
+            ExecutionKey = executionKey,
+            StartedAt = DateTime.UtcNow,
+            CreatedBy = "System",
+            LastModifiedBy = "System"
         };
-        run.Steps.Add(runStep);
+        _context.WorkflowRunSteps.Add(runStep);
         await _context.SaveChangesAsync(cancellationToken);
 
         StepExecutionResult result;
         try
         {
-            result = await handler.ExecuteAsync(run, stepDsl, cancellationToken);
+            result = await handler.ExecuteAsync(run, runStep, stepDsl, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -170,6 +185,12 @@ public class WorkflowExecutor : IWorkflowExecutor
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Check if failed and trigger compensation
+        if (run.Status == "Failed")
+        {
+             await _compensationExecutor.CompensateAsync(run, cancellationToken);
+        }
     }
 
     public async Task ResumeAsync(Guid workflowRunId, Dictionary<string, object> input, CancellationToken cancellationToken = default)
@@ -228,6 +249,9 @@ public class WorkflowExecutor : IWorkflowExecutor
         run.Cancel(reason);
         await _context.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Workflow run {RunId} cancelled. Reason: {Reason}", workflowRunId, reason);
+
+        // Trigger compensation
+        await _compensationExecutor.CompensateAsync(run, cancellationToken);
     }
 
     private async Task ResumeInternalAsync(Guid workflowRunId, Dictionary<string, object> input, string signalName, CancellationToken cancellationToken)

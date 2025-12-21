@@ -14,9 +14,19 @@ public class MappingDefinitionDto
     public Guid Id { get; set; }
 
     /// <summary>
+    /// Unique code for the mapping.
+    /// </summary>
+    public string Code { get; set; } = string.Empty;
+
+    /// <summary>
     /// Name of the mapping.
     /// </summary>
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Version number.
+    /// </summary>
+    public int Version { get; set; }
 
     /// <summary>
     /// Reference to the source schema.
@@ -54,6 +64,11 @@ public class MappingDefinitionDto
 /// </summary>
 public class CreateMappingDefinitionDto
 {
+    /// <summary>
+    /// Unique code for the mapping.
+    /// </summary>
+    public string Code { get; set; } = string.Empty;
+
     /// <summary>
     /// Name of the mapping.
     /// </summary>

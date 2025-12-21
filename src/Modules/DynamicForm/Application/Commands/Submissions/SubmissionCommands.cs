@@ -20,6 +20,7 @@ public record UpdateSubmissionCommand : IRequest<Result<FormSubmissionDto>>
 {
     public Guid Id { get; init; }
     public Dictionary<string, object> SubmissionData { get; init; } = new();
+    public string? Status { get; init; }
     public Dictionary<string, object>? Metadata { get; init; }
     public bool ValidateBeforeUpdate { get; init; } = true;
 }

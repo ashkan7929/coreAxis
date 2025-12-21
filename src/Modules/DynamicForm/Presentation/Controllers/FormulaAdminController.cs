@@ -59,7 +59,7 @@ public class FormulaAdminController : ControllerBase
         {
             version.Publish(request.PublishedBy);
             await _formulaVersionRepository.UpdateAsync(version, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync();
 
             _logger.LogInformation("Published formula version {Version} for definition {DefinitionId}", versionNumber, formulaDefinitionId);
 
@@ -110,7 +110,7 @@ public class FormulaAdminController : ControllerBase
         {
             version.Unpublish();
             await _formulaVersionRepository.UpdateAsync(version, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync();
 
             _logger.LogInformation("Unpublished formula version {Version} for definition {DefinitionId}", versionNumber, formulaDefinitionId);
 

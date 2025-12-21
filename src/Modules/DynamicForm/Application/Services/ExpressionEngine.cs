@@ -148,7 +148,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 var externalResult = await _dataOrchestrator.GetExternalDataAsync(orchestratorContext, cancellationToken);
                 if (!externalResult.IsSuccess)
                 {
-                    _logger.LogWarning("Failed to populate external data: {Error}", externalResult.Error);
+                    _logger.LogWarning("Failed to populate external data: {Error}", string.Join("; ", externalResult.Errors));
                     return;
                 }
 
@@ -730,7 +730,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
             foreach (Match match in variableMatches)
             {
                 var variableName = match.Groups[1].Value;
-                if (!validationContext.Variables.ContainsKey(variableName))
+                if (!validationContext.AvailableVariables.Contains(variableName))
                 {
                     errors.Add($"Unknown variable: {variableName}");
                 }

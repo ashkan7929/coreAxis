@@ -8,6 +8,8 @@ public class WebServiceCallLog : EntityBase
     public Guid WebServiceId { get; private set; }
     public Guid MethodId { get; private set; }
     public string? CorrelationId { get; private set; }
+    public Guid? WorkflowRunId { get; private set; }
+    public string? StepId { get; private set; }
     public string? RequestDump { get; private set; }
     public string? ResponseDump { get; private set; }
     public int? StatusCode { get; private set; }
@@ -22,12 +24,14 @@ public class WebServiceCallLog : EntityBase
 
     private WebServiceCallLog() { } // For EF
 
-    public WebServiceCallLog(Guid webServiceId, Guid methodId, string? correlationId = null)
+    public WebServiceCallLog(Guid webServiceId, Guid methodId, string? correlationId = null, Guid? workflowRunId = null, string? stepId = null)
     {
         Id = Guid.NewGuid();
         WebServiceId = webServiceId;
         MethodId = methodId;
         CorrelationId = correlationId;
+        WorkflowRunId = workflowRunId;
+        StepId = stepId;
         CreatedAt = DateTime.UtcNow;
     }
 

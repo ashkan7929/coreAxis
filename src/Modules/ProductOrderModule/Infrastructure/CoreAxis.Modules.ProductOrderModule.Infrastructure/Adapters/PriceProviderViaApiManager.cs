@@ -48,7 +48,7 @@ public class PriceProviderViaApiManager : IPriceProvider
             ["metadata"] = context.Metadata
         };
 
-        var result = await _apiProxy.InvokeAsync(_getPriceMethodId, parameters, cancellationToken);
+        var result = await _apiProxy.InvokeAsync(_getPriceMethodId, parameters, null, null, cancellationToken);
 
         if (!result.IsSuccess || string.IsNullOrWhiteSpace(result.ResponseBody))
         {

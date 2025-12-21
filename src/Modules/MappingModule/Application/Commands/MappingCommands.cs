@@ -7,11 +7,18 @@ namespace CoreAxis.Modules.MappingModule.Application.Commands;
 /// <summary>
 /// Command to create a new mapping definition.
 /// </summary>
+/// <param name="Code">Unique code for the mapping.</param>
 /// <param name="Name">Name of the mapping.</param>
 /// <param name="SourceSchemaRef">Reference to the source schema.</param>
 /// <param name="TargetSchemaRef">Reference to the target schema.</param>
 /// <param name="RulesJson">JSON string containing mapping rules.</param>
-public record CreateMappingDefinitionCommand(string Name, string? SourceSchemaRef, string? TargetSchemaRef, string RulesJson) : IRequest<Guid>;
+public record CreateMappingDefinitionCommand(string Code, string Name, string? SourceSchemaRef, string? TargetSchemaRef, string RulesJson) : IRequest<Guid>;
+
+/// <summary>
+/// Command to create a new draft version from an existing published mapping.
+/// </summary>
+/// <param name="PreviousVersionId">The unique identifier of the previous version.</param>
+public record CreateNextVersionCommand(Guid PreviousVersionId) : IRequest<Guid>;
 
 /// <summary>
 /// Command to update an existing mapping definition.

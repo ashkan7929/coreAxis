@@ -18,6 +18,7 @@ namespace CoreAxis.Modules.MappingModule.Application.Handlers;
 /// </summary>
 public class MappingCommandHandlers : 
     IRequestHandler<CreateMappingDefinitionCommand, Guid>,
+    IRequestHandler<CreateNextVersionCommand, Guid>,
     IRequestHandler<UpdateMappingDefinitionCommand, bool>,
     IRequestHandler<PublishMappingDefinitionCommand, bool>,
     IRequestHandler<TestMappingDefinitionCommand, TestMappingResponseDto>,
@@ -46,11 +47,13 @@ public class MappingCommandHandlers :
     {
         var mapping = new MappingDefinition
         {
+            Code = request.Code,
             Name = request.Name,
             SourceSchemaRef = request.SourceSchemaRef,
             TargetSchemaRef = request.TargetSchemaRef,
             RulesJson = request.RulesJson,
             Status = VersionStatus.Draft,
+            Version = 1,
             TenantId = "default" // TODO: Get from context
         };
 
@@ -58,6 +61,36 @@ public class MappingCommandHandlers :
         await _context.SaveEntitiesAsync(cancellationToken);
 
         return mapping.Id;
+    }
+
+    /// <summary>
+    /// Handles the creation of the next version of a mapping definition.
+    /// </summary>
+    public async Task<Guid> Handle(CreateNextVersionCommand request, CancellationToken cancellationToken)
+    {
+        var prevVersion = await _context.MappingDefinitions.FindAsync(new object[] { request.PreviousVersionId }, cancellationToken);
+        if (prevVersion == null) throw new InvalidOperationException("Previous version not found");
+
+        var maxVersion = await _context.MappingDefinitions
+            .Where(m => m.Code == prevVersion.Code)
+            .MaxAsync(m => m.Version, cancellationToken);
+
+        var nextVersion = new MappingDefinition
+        {
+            Code = prevVersion.Code,
+            Name = prevVersion.Name,
+            SourceSchemaRef = prevVersion.SourceSchemaRef,
+            TargetSchemaRef = prevVersion.TargetSchemaRef,
+            RulesJson = prevVersion.RulesJson,
+            Status = VersionStatus.Draft,
+            Version = maxVersion + 1,
+            TenantId = prevVersion.TenantId
+        };
+
+        _context.MappingDefinitions.Add(nextVersion);
+        await _context.SaveEntitiesAsync(cancellationToken);
+
+        return nextVersion.Id;
     }
 
     /// <summary>

@@ -66,10 +66,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services.Handlers
                 {
                     result.Success = false;
                     result.ErrorMessage = $"Field '{context.ChangedField}' is required";
-                    result.ValidationErrors = new Dictionary<string, List<string>>
-                    {
-                        { context.ChangedField, new List<string> { "This field is required" } }
-                    };
+                    result.ValidationErrors = new List<string> { "This field is required" };
                 }
             }
 
@@ -104,7 +101,7 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services.Handlers
             {
                 result.Success = false;
                 result.ErrorMessage = "Form validation failed";
-                result.ValidationErrors = validationErrors;
+                result.ValidationErrors = validationErrors.SelectMany(kvp => kvp.Value.Select(v => $"{kvp.Key}: {v}")).ToList();
                 
                 // Cancel submission if validation fails
                 context.Cancel = true;

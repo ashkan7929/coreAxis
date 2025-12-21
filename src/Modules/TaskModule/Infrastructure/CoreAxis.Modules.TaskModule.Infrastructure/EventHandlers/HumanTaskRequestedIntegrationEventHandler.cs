@@ -30,7 +30,9 @@ public class HumanTaskRequestedIntegrationEventHandler : IIntegrationEventHandle
             AssigneeId = @event.AssigneeId,
             PayloadJson = @event.PayloadJson,
             AllowedActionsJson = @event.AllowedActionsJson,
-            DueAt = @event.DueAt
+            DueAt = @event.DueAt,
+            CreatedBy = "System",
+            LastModifiedBy = "System"
         };
 
         _context.TaskInstances.Add(task);
