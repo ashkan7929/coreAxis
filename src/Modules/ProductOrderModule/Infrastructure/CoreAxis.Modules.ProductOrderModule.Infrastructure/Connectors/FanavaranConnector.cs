@@ -301,14 +301,16 @@ public class FanavaranConnector : IFanavaranConnector
                     MedicalRate = 0,
                     Beneficiaries = new List<Beneficiary>
                     {
-                        // Death Beneficiary (Kind 791) - Policyholder (101)
+                        // Death Beneficiary (Kind 791) - Legal Heirs (Worrath)
+                        // Relation 117 is commonly used for "Voras" (Legal Heirs) in such systems
+                        // BeneficiaryId should be null for this type of general relation
                         new Beneficiary 
                         { 
-                            BeneficiaryId = null, // Must be empty for Policyholder relation
+                            BeneficiaryId = null, 
                             BeneficiaryKindId = 791, 
-                            BeneficiaryRelationId = 101, // Bimegozar
+                            BeneficiaryRelationId = 117, // Legal Heirs (Worrath)
                             CapitalPercent = 100, 
-                            PriorityId = 40 // Fixed Priority ID from lookup
+                            PriorityId = 40 
                         },
                         // Survival Beneficiary (Kind 792) - Policyholder (101)
                         new Beneficiary 
@@ -317,7 +319,7 @@ public class FanavaranConnector : IFanavaranConnector
                             BeneficiaryKindId = 792, 
                             BeneficiaryRelationId = 101, // Bimegozar
                             CapitalPercent = 100, 
-                            PriorityId = 40 // Fixed Priority ID from lookup
+                            PriorityId = 40 
                         }
                     },
                     MedicalHistories = new List<MedicalHistory>
