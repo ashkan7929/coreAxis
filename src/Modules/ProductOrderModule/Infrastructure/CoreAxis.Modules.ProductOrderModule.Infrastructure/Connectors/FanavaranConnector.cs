@@ -269,24 +269,46 @@ public class FanavaranConnector : IFanavaranConnector
             CustomerId = customerIdLong,
             FirstPrm = contract.GetProperty("annualPremium").GetDecimal(),
             Duration = contract.GetProperty("durationYears").GetInt32(),
-            BeginDate = "1404/08/21", // TODO: Use current Persian Date
+            BeginDate = "1404/09/31", // Updated date from example
+            // Allow PlanId override if present in applicationData, else default to 10 (from working example)
+            PlanId = appData.TryGetProperty("planId", out var planIdElem) ? planIdElem.GetInt32() : 10,
+            ContractId = appData.TryGetProperty("contractId", out var contractIdElem) ? contractIdElem.GetInt32() : 4604,
+            AgentId = 1035,
+            SaleManagerId = 1035,
+            CapitalChangePercent = 10,
+            PrmChangePercent = 15,
+            InsuredPersonCount = 58,
             InsuredPeople = new List<InsuredPerson>
             {
                 new InsuredPerson
                 {
                     InsuredPersonId = insuredPersonId,
+                    InsuredPersonJobId = 2,
+                    InsuredPersonRoleKindId = 793,
+                    InsurerAndInsuredRelationId = 105,
+                    MedicalRate = 0,
+                    Beneficiaries = new List<Beneficiary>
+                    {
+                        new Beneficiary { BeneficiaryId = 3977076, BeneficiaryKindId = 791, BeneficiaryRelationId = 105, CapitalPercent = 100, PriorityId = 40 },
+                        // new Beneficiary { BeneficiaryId = 3976650, BeneficiaryKindId = 792, BeneficiaryRelationId = 106, CapitalPercent = 100, PriorityId = 40 }
+                    },
                     MedicalHistories = new List<MedicalHistory>
                     {
                         new MedicalHistory
                         {
                              Height = body.GetProperty("heightCm").GetInt32(),
-                             Weight = body.GetProperty("weightKg").GetInt32()
+                             Weight = body.GetProperty("weightKg").GetInt32(),
+                             HealthInsuranceName = "تامين اجتماعي، تکميلي درمان"
                         }
                     },
+                    FamilyMedicalHistories = new List<FamilyMedicalHistory> { new FamilyMedicalHistory() },
+                    DoctorRecommendations = new List<DoctorRecommendation> { new DoctorRecommendation() },
                     Covs = new List<Cov>
                     {
-                        // Example Mapping
-                        new Cov { CovKindId = 1, CapitalAmount = coverage.GetProperty("deathAnyCause").GetDecimal() }
+                        // Example Mapping from working JSON
+                        new Cov { CovKindId = 1, CapitalAmount = coverage.GetProperty("deathAnyCause").GetDecimal() },
+                        new Cov { CovKindId = 2, CapitalRatio = 3 },
+                        new Cov { CovKindId = 3, CapitalRatio = 1 }
                     }
                 }
             }
