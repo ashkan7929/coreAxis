@@ -269,9 +269,6 @@ public class FanavaranConnector : IFanavaranConnector
         int jobId = 2;
         if (policyholder.TryGetProperty("mainJob", out var jobElem))
         {
-            // If mainJob is an object/select option, we might need to extract 'value' or 'Id'. 
-            // Based on mockData, mainJob seems to be the ID directly in some contexts or an object.
-            // Let's assume it sends the ID (integer) directly as per common practice in this system.
             if (jobElem.ValueKind == JsonValueKind.Number)
             {
                 jobId = jobElem.GetInt32();
@@ -304,8 +301,24 @@ public class FanavaranConnector : IFanavaranConnector
                     MedicalRate = 0,
                     Beneficiaries = new List<Beneficiary>
                     {
-                        new Beneficiary { BeneficiaryId = 3977076, BeneficiaryKindId = 791, BeneficiaryRelationId = 105, CapitalPercent = 100, PriorityId = 40 },
-                        // new Beneficiary { BeneficiaryId = 3976650, BeneficiaryKindId = 792, BeneficiaryRelationId = 106, CapitalPercent = 100, PriorityId = 40 }
+                        // Death Beneficiary (Kind 791) - Self for testing/MVP if no other ID
+                        new Beneficiary 
+                        { 
+                            BeneficiaryId = insuredPersonId, 
+                            BeneficiaryKindId = 791, 
+                            BeneficiaryRelationId = 105, 
+                            CapitalPercent = 100, 
+                            PriorityId = 1 
+                        },
+                        // Survival Beneficiary (Kind 792) - Self
+                        new Beneficiary 
+                        { 
+                            BeneficiaryId = insuredPersonId, 
+                            BeneficiaryKindId = 792, 
+                            BeneficiaryRelationId = 105, 
+                            CapitalPercent = 100, 
+                            PriorityId = 1 
+                        }
                     },
                     MedicalHistories = new List<MedicalHistory>
                     {
