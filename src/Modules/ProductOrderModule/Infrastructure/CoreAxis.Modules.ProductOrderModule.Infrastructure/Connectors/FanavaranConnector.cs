@@ -7,6 +7,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Globalization;
 
 namespace CoreAxis.Modules.ProductOrderModule.Infrastructure.Connectors;
 
@@ -269,7 +270,7 @@ public class FanavaranConnector : IFanavaranConnector
             CustomerId = customerIdLong,
             FirstPrm = contract.GetProperty("annualPremium").GetDecimal(),
             Duration = contract.GetProperty("durationYears").GetInt32(),
-            BeginDate = "1404/09/31", // Updated date from example
+            BeginDate = appData.TryGetProperty("beginDate", out var beginDateElem) ? beginDateElem.GetString()! : GetCurrentPersianDate(),
             // Allow PlanId override if present in applicationData, else default to 10 (from working example)
             PlanId = appData.TryGetProperty("planId", out var planIdElem) ? planIdElem.GetInt32() : 10,
             ContractId = appData.TryGetProperty("contractId", out var contractIdElem) ? contractIdElem.GetInt32() : 4604,
@@ -370,5 +371,12 @@ public class FanavaranConnector : IFanavaranConnector
         
         // For MVP, return the input premium as the "Base Price" confirmed by API
         return ulRequest.FirstPrm;
+    }
+
+    private string GetCurrentPersianDate()
+    {
+        var pc = new PersianCalendar();
+        var now = DateTime.Now;
+        return $"{pc.GetYear(now)}/{pc.GetMonth(now):00}/{pc.GetDayOfMonth(now):00}";
     }
 }
