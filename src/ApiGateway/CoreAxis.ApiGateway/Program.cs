@@ -62,11 +62,17 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
-    // In development, bind to a non-conflicting port (avoid macOS AirPlay/AirTunes on 5000)
-    if (builder.Environment.IsDevelopment())
+    // Ignore background service exceptions to keep the host running
+    builder.Services.Configure<HostOptions>(options =>
     {
-        builder.WebHost.UseUrls("http://localhost:5077");
-    }
+        options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
+    });
+
+    // In development, bind to a non-conflicting port (avoid macOS AirPlay/AirTunes on 5000)
+    // if (builder.Environment.IsDevelopment())
+    // {
+    //    builder.WebHost.UseUrls("http://localhost:5077");
+    // }
 
     // Add environment variables to configuration
     builder.Configuration.AddEnvironmentVariables();

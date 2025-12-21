@@ -90,7 +90,7 @@ public class OrderController : ControllerBase
     /// <param name="id">The order ID</param>
     /// <returns>The order</returns>
     [HttpGet("{id:guid}")]
-    [HasPermission("orders", "read")]
+    // [HasPermission("orders", "read")]
     [ProducesResponseType(typeof(OrderDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]

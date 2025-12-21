@@ -27,7 +27,7 @@ namespace CoreAxis.SharedKernel
             // Register Outbox components for reliable event delivery
             // Assumes each module provides its own IOutboxRepository implementation.
             services.AddScoped<IOutboxService, OutboxService>();
-            services.AddHostedService<OutboxPublisher>();
+            // services.AddHostedService<OutboxPublisher>();
             services.AddOptions<OutboxOptions>(); // Allow external configuration of polling interval
 
             return services;

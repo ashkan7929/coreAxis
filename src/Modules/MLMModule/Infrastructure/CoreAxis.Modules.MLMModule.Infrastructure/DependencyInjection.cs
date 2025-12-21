@@ -45,8 +45,8 @@ public static class DependencyInjection
         services.AddScoped<IDomainEventHandler<CommissionApprovedEvent>, CommissionApprovedEventHandler>();
 
         // Register background hosted services
-        services.AddHostedService<CommissionProcessingHostedService>();
-        services.AddHostedService<CommissionSettlementHostedService>();
+        // services.AddHostedService<CommissionProcessingHostedService>();
+        // services.AddHostedService<CommissionSettlementHostedService>();
 
         return services;
     }

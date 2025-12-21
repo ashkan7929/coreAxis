@@ -52,7 +52,15 @@ public static class DependencyInjection
         services.AddScoped<IQuoteRepository, QuoteRepository>();
         
         // Register connectors
-        services.AddHttpClient<IFanavaranConnector, FanavaranConnector>();
+        services.AddHttpClient<IFanavaranConnector, FanavaranConnector>(client =>
+            {
+                client.Timeout = TimeSpan.FromMinutes(5);
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true,
+                SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls11 | System.Security.Authentication.SslProtocols.Tls
+            });
         services.AddHttpClient<IRiskConnector, RiskConnector>();
         services.AddScoped<IOutboxRepository, OutboxRepository>();
         

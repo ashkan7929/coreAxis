@@ -25,7 +25,8 @@ public class FanavaranConnector : IFanavaranConnector
     private async Task<string> GetAppTokenAsync(CancellationToken cancellationToken)
     {
         _logger.LogDebug("Requesting AppToken from Fanavaran...");
-        var request = new HttpRequestMessage(HttpMethod.Post, $"{_options.BaseUrl}/EITAuthentication/GetAppToken");
+        var requestUrl = $"{_options.BaseUrl}/EITAuthentication/GetAppToken";
+        var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
         request.Headers.Add("appname", _options.AppName);
         request.Headers.Add("secret", _options.Secret);
         request.Headers.Add("Authorization", _options.AuthorizationHeader);
@@ -33,52 +34,79 @@ public class FanavaranConnector : IFanavaranConnector
         // Empty data as per curl
         request.Content = new StringContent("", System.Text.Encoding.UTF8, "application/json");
 
-        var response = await _httpClient.SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            _logger.LogError("Failed to get AppToken. Status: {StatusCode}, Content: {Content}", response.StatusCode, errorContent);
-            response.EnsureSuccessStatusCode();
-        }
+            var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogError("Failed to get AppToken. Status: {StatusCode}, Content: {Content}", response.StatusCode, errorContent);
+                response.EnsureSuccessStatusCode();
+            }
 
-        if (response.Headers.TryGetValues("appToken", out var values))
-        {
-            var token = values.FirstOrDefault();
-            _logger.LogDebug("AppToken obtained successfully.");
-            return token ?? throw new Exception("AppToken not found in response headers");
+            if (response.Headers.TryGetValues("appToken", out var values))
+            {
+                var token = values.FirstOrDefault();
+                _logger.LogDebug("AppToken obtained successfully.");
+                return token ?? throw new Exception("AppToken not found in response headers");
+            }
+            
+            _logger.LogError("AppToken header missing in response.");
+            throw new Exception("AppToken header missing");
         }
-        
-        _logger.LogError("AppToken header missing in response.");
-        throw new Exception("AppToken header missing");
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex, "Timeout occurred while calling GetAppToken at {Url}", requestUrl);
+            throw new TimeoutException($"Timeout calling Fanavaran GetAppToken: {requestUrl}", ex);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Network error while calling GetAppToken at {Url}", requestUrl);
+            throw new HttpRequestException($"Network error calling Fanavaran GetAppToken: {requestUrl}. Details: {ex.Message}", ex);
+        }
     }
 
     private async Task<string> LoginAsync(string appToken, CancellationToken cancellationToken)
     {
         _logger.LogDebug("Logging in to Fanavaran...");
-        var request = new HttpRequestMessage(HttpMethod.Post, $"{_options.BaseUrl}/EITAuthentication/Login");
+        var requestUrl = $"{_options.BaseUrl}/EITAuthentication/Login";
+        var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
         request.Headers.Add("appToken", appToken);
         request.Headers.Add("username", _options.Username);
         request.Headers.Add("password", _options.Password);
         
         request.Content = new StringContent("", System.Text.Encoding.UTF8, "application/json");
 
-        var response = await _httpClient.SendAsync(request, cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            _logger.LogError("Failed to Login. Status: {StatusCode}, Content: {Content}", response.StatusCode, errorContent);
-            response.EnsureSuccessStatusCode();
-        }
+            var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogError("Failed to Login. Status: {StatusCode}, Content: {Content}", response.StatusCode, errorContent);
+                response.EnsureSuccessStatusCode();
+            }
 
-        if (response.Headers.TryGetValues("authtoken", out var values))
-        {
-            var token = values.FirstOrDefault();
-            _logger.LogDebug("Login successful. AuthToken obtained.");
-            return token ?? throw new Exception("AuthToken not found in response headers");
+            if (response.Headers.TryGetValues("authenticationToken", out var values))
+            {
+                var token = values.FirstOrDefault();
+                _logger.LogDebug("Login successful. AuthenticationToken obtained.");
+                return token ?? throw new Exception("AuthenticationToken not found in response headers");
+            }
+            
+            _logger.LogError("AuthenticationToken header missing in response.");
+            throw new Exception("AuthenticationToken header missing");
         }
-        
-        _logger.LogError("AuthToken header missing in response.");
-        throw new Exception("AuthToken header missing");
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex, "Timeout occurred while calling Login at {Url}", requestUrl);
+            throw new TimeoutException($"Timeout calling Fanavaran Login: {requestUrl}", ex);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Network error while calling Login at {Url}", requestUrl);
+            throw new HttpRequestException($"Network error calling Fanavaran Login: {requestUrl}. Details: {ex.Message}", ex);
+        }
     }
 
     public async Task<string> CreateCustomerAsync(string customerData, CancellationToken cancellationToken)
@@ -121,7 +149,8 @@ public class FanavaranConnector : IFanavaranConnector
             IsIranian = "1"
         };
 
-        var request = new HttpRequestMessage(HttpMethod.Post, $"{_options.BaseUrl}/BimeApi/v2.0/common/customers");
+        var requestUrl = $"{_options.BaseUrl}/BimeApi/v2.0/common/customers";
+        var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
         request.Headers.Add("authenticationToken", authToken);
         request.Headers.Add("Location", _options.Location);
         request.Headers.Add("CorpId", _options.CorpId);
@@ -130,13 +159,29 @@ public class FanavaranConnector : IFanavaranConnector
         request.Content = JsonContent.Create(fanavaranRequest);
 
         _logger.LogInformation("Sending CreateCustomer request to Fanavaran. NationalCode: {NationalCode}", fanavaranRequest.NationalCode);
-        var response = await _httpClient.SendAsync(request, cancellationToken);
         
-        if (!response.IsSuccessStatusCode)
+        HttpResponseMessage response;
+        try
         {
-            var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
-            _logger.LogError("Failed to Create Customer. Status: {StatusCode}, Content: {Content}", response.StatusCode, errorContent);
-            response.EnsureSuccessStatusCode();
+            response = await _httpClient.SendAsync(request, cancellationToken);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogError("Failed to Create Customer. Status: {StatusCode}, Content: {Content}", response.StatusCode, errorContent);
+                // Throw specific exception with content to be visible in API response
+                throw new HttpRequestException($"Fanavaran CreateCustomer Failed: {response.StatusCode}. Content: {errorContent}");
+            }
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex, "Timeout occurred while calling CreateCustomer at {Url}", requestUrl);
+            throw new TimeoutException($"Timeout calling Fanavaran CreateCustomer: {requestUrl}", ex);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Network error while calling CreateCustomer at {Url}", requestUrl);
+            throw new HttpRequestException($"Network error calling Fanavaran CreateCustomer: {requestUrl}. Details: {ex.Message}", ex);
         }
 
         // Parse response to get ID
@@ -244,7 +289,8 @@ public class FanavaranConnector : IFanavaranConnector
         // Add Name field
         content.Add(new StringContent("1"), "\"name\"");
 
-        var request = new HttpRequestMessage(HttpMethod.Post, $"{_options.BaseUrl}/BimeApi/v2.0/life/Universal-life-policies");
+        var requestUrl = $"{_options.BaseUrl}/BimeApi/v2.0/life/Universal-life-policies";
+        var request = new HttpRequestMessage(HttpMethod.Post, requestUrl);
         request.Headers.Add("authenticationToken", authToken);
         request.Headers.Add("appToken", appToken); // Also needed in header? prompt shows it
         request.Headers.Add("Location", _options.Location);
@@ -253,8 +299,22 @@ public class FanavaranConnector : IFanavaranConnector
         
         request.Content = content;
 
-        var response = await _httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        try
+        {
+            var response = await _httpClient.SendAsync(request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+            // ... (rest of the logic)
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex, "Timeout occurred while calling GetUniversalLifePrice at {Url}", requestUrl);
+            throw new TimeoutException($"Timeout calling Fanavaran GetUniversalLifePrice: {requestUrl}", ex);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Network error while calling GetUniversalLifePrice at {Url}", requestUrl);
+            throw new HttpRequestException($"Network error calling Fanavaran GetUniversalLifePrice: {requestUrl}. Details: {ex.Message}", ex);
+        }
 
         // 4. Parse Response for Price
         // Assuming response contains the calculated premium or we use the input premium if it's just validation
