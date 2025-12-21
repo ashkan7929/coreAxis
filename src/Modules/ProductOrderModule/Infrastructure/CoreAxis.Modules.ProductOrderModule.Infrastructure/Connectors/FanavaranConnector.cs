@@ -299,13 +299,6 @@ public class FanavaranConnector : IFanavaranConnector
         var jsonContent = new StringContent(JsonSerializer.Serialize(ulRequest), System.Text.Encoding.UTF8, "application/json");
         content.Add(jsonContent, "\"\""); // Empty name as per curl example
         
-        // Add File (Mock)
-        // curl: --form '=@"/C:/Users/s.sohrabi/Pictures/1211.png"'
-        // We will skip actual file upload for MVP or send dummy bytes
-        var fileContent = new ByteArrayContent(new byte[0]); 
-        fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/png");
-        content.Add(fileContent, "\"\"", "mock.png");
-        
         // Add Name field
         content.Add(new StringContent("1"), "\"name\"");
 
