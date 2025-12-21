@@ -304,7 +304,7 @@ public class FanavaranConnector : IFanavaranConnector
                         // Death Beneficiary (Kind 791) - Policyholder (101)
                         new Beneficiary 
                         { 
-                            BeneficiaryId = insuredPersonId, 
+                            BeneficiaryId = null, // Must be empty for Policyholder relation
                             BeneficiaryKindId = 791, 
                             BeneficiaryRelationId = 101, // Bimegozar
                             CapitalPercent = 100, 
@@ -313,7 +313,7 @@ public class FanavaranConnector : IFanavaranConnector
                         // Survival Beneficiary (Kind 792) - Policyholder (101)
                         new Beneficiary 
                         { 
-                            BeneficiaryId = insuredPersonId, 
+                            BeneficiaryId = null, // Must be empty for Policyholder relation
                             BeneficiaryKindId = 792, 
                             BeneficiaryRelationId = 101, // Bimegozar
                             CapitalPercent = 100, 

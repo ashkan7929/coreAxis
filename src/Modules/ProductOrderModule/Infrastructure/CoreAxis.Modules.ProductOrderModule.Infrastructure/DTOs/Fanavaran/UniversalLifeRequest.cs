@@ -60,7 +60,7 @@ public class InsuredPerson
 public class Beneficiary
 {
     public long? AnotherInsuredPersonId { get; set; }
-    public long BeneficiaryId { get; set; }
+    public long? BeneficiaryId { get; set; }
     public int BeneficiaryKindId { get; set; }
     public int BeneficiaryRelationId { get; set; }
     public int CapitalPercent { get; set; }
