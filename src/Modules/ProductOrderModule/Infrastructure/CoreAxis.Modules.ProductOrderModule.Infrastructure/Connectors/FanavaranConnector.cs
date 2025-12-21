@@ -265,9 +265,23 @@ public class FanavaranConnector : IFanavaranConnector
         // Mocking InsuredPerson ID as CustomerID for MVP (Self insurance)
         long insuredPersonId = customerIdLong;
 
+        // Parse Job ID from policyholder (default to 2 if not found)
+        int jobId = 2;
+        if (policyholder.TryGetProperty("mainJob", out var jobElem))
+        {
+            // If mainJob is an object/select option, we might need to extract 'value' or 'Id'. 
+            // Based on mockData, mainJob seems to be the ID directly in some contexts or an object.
+            // Let's assume it sends the ID (integer) directly as per common practice in this system.
+            if (jobElem.ValueKind == JsonValueKind.Number)
+            {
+                jobId = jobElem.GetInt32();
+            }
+        }
+
         var ulRequest = new UniversalLifeRequest
         {
             CustomerId = customerIdLong,
+            CustomerJobId = jobId, // Sync Customer Job
             FirstPrm = contract.GetProperty("annualPremium").GetDecimal(),
             Duration = contract.GetProperty("durationYears").GetInt32(),
             BeginDate = appData.TryGetProperty("beginDate", out var beginDateElem) ? beginDateElem.GetString()! : GetCurrentPersianDate(),
@@ -284,7 +298,7 @@ public class FanavaranConnector : IFanavaranConnector
                 new InsuredPerson
                 {
                     InsuredPersonId = insuredPersonId,
-                    InsuredPersonJobId = 2,
+                    InsuredPersonJobId = jobId, // Sync Insured Job (Must be same as CustomerJobId)
                     InsuredPersonRoleKindId = 793,
                     InsurerAndInsuredRelationId = 105,
                     MedicalRate = 0,
