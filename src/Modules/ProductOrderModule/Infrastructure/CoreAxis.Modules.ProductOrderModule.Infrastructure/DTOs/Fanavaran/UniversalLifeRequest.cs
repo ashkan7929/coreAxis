@@ -78,7 +78,7 @@ public class DoctorRecommendation
 {
     public string Date { get; set; } = "1403/11/08";
     public string? Desc { get; set; }
-    public int DoctorId { get; set; } = 1;
+    public int? DoctorId { get; set; }
     public int? ExperimentsReasonId { get; set; }
     public int MedicalProhibition { get; set; } = 0;
     public int MedicalRatio { get; set; } = 0;
