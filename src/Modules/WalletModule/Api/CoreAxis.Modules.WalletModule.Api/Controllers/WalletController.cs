@@ -374,17 +374,17 @@ public class WalletController : ControllerBase
     public async Task<ActionResult<TransactionResultDto>> Withdraw([FromRoute] Guid id, [FromBody] WithdrawRequestDto request)
     {
         var idempotencyKey = Request.Headers["Idempotency-Key"].FirstOrDefault();
-        if (string.IsNullOrWhiteSpace(idempotencyKey))
-        {
-            WalletMetrics.Failures.Add(1, new TagList { { "endpoint", "withdraw" }, { "code", "WLT_IDEMPOTENCY_REQUIRED" } });
-            return ProblemWithExtensions(
-                title: "Idempotency key required",
-                detail: "Provide 'Idempotency-Key' header to ensure safe retries.",
-                statusCode: StatusCodes.Status400BadRequest,
-                type: "https://coreaxis.dev/problems/wallet/wlt_idempotency_required",
-                code: "WLT_IDEMPOTENCY_REQUIRED"
-            );
-        }
+        // if (string.IsNullOrWhiteSpace(idempotencyKey))
+        // {
+        //     WalletMetrics.Failures.Add(1, new TagList { { "endpoint", "withdraw" }, { "code", "WLT_IDEMPOTENCY_REQUIRED" } });
+        //     return ProblemWithExtensions(
+        //         title: "Idempotency key required",
+        //         detail: "Provide 'Idempotency-Key' header to ensure safe retries.",
+        //         statusCode: StatusCodes.Status400BadRequest,
+        //         type: "https://coreaxis.dev/problems/wallet/wlt_idempotency_required",
+        //         code: "WLT_IDEMPOTENCY_REQUIRED"
+        //     );
+        // }
         var correlationId = Request.Headers["X-Correlation-ID"].FirstOrDefault();
         
         var sw = Stopwatch.StartNew();
