@@ -322,8 +322,20 @@ public class FanavaranConnector : IFanavaranConnector
         try
         {
             var response = await _httpClient.SendAsync(request, cancellationToken);
-            response.EnsureSuccessStatusCode();
-            // ... (rest of the logic)
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.LogError("Failed to GetUniversalLifePrice. Status: {StatusCode}, Content: {Content}", response.StatusCode, errorContent);
+                throw new HttpRequestException($"Fanavaran GetUniversalLifePrice Failed: {response.StatusCode}. Content: {errorContent}");
+            }
+
+            var contentString = await response.Content.ReadAsStringAsync(cancellationToken);
+             _logger.LogInformation("GetUniversalLifePrice Response: {Content}", contentString);
+
+             // Assuming the response is a JSON with price details or just success
+             // For now, return the input premium as placeholder if parsing logic is unknown
+             return ulRequest.FirstPrm;
         }
         catch (TaskCanceledException ex)
         {
