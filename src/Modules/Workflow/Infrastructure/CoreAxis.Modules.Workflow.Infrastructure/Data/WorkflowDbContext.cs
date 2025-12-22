@@ -1,17 +1,25 @@
 using CoreAxis.Modules.Workflow.Domain.Entities;
 using CoreAxis.SharedKernel;
+using CoreAxis.SharedKernel.Context;
 using CoreAxis.SharedKernel.Domain;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 
 namespace CoreAxis.Modules.Workflow.Infrastructure.Data;
 
 public class WorkflowDbContext : DbContext, IUnitOfWork
 {
     private readonly IDomainEventDispatcher _dispatcher;
+    private readonly ITenantProvider _tenantProvider;
 
-    public WorkflowDbContext(DbContextOptions<WorkflowDbContext> options, IDomainEventDispatcher dispatcher) : base(options)
+    public WorkflowDbContext(
+        DbContextOptions<WorkflowDbContext> options, 
+        IDomainEventDispatcher dispatcher,
+        ITenantProvider tenantProvider) 
+        : base(options)
     {
         _dispatcher = dispatcher;
+        _tenantProvider = tenantProvider;
     }
 
     public DbSet<WorkflowDefinition> WorkflowDefinitions { get; set; } = null!;
@@ -26,6 +34,19 @@ public class WorkflowDbContext : DbContext, IUnitOfWork
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        
+        // Apply tenant filter
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (typeof(IMustHaveTenant).IsAssignableFrom(entityType.ClrType))
+            {
+                var method = typeof(WorkflowDbContext)
+                    .GetMethod(nameof(SetTenantFilter), BindingFlags.NonPublic | BindingFlags.Instance)
+                    ?.MakeGenericMethod(entityType.ClrType);
+
+                method?.Invoke(this, new object[] { modelBuilder });
+            }
+        }
         
         modelBuilder.Ignore<CoreAxis.SharedKernel.DomainEvents.DomainEvent>();
 
@@ -124,6 +145,11 @@ public class WorkflowDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.CreatedAt).HasColumnType("datetime2");
             entity.HasIndex(e => new { e.Route, e.Key, e.BodyHash }).IsUnique();
         });
+    }
+
+    private void SetTenantFilter<T>(ModelBuilder modelBuilder) where T : class, IMustHaveTenant
+    {
+        modelBuilder.Entity<T>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

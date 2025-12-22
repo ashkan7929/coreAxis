@@ -219,6 +219,24 @@ public class WorkflowExecutor : IWorkflowExecutor
         await ResumeInternalAsync(workflowRunId, payload, signalName, cancellationToken);
     }
 
+    public async Task SignalByCorrelationAsync(string correlationId, string signalName, Dictionary<string, object> payload, CancellationToken cancellationToken = default)
+    {
+        // Find the latest running/paused workflow with this correlation ID
+        var run = await _context.WorkflowRuns
+            .Where(r => r.CorrelationId == correlationId && (r.Status == "Running" || r.Status == "Paused"))
+            .OrderByDescending(r => r.CreatedOn)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (run == null)
+        {
+            _logger.LogWarning("No running or paused workflow found with correlation ID {CorrelationId} to signal {SignalName}", correlationId, signalName);
+            return;
+        }
+
+        _logger.LogInformation("Signaling workflow {RunId} (Correlation: {CorrelationId}) with {SignalName}", run.Id, correlationId, signalName);
+        await SignalAsync(run.Id, signalName, payload, cancellationToken);
+    }
+
     public async Task CancelAsync(Guid workflowRunId, string reason, CancellationToken cancellationToken = default)
     {
         var run = await _context.WorkflowRuns

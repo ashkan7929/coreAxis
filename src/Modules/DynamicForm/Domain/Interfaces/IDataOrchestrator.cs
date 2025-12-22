@@ -19,8 +19,8 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Interfaces
         /// </summary>
         /// <param name="context">Evaluation context that may include external data hints.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>Dictionary of external data keyed by source name.</returns>
-        Task<Result<Dictionary<string, object?>>> GetExternalDataAsync(
+        /// <returns>Result containing the dictionary of external data and trace info.</returns>
+        Task<Result<ExternalDataBatchResult>> GetExternalDataAsync(
             Dictionary<string, object?> context,
             CancellationToken cancellationToken = default);
 
@@ -42,5 +42,11 @@ namespace CoreAxis.Modules.DynamicForm.Domain.Interfaces
         /// <param name="cacheKeyPrefix">Prefix to match cache keys.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         Task ClearCacheAsync(string cacheKeyPrefix, CancellationToken cancellationToken = default);
+    }
+
+    public class ExternalDataBatchResult
+    {
+        public Dictionary<string, object?> Data { get; set; } = new();
+        public Dictionary<string, string> Trace { get; set; } = new();
     }
 }

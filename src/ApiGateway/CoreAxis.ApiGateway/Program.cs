@@ -9,6 +9,9 @@ using CoreAxis.Modules.WalletModule.Api;
 using CoreAxis.Modules.ProductOrderModule.Api;
 using CoreAxis.Modules.ApiManager.API;
 using CoreAxis.Modules.MappingModule.Api;
+using CoreAxis.Modules.FileModule.Api;
+using CoreAxis.Modules.SecretsModule.Api;
+using CoreAxis.Modules.NotificationModule.Api;
 using static CoreAxis.Modules.ApiManager.API.DependencyInjection;
 using CoreAxis.Modules.AuthModule.Infrastructure.Data;
  
@@ -173,7 +176,7 @@ try
         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), sql => sql.EnableRetryOnFailure()));
     
     builder.Services.AddScoped<CoreAxis.SharedKernel.Ports.IFormClient, CoreAxis.Modules.DynamicForm.Infrastructure.Services.FormClient>();
-    builder.Services.AddScoped<CoreAxis.SharedKernel.Ports.IFormulaClient, CoreAxis.Modules.DynamicForm.Infrastructure.Services.FormulaClient>();
+    builder.Services.AddScoped<CoreAxis.SharedKernel.Ports.IFormulaClient, CoreAxis.Modules.DynamicForm.Application.Services.FormulaClient>();
 
     // Add JWT Authentication (centralized configuration)
     builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
@@ -234,6 +237,18 @@ try
     // Force load MappingModule assembly
     var mappingModuleAssembly = typeof(CoreAxis.Modules.MappingModule.Api.MappingModule).Assembly;
     Console.WriteLine($"MappingModule assembly loaded: {mappingModuleAssembly.FullName}");
+
+    // Force load FileModule assembly
+    var fileModuleAssembly = typeof(FileModule).Assembly;
+    Console.WriteLine($"FileModule assembly loaded: {fileModuleAssembly.FullName}");
+
+    // Force load SecretsModule assembly
+    var secretsModuleAssembly = typeof(SecretsModule).Assembly;
+    Console.WriteLine($"SecretsModule assembly loaded: {secretsModuleAssembly.FullName}");
+
+    // Force load NotificationModule assembly
+    var notificationModuleAssembly = typeof(NotificationModule).Assembly;
+    Console.WriteLine($"NotificationModule assembly loaded: {notificationModuleAssembly.FullName}");
 
     // Debug: List all loaded assemblies
     var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();

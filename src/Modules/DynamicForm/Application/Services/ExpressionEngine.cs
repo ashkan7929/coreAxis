@@ -153,14 +153,17 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 }
 
                 // Inject external data into variables with prefix to avoid collisions
-                foreach (var kv in externalResult.Value)
+                foreach (var kv in externalResult.Value.Data)
                 {
                     var varName = $"external_{kv.Key}";
                     context.AddVariable(varName, kv.Value!);
                 }
 
                 // Also make the full externalData dictionary available if needed
-                context.AddVariable("externalData", externalResult.Value);
+                context.AddVariable("externalData", externalResult.Value.Data);
+                
+                // Store trace
+                context.AddVariable("_externalDataTrace", externalResult.Value.Trace);
             }
             catch (Exception ex)
             {

@@ -1,3 +1,4 @@
+using CoreAxis.SharedKernel.Context;
 using CoreAxis.SharedKernel.Domain;
 using CoreAxis.SharedKernel.Localization;
 using CoreAxis.SharedKernel.Outbox;
@@ -23,6 +24,10 @@ namespace CoreAxis.SharedKernel
 
             // Register localization services
             services.AddScoped<ILocalizationService, LocalizationService>();
+
+            // Register Tenant Provider
+            services.AddHttpContextAccessor();
+            services.AddScoped<ITenantProvider, HttpContextTenantProvider>();
 
             // Register Outbox components for reliable event delivery
             // Assumes each module provides its own IOutboxRepository implementation.

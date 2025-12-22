@@ -1,17 +1,25 @@
 using CoreAxis.Modules.CommerceModule.Domain.Entities;
+using CoreAxis.SharedKernel.Context;
+using CoreAxis.SharedKernel.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Reflection;
 
 namespace CoreAxis.Modules.CommerceModule.Infrastructure.Data;
 
 public class CommerceDbContext : DbContext
 {
     private readonly ILogger<CommerceDbContext> _logger;
+    private readonly ITenantProvider _tenantProvider;
 
-    public CommerceDbContext(DbContextOptions<CommerceDbContext> options, ILogger<CommerceDbContext> logger)
+    public CommerceDbContext(
+        DbContextOptions<CommerceDbContext> options, 
+        ILogger<CommerceDbContext> logger,
+        ITenantProvider tenantProvider)
         : base(options)
     {
         _logger = logger;
+        _tenantProvider = tenantProvider;
     }
 
     // Inventory
@@ -24,6 +32,7 @@ public class CommerceDbContext : DbContext
 
     // Payments
     public DbSet<Payment> Payments { get; set; }
+    public DbSet<PaymentIntent> PaymentIntents { get; set; }
     public DbSet<Refund> Refunds { get; set; }
 
     // Subscriptions
@@ -43,6 +52,19 @@ public class CommerceDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Apply tenant filter
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (typeof(IMustHaveTenant).IsAssignableFrom(entityType.ClrType))
+            {
+                var method = typeof(CommerceDbContext)
+                    .GetMethod(nameof(SetTenantFilter), BindingFlags.NonPublic | BindingFlags.Instance)
+                    ?.MakeGenericMethod(entityType.ClrType);
+
+                method?.Invoke(this, new object[] { modelBuilder });
+            }
+        }
 
         // Apply configurations
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(CommerceDbContext).Assembly);
@@ -64,6 +86,11 @@ public class CommerceDbContext : DbContext
         // Enable sensitive data logging in development
         optionsBuilder.EnableSensitiveDataLogging();
         optionsBuilder.EnableDetailedErrors();
+    }
+
+    private void SetTenantFilter<T>(ModelBuilder modelBuilder) where T : class, IMustHaveTenant
+    {
+        modelBuilder.Entity<T>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

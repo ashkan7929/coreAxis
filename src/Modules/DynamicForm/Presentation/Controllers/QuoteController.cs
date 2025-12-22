@@ -139,7 +139,7 @@ namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers
                 };
 
                 var externalDataRes = await _dataOrchestrator.GetExternalDataAsync(evalContext, cancellationToken);
-                var externalData = externalDataRes.IsSuccess ? externalDataRes.Value : new Dictionary<string, object?>();
+                var externalData = externalDataRes.IsSuccess ? externalDataRes.Value.Data : new Dictionary<string, object?>();
                 if (!externalDataRes.IsSuccess && (request.ExternalDataSources?.Count > 0))
                 {
                     var pd = new ProblemDetails

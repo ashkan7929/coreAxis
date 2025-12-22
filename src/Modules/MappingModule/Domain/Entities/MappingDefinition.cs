@@ -1,9 +1,10 @@
 using CoreAxis.SharedKernel;
+using CoreAxis.SharedKernel.Domain;
 using CoreAxis.SharedKernel.Versioning;
 
 namespace CoreAxis.Modules.MappingModule.Domain.Entities;
 
-public class MappingDefinition : EntityBase
+public class MappingDefinition : EntityBase, IMustHaveTenant
 {
     public string TenantId { get; set; } = "default";
     public string Code { get; set; } = null!;

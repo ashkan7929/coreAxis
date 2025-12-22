@@ -86,3 +86,39 @@ public enum PaymentMethod
     /// </summary>
     Check = 6
 }
+
+/// <summary>
+/// Represents the status of a payment intent.
+/// </summary>
+public enum PaymentIntentStatus
+{
+    /// <summary>
+    /// Intent is created but not yet processed.
+    /// </summary>
+    Initiated = 0,
+
+    /// <summary>
+    /// Intent is pending user action or provider response.
+    /// </summary>
+    Pending = 1,
+
+    /// <summary>
+    /// Intent was successfully paid.
+    /// </summary>
+    Paid = 2,
+
+    /// <summary>
+    /// Intent failed.
+    /// </summary>
+    Failed = 3,
+
+    /// <summary>
+    /// Intent was refunded.
+    /// </summary>
+    Refunded = 4,
+
+    /// <summary>
+    /// Intent was cancelled.
+    /// </summary>
+    Cancelled = 5
+}

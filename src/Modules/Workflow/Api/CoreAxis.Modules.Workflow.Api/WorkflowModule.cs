@@ -36,6 +36,7 @@ public class WorkflowModule : IModule
         // Register handler for DI
         services.AddTransient<OrderFinalizedStartPostFinalizeHandler>();
         services.AddTransient<TaskCompletedIntegrationEventHandler>();
+        services.AddTransient<PaymentEventsHandler>();
 
         // Register Workflow DbContext (SQL Server via env var or fallback localdb)
         var connectionString = Environment.GetEnvironmentVariable("COREAXIS_CONNECTION_STRING")
@@ -102,6 +103,8 @@ public class WorkflowModule : IModule
         // Subscribe to OrderFinalized to start post-finalize workflow
         eventBus.Subscribe<OrderFinalized, OrderFinalizedStartPostFinalizeHandler>();
         eventBus.Subscribe<HumanTaskCompleted, TaskCompletedIntegrationEventHandler>();
+        eventBus.Subscribe<PaymentConfirmed, PaymentEventsHandler>();
+        eventBus.Subscribe<PaymentFailed, PaymentEventsHandler>();
 
         // Ensure DB is migrated and seed a sample DSL (Alborz) published
         using var scope = serviceProvider.CreateScope();

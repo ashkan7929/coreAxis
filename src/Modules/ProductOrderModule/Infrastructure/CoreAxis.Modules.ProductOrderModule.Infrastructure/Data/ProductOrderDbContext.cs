@@ -1,6 +1,7 @@
 using CoreAxis.Modules.ProductOrderModule.Domain.Entities;
 using CoreAxis.Modules.ProductOrderModule.Domain.ValueObjects;
 using CoreAxis.SharedKernel;
+using CoreAxis.SharedKernel.Context;
 using CoreAxis.SharedKernel.Domain;
 using CoreAxis.SharedKernel.DomainEvents;
 using CoreAxis.SharedKernel.Outbox;
@@ -14,10 +15,16 @@ namespace CoreAxis.Modules.ProductOrderModule.Infrastructure.Data;
 public class ProductOrderDbContext : DbContext
 {
     private readonly IDomainEventDispatcher _domainEventDispatcher;
+    private readonly ITenantProvider _tenantProvider;
     
-    public ProductOrderDbContext(DbContextOptions<ProductOrderDbContext> options, IDomainEventDispatcher domainEventDispatcher) : base(options)
+    public ProductOrderDbContext(
+        DbContextOptions<ProductOrderDbContext> options, 
+        IDomainEventDispatcher domainEventDispatcher,
+        ITenantProvider tenantProvider) 
+        : base(options)
     {
         _domainEventDispatcher = domainEventDispatcher;
+        _tenantProvider = tenantProvider;
     }
 
     public DbSet<Order> Orders { get; set; }
@@ -83,6 +90,16 @@ public class ProductOrderDbContext : DbContext
         // Configure base entity properties for all entities
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
+            // Apply tenant filter
+            if (typeof(IMustHaveTenant).IsAssignableFrom(entityType.ClrType))
+            {
+                var method = typeof(ProductOrderDbContext)
+                    .GetMethod(nameof(SetTenantFilter), BindingFlags.NonPublic | BindingFlags.Instance)
+                    ?.MakeGenericMethod(entityType.ClrType);
+
+                method?.Invoke(this, new object[] { modelBuilder });
+            }
+
             if (typeof(EntityBase).IsAssignableFrom(entityType.ClrType))
             {
                 modelBuilder.Entity(entityType.ClrType)
@@ -102,6 +119,11 @@ public class ProductOrderDbContext : DbContext
                     .HasMaxLength(256);
             }
         }
+    }
+
+    private void SetTenantFilter<T>(ModelBuilder modelBuilder) where T : class, IMustHaveTenant
+    {
+        modelBuilder.Entity<T>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

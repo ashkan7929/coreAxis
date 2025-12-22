@@ -61,9 +61,13 @@ public class FormulaClient : IFormulaClient
         // Return dictionary with "value" and other metadata if needed
         var output = new Dictionary<string, object>
         {
-            { "value", result.Value.Result ?? (object)"null" },
-            { "resultType", result.Value.ResultType }
+            { "value", result.Value.Value ?? (object)"null" }
         };
+        
+        if (result.Value.Value != null)
+        {
+            output["resultType"] = result.Value.Value.GetType().Name;
+        }
         
         // If the result is a dictionary/object, we might want to merge it?
         // But FormulaEvaluationResult.Result is object?.

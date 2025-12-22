@@ -12,6 +12,7 @@ public interface ICommerceDbContext
     // Core entities
     DbSet<Order> Orders { get; }
     DbSet<Payment> Payments { get; }
+    DbSet<PaymentIntent> PaymentIntents { get; }
     DbSet<InventoryItem> InventoryItems { get; }
     DbSet<InventoryReservation> InventoryReservations { get; }
     DbSet<InventoryLedger> InventoryLedgers { get; }

@@ -545,7 +545,7 @@
           "id": "TASK-FML-03",
           "title": "Variable resolution graph (context + ApiManager) with caching",
           "priority": "P2",
-          "status": "not_started",
+          "status": "done",
           "why": "Your rate engine requires variables that can come from API or context.",
           "what_to_do": [
             "Build dependency graph to resolve variables in correct order.",
@@ -571,7 +571,7 @@
           "id": "TASK-PAY-01",
           "title": "Implement PaymentIntent + create intent API",
           "priority": "P2",
-          "status": "not_started",
+          "status": "done",
           "why": "End-to-end checkout requires a payment intent and a state machine.",
           "what_to_do": [
             "Add PaymentIntent entity/table with statuses (Initiated/Pending/Paid/Failed/Refunded).",
@@ -587,7 +587,7 @@
           "id": "TASK-PAY-02",
           "title": "Provider callback/webhook endpoint + idempotent confirmation",
           "priority": "P2",
-          "status": "not_started",
+          "status": "done",
           "why": "Payment providers call back asynchronously; must be idempotent and secure.",
           "what_to_do": [
             "POST /api/payments/callback/{provider} verifies signature, updates intent, publishes events.",
@@ -604,7 +604,7 @@
           "id": "TASK-PAY-03",
           "title": "Workflow WaitForEventStep integration for PaymentConfirmed/PaymentFailed",
           "priority": "P2",
-          "status": "partial",
+          "status": "done",
           "why": "Workflow must pause waiting for payment and continue on confirmation.",
           "what_to_do": [
             "On payment events, signal workflow with event payload.",
@@ -629,7 +629,7 @@
           "id": "TASK-FILE-01",
           "title": "Implement FileModule (upload sessions + metadata + ACL)",
           "priority": "P3",
-          "status": "not_started",
+          "status": "done",
           "why": "Attachments are required for many forms and human tasks.",
           "what_to_do": [
             "Create FileModule with endpoints: upload-url/token, complete, download/metadata.",
@@ -654,7 +654,7 @@
           "id": "TASK-NOTIF-01",
           "title": "Notification templates + providers + event subscribers",
           "priority": "P3",
-          "status": "not_started",
+          "status": "done",
           "why": "Users need notifications for tasks, reminders, and payment failures.",
           "what_to_do": [
             "Create NotificationModule with template CRUD and provider configs.",
@@ -680,7 +680,7 @@
           "id": "TASK-TL-01",
           "title": "Unified timeline API: workflow steps + task actions + api calls + payments",
           "priority": "P3",
-          "status": "not_started",
+          "status": "done",
           "why": "Support/debug needs a single chronological view without DB access.",
           "what_to_do": [
             "Create GET /api/admin/instances/{workflowId}/timeline aggregating from Workflow, TaskModule, ApiManager logs, Payment events.",
@@ -706,7 +706,7 @@
           "id": "TASK-TENANT-01",
           "title": "Introduce ITenantProvider and enforce tenant isolation via EF query filters",
           "priority": "P3",
-          "status": "not_started",
+          "status": "done",
           "why": "If serving multiple clients/tenants, isolation must be enforced at the data layer.",
           "what_to_do": [
             "Implement ITenantProvider from auth claims.",
@@ -723,7 +723,7 @@
           "id": "TASK-SECRETS-01",
           "title": "Encrypted secrets store and references for ApiManager/Payments/Notifications",
           "priority": "P3",
-          "status": "not_started",
+          "status": "done",
           "why": "Never store plaintext secrets; integrations need secret references.",
           "what_to_do": [
             "Create Secrets store (encrypted values + metadata).",

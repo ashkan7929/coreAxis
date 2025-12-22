@@ -98,6 +98,22 @@ public class ProcessPaymentDto
 }
 
 /// <summary>
+/// DTO for payment intent
+/// </summary>
+public class PaymentIntentDto
+{
+    public Guid Id { get; set; }
+    public Guid OrderId { get; set; }
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = "USD";
+    public PaymentIntentStatus Status { get; set; }
+    public string? Provider { get; set; }
+    public string? ClientSecret { get; set; }
+    public string? CallbackUrl { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+}
+
+/// <summary>
 /// DTO for refund information
 /// </summary>
 public class RefundDto

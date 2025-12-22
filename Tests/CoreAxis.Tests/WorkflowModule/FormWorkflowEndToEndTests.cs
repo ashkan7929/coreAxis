@@ -5,6 +5,7 @@ using CoreAxis.Modules.Workflow.Application.Services;
 using CoreAxis.Modules.Workflow.Application.Services.StepHandlers;
 using CoreAxis.Modules.Workflow.Domain.Entities;
 using CoreAxis.Modules.Workflow.Infrastructure.Data;
+using CoreAxis.SharedKernel.Context;
 using CoreAxis.SharedKernel.Contracts.Events;
 using CoreAxis.SharedKernel.Domain;
 using CoreAxis.SharedKernel.Versioning;
@@ -35,7 +36,11 @@ public class FormWorkflowEndToEndTests
         var workflowOptions = new DbContextOptionsBuilder<WorkflowDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
-        _workflowDb = new WorkflowDbContext(workflowOptions, dispatcherMock.Object);
+            
+        var tenantProviderMock = new Mock<ITenantProvider>();
+        tenantProviderMock.Setup(x => x.TenantId).Returns("default");
+        
+        _workflowDb = new WorkflowDbContext(workflowOptions, dispatcherMock.Object, tenantProviderMock.Object);
 
         // Setup Event Bus
         var serviceProviderMock = new Mock<IServiceProvider>();

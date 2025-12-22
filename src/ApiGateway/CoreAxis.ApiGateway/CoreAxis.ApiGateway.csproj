@@ -41,10 +41,14 @@
     <ProjectReference Include="..\..\Modules\Workflow\Application\CoreAxis.Modules.Workflow.Application\CoreAxis.Modules.Workflow.Application.csproj" />
     <!-- DynamicForm API temporarily decoupled due to build errors; loaded at runtime if available -->
     <ProjectReference Include="..\..\Modules\DynamicForm\Infrastructure\CoreAxis.Modules.DynamicForm.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\DynamicForm\Application\CoreAxis.Modules.DynamicForm.Application.csproj" />
     <ProjectReference Include="..\..\EventBus\CoreAxis.EventBus\CoreAxis.EventBus.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\SharedKernel\CoreAxis.SharedKernel\CoreAxis.SharedKernel.csproj" />
     <ProjectReference Include="..\..\BuildingBlocks\BuildingBlocks\CoreAxis.BuildingBlocks\CoreAxis.BuildingBlocks.csproj" />
     <ProjectReference Include="..\..\Adapters\CoreAxis.Adapters.csproj" />
+    <ProjectReference Include="..\..\Modules\FileModule\CoreAxis.Modules.FileModule.csproj" />
+    <ProjectReference Include="..\..\Modules\NotificationModule\CoreAxis.Modules.NotificationModule.csproj" />
+    <ProjectReference Include="..\..\Modules\SecretsModule\CoreAxis.Modules.SecretsModule.csproj" />
   </ItemGroup>
 
   <!-- Copy XML docs from referenced projects to gateway output so Swagger can load them -->

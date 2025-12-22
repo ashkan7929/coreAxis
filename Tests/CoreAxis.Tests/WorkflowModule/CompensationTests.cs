@@ -1,6 +1,7 @@
 using CoreAxis.Modules.Workflow.Application.Services.Compensation;
 using CoreAxis.Modules.Workflow.Domain.Entities;
 using CoreAxis.Modules.Workflow.Infrastructure.Data;
+using CoreAxis.SharedKernel.Context;
 using CoreAxis.SharedKernel.Domain;
 using CoreAxis.SharedKernel.Versioning;
 using CoreAxis.Modules.ApiManager.Application.Contracts;
@@ -24,7 +25,10 @@ public class CompensationTests
             .Options;
         
         var dispatcherMock = new Mock<IDomainEventDispatcher>();
-        var context = new WorkflowDbContext(options, dispatcherMock.Object);
+        var tenantProviderMock = new Mock<ITenantProvider>();
+        tenantProviderMock.Setup(x => x.TenantId).Returns("default");
+        
+        var context = new WorkflowDbContext(options, dispatcherMock.Object, tenantProviderMock.Object);
 
         var loggerMock = new Mock<ILogger<CompensationExecutor>>();
         var apiProxyMock = new Mock<IApiProxy>();

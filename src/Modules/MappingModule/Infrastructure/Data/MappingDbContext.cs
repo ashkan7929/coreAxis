@@ -1,7 +1,9 @@
 using CoreAxis.Modules.MappingModule.Domain.Entities;
 using CoreAxis.SharedKernel;
+using CoreAxis.SharedKernel.Context;
 using CoreAxis.SharedKernel.Domain;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 
 namespace CoreAxis.Modules.MappingModule.Infrastructure.Data;
 
@@ -11,15 +13,22 @@ namespace CoreAxis.Modules.MappingModule.Infrastructure.Data;
 public class MappingDbContext : DbContext, IUnitOfWork
 {
     private readonly IDomainEventDispatcher _dispatcher;
+    private readonly ITenantProvider _tenantProvider;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MappingDbContext"/> class.
     /// </summary>
     /// <param name="options">The options for this context.</param>
     /// <param name="dispatcher">The domain event dispatcher.</param>
-    public MappingDbContext(DbContextOptions<MappingDbContext> options, IDomainEventDispatcher dispatcher) : base(options)
+    /// <param name="tenantProvider">The tenant provider.</param>
+    public MappingDbContext(
+        DbContextOptions<MappingDbContext> options, 
+        IDomainEventDispatcher dispatcher,
+        ITenantProvider tenantProvider) 
+        : base(options)
     {
         _dispatcher = dispatcher;
+        _tenantProvider = tenantProvider;
     }
 
     /// <summary>
@@ -41,6 +50,19 @@ public class MappingDbContext : DbContext, IUnitOfWork
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        
+        // Apply tenant filter
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            if (typeof(IMustHaveTenant).IsAssignableFrom(entityType.ClrType))
+            {
+                var method = typeof(MappingDbContext)
+                    .GetMethod(nameof(SetTenantFilter), BindingFlags.NonPublic | BindingFlags.Instance)
+                    ?.MakeGenericMethod(entityType.ClrType);
+
+                method?.Invoke(this, new object[] { modelBuilder });
+            }
+        }
         
         modelBuilder.Ignore<CoreAxis.SharedKernel.DomainEvents.DomainEvent>();
 
@@ -73,6 +95,11 @@ public class MappingDbContext : DbContext, IUnitOfWork
             entity.Property(e => e.InputContextJson).IsRequired();
             entity.Property(e => e.ExpectedOutputJson).IsRequired();
         });
+    }
+
+    private void SetTenantFilter<T>(ModelBuilder modelBuilder) where T : class, IMustHaveTenant
+    {
+        modelBuilder.Entity<T>().HasQueryFilter(e => e.TenantId == _tenantProvider.TenantId);
     }
 
     /// <summary>

@@ -106,7 +106,7 @@ namespace CoreAxis.SharedKernel
         /// <param name="left">The first entity to compare.</param>
         /// <param name="right">The second entity to compare.</param>
         /// <returns>true if the entities are equal; otherwise, false.</returns>
-        public static bool operator ==(EntityBase left, EntityBase right)
+        public static bool operator ==(EntityBase? left, EntityBase? right)
         {
             if (left is null && right is null) return true;
             if (left is null || right is null) return false;
@@ -119,7 +119,7 @@ namespace CoreAxis.SharedKernel
         /// <param name="left">The first entity to compare.</param>
         /// <param name="right">The second entity to compare.</param>
         /// <returns>true if the entities are not equal; otherwise, false.</returns>
-        public static bool operator !=(EntityBase left, EntityBase right)
+        public static bool operator !=(EntityBase? left, EntityBase? right)
         {
             return !(left == right);
         }

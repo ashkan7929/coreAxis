@@ -56,7 +56,12 @@ public class ServiceTaskStepHandlerTests
 
         // Mock API success
         var apiResult = ApiProxyResult.Success(200, "{\"foo\": \"bar\"}", 100);
-        _mockApiProxy.Setup(x => x.InvokeAsync(It.IsAny<Guid>(), It.IsAny<Dictionary<string, object>>(), It.IsAny<CancellationToken>()))
+        _mockApiProxy.Setup(x => x.InvokeAsync(
+                It.IsAny<Guid>(), 
+                It.IsAny<Dictionary<string, object>>(), 
+                It.IsAny<Guid?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(apiResult);
 
         // Act
@@ -109,7 +114,12 @@ public class ServiceTaskStepHandlerTests
 
         // Mock API success
         var apiResult = ApiProxyResult.Success(200, "{\"foo\": \"bar\"}", 100);
-        _mockApiProxy.Setup(x => x.InvokeAsync(methodId, It.IsAny<Dictionary<string, object>>(), It.IsAny<CancellationToken>()))
+        _mockApiProxy.Setup(x => x.InvokeAsync(
+                methodId, 
+                It.IsAny<Dictionary<string, object>>(), 
+                It.IsAny<Guid?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(apiResult);
             
         // Mock Mapping

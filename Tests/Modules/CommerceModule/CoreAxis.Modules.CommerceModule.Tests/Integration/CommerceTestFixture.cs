@@ -1,6 +1,8 @@
 using CoreAxis.Modules.CommerceModule.Application.Services;
 using CoreAxis.Modules.CommerceModule.Infrastructure.Data;
 using CoreAxis.Shared.Domain.Events;
+using CoreAxis.SharedKernel.Context;
+using CoreAxis.SharedKernel.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -45,6 +47,11 @@ public class CommerceTestFixture : IDisposable
         // Mock Domain Event Dispatcher
         var mockEventDispatcher = new Mock<IDomainEventDispatcher>();
         _services.AddSingleton(mockEventDispatcher.Object);
+
+        // Mock Tenant Provider
+        var mockTenantProvider = new Mock<ITenantProvider>();
+        mockTenantProvider.Setup(t => t.TenantId).Returns("default-tenant");
+        _services.AddSingleton(mockTenantProvider.Object);
 
         // Register Application Services
         _services.AddScoped<IReservationService, ReservationService>();

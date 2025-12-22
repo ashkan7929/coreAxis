@@ -25,6 +25,31 @@ public interface IPaymentService
     Task<List<Payment>> GetPaymentsByOrderAsync(
         Guid orderId,
         CancellationToken cancellationToken = default);
+
+    Task<PaymentIntent> CreatePaymentIntentAsync(
+        CreatePaymentIntentDto request,
+        CancellationToken cancellationToken = default);
+
+    Task<PaymentIntent?> GetPaymentIntentAsync(
+        Guid intentId,
+        CancellationToken cancellationToken = default);
+
+    Task<PaymentIntent> HandleCallbackAsync(
+        string provider,
+        string payload,
+        Dictionary<string, string> headers,
+        CancellationToken cancellationToken = default);
+}
+
+public class CreatePaymentIntentDto
+{
+    public Guid OrderId { get; set; }
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = "USD";
+    public required string Provider { get; set; }
+    public required string CallbackUrl { get; set; }
+    public string? ReturnUrl { get; set; }
+    public Dictionary<string, object>? Metadata { get; set; }
 }
 
 /// <summary>

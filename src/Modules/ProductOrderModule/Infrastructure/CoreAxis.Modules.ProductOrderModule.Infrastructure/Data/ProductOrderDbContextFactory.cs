@@ -1,4 +1,5 @@
 using CoreAxis.SharedKernel.Domain;
+using CoreAxis.SharedKernel.Context;
 using CoreAxis.SharedKernel.DomainEvents;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -20,7 +21,12 @@ public class ProductOrderDbContextFactory : IDesignTimeDbContextFactory<ProductO
             sql.EnableRetryOnFailure(3, TimeSpan.FromSeconds(30), null);
         });
 
-        return new ProductOrderDbContext(optionsBuilder.Options, new NoOpDomainEventDispatcher());
+        return new ProductOrderDbContext(optionsBuilder.Options, new NoOpDomainEventDispatcher(), new NoOpTenantProvider());
+    }
+
+    private sealed class NoOpTenantProvider : ITenantProvider
+    {
+        public string? TenantId => "default";
     }
 
     private sealed class NoOpDomainEventDispatcher : IDomainEventDispatcher

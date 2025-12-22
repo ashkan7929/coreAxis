@@ -1,3 +1,4 @@
+using CoreAxis.SharedKernel.Context;
 using CoreAxis.SharedKernel.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
@@ -12,6 +13,11 @@ public class MappingDbContextFactory : IDesignTimeDbContextFactory<MappingDbCont
         var optionsBuilder = new DbContextOptionsBuilder<MappingDbContext>();
         optionsBuilder.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=CoreAxis_Mapping;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True");
 
-        return new MappingDbContext(optionsBuilder.Options, new DomainEventDispatcher(null!, NullLogger<DomainEventDispatcher>.Instance));
+        return new MappingDbContext(optionsBuilder.Options, new DomainEventDispatcher(null!, NullLogger<DomainEventDispatcher>.Instance), new NoOpTenantProvider());
+    }
+
+    private sealed class NoOpTenantProvider : ITenantProvider
+    {
+        public string? TenantId => "default";
     }
 }

@@ -142,7 +142,7 @@ namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers
                 };
 
                 var externalDataRes = await _dataOrchestrator.GetExternalDataAsync(evalContext, cancellationToken);
-                var externalData = externalDataRes.IsSuccess ? externalDataRes.Value : new Dictionary<string, object?>();
+                var externalData = externalDataRes.IsSuccess ? externalDataRes.Value.Data : new Dictionary<string, object?>();
                 if (!externalDataRes.IsSuccess && (request.ExternalDataSources?.Count > 0))
                 {
                     _logger.LogError("{Code} Datasource fetch failed | CorrelationId={CorrelationId} | Error={Error}", "PRC_DATASOURCE_FAIL", correlationId, externalDataRes.Error);

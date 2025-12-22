@@ -373,6 +373,59 @@ public class PaymentController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Creates a new payment intent
+    /// </summary>
+    /// <param name="dto">The payment intent data</param>
+    /// <returns>The created payment intent</returns>
+    [HttpPost("intents")]
+    [HasPermission("payments", "process")]
+    [ProducesResponseType(typeof(PaymentIntent), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PaymentIntent>> CreatePaymentIntent([FromBody] CreatePaymentIntentDto dto)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var intent = await _paymentService.CreatePaymentIntentAsync(dto);
+            return Ok(intent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating payment intent");
+            return StatusCode(500, "An error occurred while creating payment intent");
+        }
+    }
+
+    /// <summary>
+    /// Handles payment provider callbacks
+    /// </summary>
+    /// <param name="provider">The provider name</param>
+    /// <returns>Result of the callback handling</returns>
+    [HttpPost("callback/{provider}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> HandleCallback(string provider)
+    {
+        try
+        {
+            using var reader = new StreamReader(Request.Body);
+            var payload = await reader.ReadToEndAsync();
+            var headers = Request.Headers.ToDictionary(h => h.Key, h => h.Value.ToString());
+
+            await _paymentService.HandleCallbackAsync(provider, payload, headers);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling callback from {Provider}", provider);
+            return BadRequest(ex.Message);
+        }
+    }
+
     #region Private Methods
 
     private static PaymentDto MapToDto(Payment payment)
@@ -406,6 +459,63 @@ public class PaymentController : ControllerBase
             IdempotencyKey = refund.IdempotencyKey,
             ErrorMessage = refund.ErrorMessage
         };
+    }
+
+    /// <summary>
+    /// Creates a payment intent.
+    /// </summary>
+    [HttpPost("intents")]
+    [HasPermission("payments", "create")]
+    [ProducesResponseType(typeof(PaymentIntentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<PaymentIntentDto>> CreateIntent([FromBody] CreatePaymentIntentDto intentDto)
+    {
+        try
+        {
+             var intent = await _paymentService.CreatePaymentIntentAsync(intentDto);
+             return Ok(new PaymentIntentDto
+             {
+                 Id = intent.Id,
+                 OrderId = intent.OrderId,
+                 Amount = intent.Amount,
+                 Currency = intent.Currency,
+                 Status = intent.Status,
+                 Provider = intent.Provider,
+                 ClientSecret = intent.ClientSecret,
+                 CallbackUrl = intent.CallbackUrl,
+                 ExpiresAt = intent.ExpiresAt
+             });
+        }
+        catch (Exception ex)
+        {
+             _logger.LogError(ex, "Error creating payment intent");
+             return StatusCode(500, "Error creating payment intent");
+        }
+    }
+
+    /// <summary>
+    /// Handles payment provider callbacks.
+    /// </summary>
+    [HttpPost("callback/{provider}")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> HandleCallback(string provider)
+    {
+        using var reader = new StreamReader(Request.Body);
+        var payload = await reader.ReadToEndAsync();
+        var headers = Request.Headers.ToDictionary(h => h.Key, h => h.Value.ToString());
+
+        try 
+        {
+            await _paymentService.HandleCallbackAsync(provider, payload, headers);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling callback");
+            return StatusCode(500);
+        }
     }
 
     #endregion
