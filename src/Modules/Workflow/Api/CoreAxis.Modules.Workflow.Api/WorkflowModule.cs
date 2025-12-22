@@ -19,6 +19,7 @@ using CoreAxis.SharedKernel.Ports;
 using CoreAxis.SharedKernel.Domain;
 using CoreAxis.Modules.Workflow.Api.Filters;
 using CoreAxis.Modules.Workflow.Api.Services;
+using CoreAxis.Modules.Workflow.Application.Commands;
 using System.Linq;
 
 namespace CoreAxis.Modules.Workflow.Api;
@@ -33,6 +34,9 @@ public class WorkflowModule : IModule
 
     public void RegisterServices(IServiceCollection services)
     {
+        // Register MediatR for Application layer
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(StartWorkflowCommandHandler).Assembly));
+
         // Register handler for DI
         services.AddTransient<OrderFinalizedStartPostFinalizeHandler>();
         services.AddTransient<TaskCompletedIntegrationEventHandler>();
@@ -73,6 +77,7 @@ public class WorkflowModule : IModule
         services.AddScoped<IWorkflowStepHandler, WaitForEventStepHandler>();
         services.AddScoped<IWorkflowStepHandler, TimerStepHandler>();
         services.AddScoped<IWorkflowStepHandler, CompensationStepHandler>();
+        services.AddScoped<IWorkflowStepHandler, EndStepHandler>();
 
         // Register validator
         services.AddScoped<IWorkflowValidator, WorkflowValidator>();

@@ -77,7 +77,9 @@ public class StartWorkflowCommandHandler : IRequestHandler<StartWorkflowCommand,
             Status = "Running", // Use enum later
             ContextJson = request.Dto.ContextJson,
             CorrelationId = request.Dto.CorrelationId ?? Guid.NewGuid().ToString(),
-            CreatedOn = DateTime.UtcNow
+            CreatedOn = DateTime.UtcNow,
+            CreatedBy = "System",
+            LastModifiedBy = "System"
         };
 
         // 4. Start (Logic to start first step would go here or be triggered by domain event)

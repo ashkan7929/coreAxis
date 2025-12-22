@@ -1,4 +1,4 @@
-namespace CoreAxis.Modules.SecretsModule.Application.Contracts;
+namespace CoreAxis.SharedKernel.Ports;
 
 public interface ISecretResolver
 {

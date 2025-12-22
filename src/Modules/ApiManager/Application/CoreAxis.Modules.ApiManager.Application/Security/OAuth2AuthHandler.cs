@@ -13,6 +13,8 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using CoreAxis.SharedKernel.Outbox;
 
+using CoreAxis.SharedKernel.Ports;
+
 namespace CoreAxis.Modules.ApiManager.Application.Security;
 
 public class OAuth2AuthHandler : IAuthSchemeHandler
@@ -22,13 +24,21 @@ public class OAuth2AuthHandler : IAuthSchemeHandler
     private readonly IMemoryCache _cache;
     private readonly IDistributedCache? _distributedCache;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ISecretResolver _secretResolver;
 
-    public OAuth2AuthHandler(ILogger<OAuth2AuthHandler> logger, IHttpClientFactory httpClientFactory, IMemoryCache cache, IHttpContextAccessor httpContextAccessor, IDistributedCache? distributedCache = null)
+    public OAuth2AuthHandler(
+        ILogger<OAuth2AuthHandler> logger, 
+        IHttpClientFactory httpClientFactory, 
+        IMemoryCache cache, 
+        IHttpContextAccessor httpContextAccessor, 
+        ISecretResolver secretResolver,
+        IDistributedCache? distributedCache = null)
     {
         _logger = logger;
         _httpClientFactory = httpClientFactory;
         _cache = cache;
         _httpContextAccessor = httpContextAccessor;
+        _secretResolver = secretResolver;
         _distributedCache = distributedCache;
     }
 
@@ -70,15 +80,25 @@ public class OAuth2AuthHandler : IAuthSchemeHandler
                 var clientSecret = cfg.TryGetValue("clientSecret", out var secretObj) ? secretObj?.ToString() : null;
                 if (clientSecret == null && cfg.TryGetValue("clientSecretRef", out var secretRefObj))
                 {
-                    // Resolve secret ref from environment/config
+                    // Resolve secret ref
                     var secretRefKey = secretRefObj?.ToString();
                     if (!string.IsNullOrEmpty(secretRefKey))
                     {
-                        clientSecret = Environment.GetEnvironmentVariable(secretRefKey) ?? null;
-                        if (string.IsNullOrEmpty(clientSecret))
+                        // Try resolving via Secret Store (supports {{secret:KEY}})
+                        var resolved = await _secretResolver.ResolveAsync(secretRefKey, cancellationToken);
+                        if (!string.IsNullOrEmpty(resolved) && resolved != secretRefKey)
                         {
-                            clientSecret = _httpContextAccessor.HttpContext?.RequestServices?.GetService<IConfiguration>()?
-                                .GetValue<string>(secretRefKey);
+                            clientSecret = resolved;
+                        }
+                        else
+                        {
+                            // Fallback: Resolve from Environment/Configuration (legacy support for plain keys)
+                            clientSecret = Environment.GetEnvironmentVariable(secretRefKey) ?? null;
+                            if (string.IsNullOrEmpty(clientSecret))
+                            {
+                                clientSecret = _httpContextAccessor.HttpContext?.RequestServices?.GetService<IConfiguration>()?
+                                    .GetValue<string>(secretRefKey);
+                            }
                         }
                     }
                 }

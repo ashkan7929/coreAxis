@@ -747,7 +747,7 @@
           "id": "TASK-TEST-01",
           "title": "E2E scenario tests (3 golden paths)",
           "priority": "P1",
-          "status": "not_started",
+          "status": "in_progress",
           "why": "To ensure platform works end-to-end and stays stable as modules evolve.",
           "what_to_do": [
             "E2E-1: Product start -> FormStep -> ServiceTask -> Completed.",

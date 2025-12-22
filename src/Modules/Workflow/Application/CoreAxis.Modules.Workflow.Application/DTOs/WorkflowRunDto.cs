@@ -10,6 +10,7 @@ public class WorkflowRunDto
     public string Status { get; set; } = null!;
     public string ContextJson { get; set; } = null!;
     public string CorrelationId { get; set; } = null!;
+    public string? CurrentStepId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }

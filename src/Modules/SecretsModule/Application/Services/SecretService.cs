@@ -1,4 +1,5 @@
 using CoreAxis.Modules.SecretsModule.Application.Contracts;
+using CoreAxis.SharedKernel.Ports;
 using CoreAxis.Modules.SecretsModule.Domain.Entities;
 using CoreAxis.Modules.SecretsModule.Infrastructure.Data;
 using CoreAxis.SharedKernel.Context;

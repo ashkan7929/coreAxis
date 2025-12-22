@@ -259,20 +259,26 @@ try
     }
 
     // Register CoreAxis EventBus and auto-load integration handlers
+    Console.WriteLine("Registering EventBus...");
     builder.Services.AddCoreAxisEventBus();
 
     // Register AuthModule
+    Console.WriteLine("Registering AuthModule...");
     builder.Services.AddAuthModuleApi(builder.Configuration, builder.Environment);
     
     // Register WalletModule
+    Console.WriteLine("Registering WalletModule...");
     builder.Services.AddWalletModuleApi(builder.Configuration);
     
     // Register ProductOrderModule
+    Console.WriteLine("Registering ProductOrderModule...");
     builder.Services.AddProductOrderModuleApi(builder.Configuration);
     
     // Register ApiManager Module
+    Console.WriteLine("Registering ApiManagerModule...");
     builder.Services.AddApiManagerModule(builder.Configuration);
     
+    Console.WriteLine("Discovering modules...");
     var modules = moduleRegistrar.DiscoverAndRegisterModules(builder.Services);
     Console.WriteLine($"Discovered modules: {modules.Count()}");
 
@@ -283,6 +289,7 @@ try
     builder.Host.UseSerilog();
 
     var app = builder.Build();
+    Console.WriteLine("App built successfully.");
 
     // Add Correlation and ProblemDetails middleware early in the pipeline
     app.UseMiddleware<CoreAxis.SharedKernel.Observability.CorrelationMiddleware>();
@@ -375,50 +382,53 @@ try
     var registeredModules = moduleRegistrar.GetRegisteredModules();
     moduleRegistrar.ConfigureModules(registeredModules, app);
 
-    using (var scope = app.Services.CreateScope())
+    if (!app.Environment.IsEnvironment("Testing"))
     {
-        var sp = scope.ServiceProvider;
-        var dbLogger = app.Services.GetRequiredService<ILogger<Program>>();
-        var authDb = sp.GetService<AuthDbContext>();
-        var workflowDb = sp.GetService<WorkflowDbContext>();
-
-        if (authDb != null)
+        using (var scope = app.Services.CreateScope())
         {
-            try
-            {
-                if (authDb.Database.CanConnect())
-                {
-                    authDb.Database.Migrate();
-                    dbLogger.LogInformation("AuthDb migrated: {CanConnect}", authDb.Database.CanConnect());
-                }
-                else
-                {
-                    dbLogger.LogWarning("AuthDb unreachable");
-                }
-            }
-            catch (Exception ex)
-            {
-                dbLogger.LogError(ex, "AuthDb migration failed");
-            }
-        }
+            var sp = scope.ServiceProvider;
+            var dbLogger = app.Services.GetRequiredService<ILogger<Program>>();
+            var authDb = sp.GetService<AuthDbContext>();
+            var workflowDb = sp.GetService<WorkflowDbContext>();
 
-        if (workflowDb != null)
-        {
-            try
+            if (authDb != null)
             {
-                if (workflowDb.Database.CanConnect())
+                try
                 {
-                    workflowDb.Database.Migrate();
-                    dbLogger.LogInformation("WorkflowDb migrated: {CanConnect}", workflowDb.Database.CanConnect());
+                    if (authDb.Database.CanConnect())
+                    {
+                        authDb.Database.Migrate();
+                        dbLogger.LogInformation("AuthDb migrated: {CanConnect}", authDb.Database.CanConnect());
+                    }
+                    else
+                    {
+                        dbLogger.LogWarning("AuthDb unreachable");
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    dbLogger.LogWarning("WorkflowDb unreachable");
+                    dbLogger.LogError(ex, "AuthDb migration failed");
                 }
             }
-            catch (Exception ex)
+
+            if (workflowDb != null)
             {
-                dbLogger.LogError(ex, "WorkflowDb migration failed");
+                try
+                {
+                    if (workflowDb.Database.CanConnect())
+                    {
+                        workflowDb.Database.Migrate();
+                        dbLogger.LogInformation("WorkflowDb migrated: {CanConnect}", workflowDb.Database.CanConnect());
+                    }
+                    else
+                    {
+                        dbLogger.LogWarning("WorkflowDb unreachable");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    dbLogger.LogError(ex, "WorkflowDb migration failed");
+                }
             }
         }
     }
@@ -455,6 +465,7 @@ try
 }
 catch (Exception ex)
 {
+    Console.WriteLine($"[FATAL] Application terminated unexpectedly: {ex}");
     // Ignore HostAbortedException during design-time tools execution
     if (ex.GetType().Name != "HostAbortedException")
     {

@@ -20,10 +20,16 @@ public class GetWorkflowRunQueryHandler : IRequestHandler<GetWorkflowRunQuery, R
     public async Task<Result<WorkflowRunDto>> Handle(GetWorkflowRunQuery request, CancellationToken cancellationToken)
     {
         var run = await _context.WorkflowRuns
+            .Include(r => r.Steps)
             .FirstOrDefaultAsync(r => r.Id == request.RunId, cancellationToken);
 
         if (run == null)
             return Result<WorkflowRunDto>.Failure("Workflow run not found.");
+
+        var currentStep = run.Steps
+            .Where(s => s.Status == "Running" || s.Status == "Paused")
+            .OrderByDescending(s => s.StartedAt)
+            .FirstOrDefault();
 
         return Result<WorkflowRunDto>.Success(new WorkflowRunDto
         {
@@ -33,6 +39,7 @@ public class GetWorkflowRunQueryHandler : IRequestHandler<GetWorkflowRunQuery, R
             Status = run.Status,
             ContextJson = run.ContextJson,
             CorrelationId = run.CorrelationId,
+            CurrentStepId = currentStep?.StepId,
             CreatedAt = run.CreatedOn,
             UpdatedAt = run.LastModifiedOn
         });

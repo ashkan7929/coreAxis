@@ -1,5 +1,6 @@
 using CoreAxis.BuildingBlocks;
 using CoreAxis.Modules.SecretsModule.Application.Contracts;
+using CoreAxis.SharedKernel.Ports;
 using CoreAxis.Modules.SecretsModule.Application.Services;
 using CoreAxis.Modules.SecretsModule.Infrastructure.Data;
 using CoreAxis.Modules.SecretsModule.Infrastructure.Services;

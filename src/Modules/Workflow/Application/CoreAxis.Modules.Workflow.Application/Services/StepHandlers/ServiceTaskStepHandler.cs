@@ -105,7 +105,14 @@ public class ServiceTaskStepHandler : IWorkflowStepHandler
 
             ctxDoc.Set("response", responseData);
             
-            var mapResult = await _mappingService.ExecuteMappingAsync(resMapId, ctxDoc.ToJson(), cancellationToken);
+            var contextJson = ctxDoc.ToJson();
+            if (!IsValidJson(contextJson))
+            {
+                throw new InvalidOperationException("Invalid ContextJson generated");
+            }
+            run.ContextJson = contextJson;
+
+            var mapResult = await _mappingService.ExecuteMappingAsync(resMapId, contextJson, cancellationToken);
             
             if (!mapResult.Success)
             {
@@ -129,17 +136,57 @@ public class ServiceTaskStepHandler : IWorkflowStepHandler
         else
         {
             // No mapping, just put response in context if needed, or nothing
-            // Maybe we should store apiResult.ResponseBody as output if no mapping?
-            // For now, assume mapping is required or nothing is returned to context.
+            // Default behavior: Store response under apis.{stepId}.response
             
-            // If no response mapping, we still might want to be idempotent?
-            // Yes, preventing re-execution.
+            // Try to parse response body as JSON, otherwise string
+            object responseData = apiResult.ResponseBody ?? string.Empty;
+            try 
+            {
+                if (!string.IsNullOrEmpty(apiResult.ResponseBody))
+                    responseData = JsonSerializer.Deserialize<object>(apiResult.ResponseBody) ?? apiResult.ResponseBody;
+            } 
+            catch {}
+
+            var output = new Dictionary<string, object>
+            {
+                ["apis"] = new Dictionary<string, object>
+                {
+                    [step.Id] = new Dictionary<string, object>
+                    {
+                        ["response"] = responseData
+                    }
+                }
+            };
+            
+            // If no response mapping, we still might want to be idempotent
             if (!string.IsNullOrEmpty(runStep.ExecutionKey))
             {
-                await _idempotencyService.StoreAsync("ServiceTaskStep", runStep.ExecutionKey, "", 200, "{}", cancellationToken);
+                await _idempotencyService.StoreAsync("ServiceTaskStep", runStep.ExecutionKey, "", 200, JsonSerializer.Serialize(output), cancellationToken);
             }
+            
+            return StepExecutionResult.Success(step.Transitions?.FirstOrDefault()?.To, output);
         }
 
         return StepExecutionResult.Success(step.Transitions?.FirstOrDefault()?.To);
+    }
+
+    private bool IsValidJson(string strInput)
+    {
+        if (string.IsNullOrWhiteSpace(strInput)) return false;
+        strInput = strInput.Trim();
+        if ((strInput.StartsWith("{") && strInput.EndsWith("}")) || 
+            (strInput.StartsWith("[") && strInput.EndsWith("]")))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(strInput);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        return false;
     }
 }

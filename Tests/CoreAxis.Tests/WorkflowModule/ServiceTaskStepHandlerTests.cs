@@ -78,8 +78,11 @@ public class ServiceTaskStepHandlerTests
         var doc = JsonDocument.Parse(workflowRun.ContextJson);
         Assert.NotNull(doc);
         
-        // Verify content
-        var root = doc.RootElement;
+        // Verify output content (Executor would merge this)
+        Assert.NotNull(result.OutputContext);
+        var outputJson = JsonSerializer.Serialize(result.OutputContext);
+        using var outputDoc = JsonDocument.Parse(outputJson);
+        var root = outputDoc.RootElement;
         Assert.True(root.GetProperty("apis").GetProperty("step1").GetProperty("response").GetProperty("foo").GetString() == "bar");
     }
     
@@ -136,10 +139,10 @@ public class ServiceTaskStepHandlerTests
         // Verify ContextJson is valid JSON
         Assert.DoesNotContain("CoreAxis.SharedKernel.Context.ContextDocument", workflowRun.ContextJson);
         
-        // Should contain merged result
-        using var doc = JsonDocument.Parse(workflowRun.ContextJson);
-        var root = doc.RootElement;
-        Assert.True(root.GetProperty("mapped").GetString() == "value");
-        Assert.True(root.GetProperty("initial").GetBoolean() == true);
+        // Should contain mapped result in OutputContext
+        Assert.NotNull(result.OutputContext);
+        using var outDoc = JsonDocument.Parse(JsonSerializer.Serialize(result.OutputContext));
+        var outRoot = outDoc.RootElement;
+        Assert.True(outRoot.GetProperty("mapped").GetString() == "value");
     }
 }

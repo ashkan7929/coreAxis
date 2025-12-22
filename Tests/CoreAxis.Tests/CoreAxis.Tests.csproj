@@ -14,7 +14,7 @@
     <PackageReference Include="Moq" Version="4.20.70" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.0-preview.1.24081.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.0" />
   </ItemGroup>
 
@@ -47,6 +47,8 @@
     <ProjectReference Include="..\..\src\Modules\TaskModule\Application\CoreAxis.Modules.TaskModule.Application\CoreAxis.Modules.TaskModule.Application.csproj" />
     <ProjectReference Include="..\..\src\Modules\TaskModule\Domain\CoreAxis.Modules.TaskModule.Domain\CoreAxis.Modules.TaskModule.Domain.csproj" />
     <ProjectReference Include="..\..\src\Modules\TaskModule\Infrastructure\CoreAxis.Modules.TaskModule.Infrastructure\CoreAxis.Modules.TaskModule.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\WalletModule\Infrastructure\CoreAxis.Modules.WalletModule.Infrastructure\CoreAxis.Modules.WalletModule.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Modules\FileModule\CoreAxis.Modules.FileModule.csproj" />
   </ItemGroup>
 
 </Project>
