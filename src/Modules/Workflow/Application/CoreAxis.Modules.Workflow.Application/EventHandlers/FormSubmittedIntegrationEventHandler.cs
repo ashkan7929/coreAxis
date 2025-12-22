@@ -23,31 +23,29 @@ public class FormSubmittedIntegrationEventHandler : IIntegrationEventHandler<For
     {
         _logger.LogInformation("Handling FormSubmitted event for Submission {SubmissionId}", @event.SubmissionId);
 
-        if (string.IsNullOrEmpty(@event.Metadata))
-        {
-            _logger.LogWarning("No metadata in FormSubmitted event. Cannot resume workflow.");
-            return;
-        }
+        Guid? workflowRunId = @event.WorkflowRunId;
 
-        Guid? workflowRunId = null;
-
-        try
+        // Fallback to metadata parsing if WorkflowRunId is missing
+        if (!workflowRunId.HasValue && !string.IsNullOrEmpty(@event.Metadata))
         {
-            var metadata = JsonSerializer.Deserialize<Dictionary<string, object>>(@event.Metadata);
-            if (metadata != null && metadata.TryGetValue("workflowRunId", out var runIdObj))
+            try
             {
-                if (Guid.TryParse(runIdObj.ToString(), out var id))
+                var metadata = JsonSerializer.Deserialize<Dictionary<string, object>>(@event.Metadata);
+                if (metadata != null && metadata.TryGetValue("workflowRunId", out var runIdObj))
+                {
+                    if (Guid.TryParse(runIdObj.ToString(), out var id))
+                    {
+                        workflowRunId = id;
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore JSON error, try plain ID
+                if (Guid.TryParse(@event.Metadata, out var id))
                 {
                     workflowRunId = id;
                 }
-            }
-        }
-        catch
-        {
-            // Ignore JSON error, try plain ID
-            if (Guid.TryParse(@event.Metadata, out var id))
-            {
-                workflowRunId = id;
             }
         }
 
@@ -60,11 +58,16 @@ public class FormSubmittedIntegrationEventHandler : IIntegrationEventHandler<For
                 ["userId"] = @event.UserId
             };
 
+            if (!string.IsNullOrEmpty(@event.StepKey))
+            {
+                input["stepKey"] = @event.StepKey;
+            }
+
             await _workflowExecutor.ResumeAsync(workflowRunId.Value, input);
         }
         else
         {
-            _logger.LogWarning("Could not find workflowRunId in metadata for Submission {SubmissionId}", @event.SubmissionId);
+            _logger.LogWarning("Could not find workflowRunId (explicit or in metadata) for Submission {SubmissionId}", @event.SubmissionId);
         }
     }
 }

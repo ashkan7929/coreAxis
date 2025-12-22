@@ -4,6 +4,7 @@ using CoreAxis.Modules.DynamicForm.Domain.Entities;
 using CoreAxis.Modules.DynamicForm.Domain.Interfaces;
 using CoreAxis.SharedKernel;
 using CoreAxis.SharedKernel.Contracts.Events;
+using CoreAxis.SharedKernel.Observability;
 using CoreAxis.EventBus;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -17,19 +18,22 @@ public class CreateSubmissionCommandHandler : IRequestHandler<CreateSubmissionCo
     private readonly IValidationEngine _validationEngine;
     private readonly IEventBus _eventBus;
     private readonly ILogger<CreateSubmissionCommandHandler> _logger;
+    private readonly ICorrelationIdAccessor _correlationIdAccessor;
 
     public CreateSubmissionCommandHandler(
         IFormSubmissionRepository submissionRepository,
         IFormRepository formRepository,
         IValidationEngine validationEngine,
         IEventBus eventBus,
-        ILogger<CreateSubmissionCommandHandler> logger)
+        ILogger<CreateSubmissionCommandHandler> logger,
+        ICorrelationIdAccessor correlationIdAccessor)
     {
         _submissionRepository = submissionRepository;
         _formRepository = formRepository;
         _validationEngine = validationEngine;
         _eventBus = eventBus;
         _logger = logger;
+        _correlationIdAccessor = correlationIdAccessor;
     }
 
     public async Task<Result<FormSubmissionDto>> Handle(CreateSubmissionCommand request, CancellationToken cancellationToken)

@@ -10,6 +10,8 @@ public class FormSubmitted : IntegrationEvent
     public Guid UserId { get; }
     public string SubmissionData { get; }
     public string? Metadata { get; }
+    public Guid? WorkflowRunId { get; }
+    public string? StepKey { get; }
 
     public FormSubmitted(
         Guid formId, 
@@ -17,7 +19,9 @@ public class FormSubmitted : IntegrationEvent
         Guid userId, 
         string submissionData, 
         string? metadata,
-        Guid correlationId)
+        Guid correlationId,
+        Guid? workflowRunId = null,
+        string? stepKey = null)
         : base(Guid.NewGuid(), DateTime.UtcNow, correlationId)
     {
         FormId = formId;
@@ -25,5 +29,7 @@ public class FormSubmitted : IntegrationEvent
         UserId = userId;
         SubmissionData = submissionData;
         Metadata = metadata;
+        WorkflowRunId = workflowRunId;
+        StepKey = stepKey;
     }
 }

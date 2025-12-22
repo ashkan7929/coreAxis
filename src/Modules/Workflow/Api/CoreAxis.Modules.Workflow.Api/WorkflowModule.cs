@@ -110,6 +110,7 @@ public class WorkflowModule : IModule
         eventBus.Subscribe<HumanTaskCompleted, TaskCompletedIntegrationEventHandler>();
         eventBus.Subscribe<PaymentConfirmed, PaymentEventsHandler>();
         eventBus.Subscribe<PaymentFailed, PaymentEventsHandler>();
+        eventBus.Subscribe<FormSubmitted, FormSubmittedIntegrationEventHandler>();
 
         // Ensure DB is migrated and seed a sample DSL (Alborz) published
         using var scope = serviceProvider.CreateScope();

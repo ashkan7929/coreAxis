@@ -1,0 +1,116 @@
+{
+    "schema_version": "1.0.0",
+    "generated_at": "2025-12-22T08:54:49.521032",
+    "package": {
+        "name": "coreaxis_form_P0_fixpack",
+        "based_on": "coreAxis-develop-1212.zip",
+        "goal": "Make FormSubmitted -> Workflow resume work in production, strengthen event contract, and fix correlation propagation."
+    },
+    "global_constraints": [
+        "Backend only, no UI changes.",
+        "Follow existing module patterns: Domain/Application/Infrastructure/Api, MediatR, RequirePermission/Authorize conventions.",
+        "Keep backward compatibility when possible; introduce new fields with defaults and handle old payloads gracefully.",
+        "Add/adjust integration tests to reflect real production wiring (no manual eventbus subscriptions in tests)."
+    ],
+    "tasks": [
+        {
+            "id": "TASK-FORM-P0-01",
+            "title": "Subscribe Workflow module to FormSubmitted integration event (production wiring)",
+            "priority": "P0",
+            "status": "done",
+            "goal": "Ensure Workflow receives FormSubmitted events in real runtime, not only in tests.",
+            "implementation_notes": [
+                "In WorkflowModule.cs, add eventBus.Subscribe<FormSubmitted, FormSubmittedIntegrationEventHandler>().",
+                "Confirm the handler is registered in DI (AddTransient/AddScoped) and depends on IWorkflowExecutor (or equivalent)."
+            ],
+            "files_expected": [
+                "src/Modules/Workflow/WorkflowModule.cs"
+            ],
+            "acceptance_criteria": [
+                "When a DynamicForm submission is created, the FormSubmitted handler runs without any test-only subscription.",
+                "Workflow resumes when waiting on FormStep."
+            ],
+            "tests": [
+                "Update existing FormWorkflowEndToEndTests to remove manual _eventBus.Subscribe<FormSubmitted>(...) setup and still pass."
+            ],
+            "dependencies": []
+        },
+        {
+            "id": "TASK-FORM-P0-02",
+            "title": "Strengthen FormSubmitted event contract (add WorkflowRunId + StepKey) with backward compatibility",
+            "priority": "P0",
+            "status": "done",
+            "goal": "Avoid relying on Metadata parsing for routing; use explicit workflow identifiers to resume reliably.",
+            "changes": [
+                {
+                    "area": "Shared contracts",
+                    "what": [
+                        "Update CoreAxis.SharedKernel.Contracts.Events.FormSubmitted to include: WorkflowRunId (Guid?) and StepKey (string?)",
+                        "Keep existing fields intact: FormId, SubmissionId, UserId, SubmissionData, Metadata, CorrelationId."
+                    ]
+                },
+                {
+                    "area": "DynamicForm publishing",
+                    "what": [
+                        "Populate WorkflowRunId and StepKey when publishing FormSubmitted (from submission request or stored submission metadata).",
+                        "Metadata can still include workflow info for old clients, but handler should prefer the explicit fields."
+                    ]
+                },
+                {
+                    "area": "Workflow handler",
+                    "what": [
+                        "Update FormSubmittedIntegrationEventHandler to first use WorkflowRunId if present, else fallback to Metadata parsing (current behavior).",
+                        "If neither is present, log and ignore safely (do not crash consumer)."
+                    ]
+                }
+            ],
+            "files_expected": [
+                "src/BuildingBlocks/SharedKernel/CoreAxis.SharedKernel.Contracts/Events/FormSubmitted.cs",
+                "src/Modules/DynamicForm/Application/.../SubmissionCommandHandlers.cs",
+                "src/Modules/Workflow/Application/EventHandlers/FormSubmittedIntegrationEventHandler.cs"
+            ],
+            "acceptance_criteria": [
+                "Workflow resumes using WorkflowRunId without depending on Metadata.",
+                "Old payloads (without WorkflowRunId/StepKey) still work via Metadata fallback."
+            ],
+            "tests": [
+                "Integration test: publish FormSubmitted with WorkflowRunId resumes workflow.",
+                "Integration test: old-style FormSubmitted without WorkflowRunId still resumes via Metadata (if supported)."
+            ],
+            "dependencies": [
+                "TASK-FORM-P0-01"
+            ]
+        },
+        {
+            "id": "TASK-FORM-P0-03",
+            "title": "Fix correlation propagation for FormSubmitted (no default Guid.NewGuid)",
+            "priority": "P0",
+            "status": "done",
+            "goal": "Ensure correlationId is consistent across the request chain for observability.",
+            "implementation_notes": [
+                "In SubmissionCommandHandlers.cs, do not set correlationId to Guid.NewGuid() by default.",
+                "Prefer current request correlation id from the request context/headers (CorrelationIdMiddleware).",
+                "If no correlation id exists, then generate one and attach it (but keep it stable within the same request)."
+            ],
+            "files_expected": [
+                "src/Modules/DynamicForm/Application/.../SubmissionCommandHandlers.cs",
+                "src/ApiGateway/CoreAxis.ApiGateway/Middlewares/CorrelationIdMiddleware.cs (if needed)",
+                "src/BuildingBlocks/SharedKernel/... (if you introduce ICorrelationIdAccessor)"
+            ],
+            "acceptance_criteria": [
+                "CorrelationId in FormSubmitted equals request CorrelationId when present.",
+                "Logs for submission + workflow resume share the same correlation id."
+            ],
+            "tests": [
+                "Integration test: set X-Correlation-Id header -> submit form -> emitted event has same correlationId.",
+                "Integration test: if header absent -> correlationId is generated once and reused."
+            ],
+            "dependencies": [
+                "TASK-FORM-P0-02"
+            ]
+        }
+    ],
+    "prompt_template_for_coder_model": {
+        "template": "You are working on coreAxis (.NET) modular clean architecture.\nImplement {TASK_ID} from the provided fixpack JSON.\n- Backend only.\n- Follow existing patterns (Modules/*, Domain/Application/Infrastructure/Api, MediatR, EF Core).\n- Keep backward compatibility where requested.\n- Add/adjust tests and ensure they do not rely on manual event subscriptions that hide production wiring.\nReturn:\n1) list of files changed/added\n2) code patches\n3) how to run tests\n"
+    }
+}

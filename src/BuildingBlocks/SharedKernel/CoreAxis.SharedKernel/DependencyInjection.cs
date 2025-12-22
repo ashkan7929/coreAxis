@@ -1,6 +1,7 @@
 using CoreAxis.SharedKernel.Context;
 using CoreAxis.SharedKernel.Domain;
 using CoreAxis.SharedKernel.Localization;
+using CoreAxis.SharedKernel.Observability;
 using CoreAxis.SharedKernel.Outbox;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
