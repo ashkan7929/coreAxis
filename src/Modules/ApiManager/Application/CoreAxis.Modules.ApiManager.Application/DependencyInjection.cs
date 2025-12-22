@@ -40,10 +40,12 @@ public static class DependencyInjection
         // Register pluggable authentication handlers and resolver
         services.AddSingleton<IHmacCanonicalSigner, HmacCanonicalSigner>();
         services.AddSingleton<ITimestampProvider, SystemTimestampProvider>();
-        services.AddSingleton<IAuthSchemeHandler, ApiKeyAuthHandler>();
-        services.AddSingleton<IAuthSchemeHandler, OAuth2AuthHandler>();
-        services.AddSingleton<IAuthSchemeHandler, HmacAuthHandler>();
-        services.AddSingleton<IAuthSchemeHandlerResolver, AuthSchemeHandlerResolver>();
+        
+        // Handlers must be Scoped because they consume Scoped services (e.g., ISecretResolver)
+        services.AddScoped<IAuthSchemeHandler, ApiKeyAuthHandler>();
+        services.AddScoped<IAuthSchemeHandler, OAuth2AuthHandler>();
+        services.AddScoped<IAuthSchemeHandler, HmacAuthHandler>();
+        services.AddScoped<IAuthSchemeHandlerResolver, AuthSchemeHandlerResolver>();
 
         // Register masking service for request/response logging
         services.AddSingleton<ILoggingMaskingService, LoggingMaskingService>();

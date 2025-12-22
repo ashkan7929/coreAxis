@@ -171,12 +171,12 @@ try
     // Register DomainEventDispatcher
     builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 
-    // Register DynamicForm dependencies manually since the module is not fully loaded
-    builder.Services.AddDbContext<CoreAxis.Modules.DynamicForm.Infrastructure.Data.DynamicFormDbContext>(options =>
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), sql => sql.EnableRetryOnFailure()));
+    // Register DynamicForm dependencies via Module mechanism now that it is re-enabled
+    // Manual registration removed to avoid duplicates
     
-    builder.Services.AddScoped<CoreAxis.SharedKernel.Ports.IFormClient, CoreAxis.Modules.DynamicForm.Infrastructure.Services.FormClient>();
-    builder.Services.AddScoped<CoreAxis.SharedKernel.Ports.IFormulaClient, CoreAxis.Modules.DynamicForm.Application.Services.FormulaClient>();
+    // builder.Services.AddDbContext<CoreAxis.Modules.DynamicForm.Infrastructure.Data.DynamicFormDbContext>(...);
+    // builder.Services.AddScoped<CoreAxis.SharedKernel.Ports.IFormClient, ...>();
+    // builder.Services.AddScoped<CoreAxis.SharedKernel.Ports.IFormulaClient, ...>();
 
     // Add JWT Authentication (centralized configuration)
     builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)

@@ -21,6 +21,9 @@ public class SecretsDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        
+        modelBuilder.Ignore<CoreAxis.SharedKernel.DomainEvents.DomainEvent>();
+        
         modelBuilder.HasDefaultSchema("secrets");
 
         // Apply tenant filter

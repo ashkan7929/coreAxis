@@ -15,6 +15,9 @@ public class NotificationDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        
+        modelBuilder.Ignore<CoreAxis.SharedKernel.DomainEvents.DomainEvent>();
+        
         modelBuilder.HasDefaultSchema("notifications");
 
         modelBuilder.Entity<NotificationTemplate>(b =>

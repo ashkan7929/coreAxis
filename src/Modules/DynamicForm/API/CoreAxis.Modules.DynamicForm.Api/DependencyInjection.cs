@@ -40,7 +40,7 @@ public static class DependencyInjection
         // services.AddScoped<IFormAuditLogRepository, FormAuditLogRepository>(); // Missing?
         services.AddScoped<IFormulaDefinitionRepository, FormulaDefinitionRepository>();
         services.AddScoped<IFormulaVersionRepository, FormulaVersionRepository>();
-        // services.AddScoped<IFormulaEvaluationLogRepository, FormulaEvaluationLogRepository>(); // Missing?
+        services.AddScoped<IFormulaEvaluationLogRepository, FormulaEvaluationLogRepository>();
 
         // Add Domain Services
         services.AddScoped<IFormSchemaValidator, FormSchemaValidator>();

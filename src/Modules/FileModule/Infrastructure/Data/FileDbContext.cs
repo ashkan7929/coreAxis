@@ -23,6 +23,8 @@ public class FileDbContext : DbContext
         base.OnModelCreating(modelBuilder);
         modelBuilder.HasDefaultSchema("files");
 
+        modelBuilder.Ignore<CoreAxis.SharedKernel.DomainEvents.DomainEvent>();
+
         // Apply tenant filter
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
