@@ -4,6 +4,7 @@ using CoreAxis.Modules.DynamicForm.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CoreAxis.Modules.DynamicForm.Infrastructure.Migrations
 {
     [DbContext(typeof(DynamicFormDbContext))]
-    partial class DynamicFormDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251222112151_FixDynamicFormSchema")]
+    partial class FixDynamicFormSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

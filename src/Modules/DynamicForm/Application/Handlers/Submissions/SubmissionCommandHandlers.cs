@@ -120,6 +120,24 @@ public class CreateSubmissionCommandHandler : IRequestHandler<CreateSubmissionCo
             await _submissionRepository.AddAsync(submission, cancellationToken);
             await _submissionRepository.SaveChangesAsync(cancellationToken);
 
+            // Parse workflow info from metadata if present
+            Guid? workflowRunId = null;
+            string? stepKey = null;
+
+            if (request.Metadata != null)
+            {
+                if (request.Metadata.TryGetValue("workflowRunId", out var runIdObj) && 
+                    Guid.TryParse(runIdObj.ToString(), out var parsedRunId))
+                {
+                    workflowRunId = parsedRunId;
+                }
+
+                if (request.Metadata.TryGetValue("stepKey", out var stepKeyObj))
+                {
+                    stepKey = stepKeyObj?.ToString();
+                }
+            }
+
             // Publish integration event
             await _eventBus.PublishAsync(new FormSubmitted(
                 submission.FormId,
@@ -127,7 +145,9 @@ public class CreateSubmissionCommandHandler : IRequestHandler<CreateSubmissionCo
                 submission.UserId,
                 submission.Data,
                 submission.Metadata,
-                _correlationIdAccessor.GetCorrelationId()
+                _correlationIdAccessor.GetCorrelationId(),
+                workflowRunId,
+                stepKey
             ));
 
             _logger.LogInformation("Form submission created successfully with ID: {SubmissionId} for Form: {FormId}", submission.Id, request.FormId);
