@@ -154,7 +154,7 @@ Example:
 ```json
 {
   "DemoModule": {
-    "ConnectionString": "Server=localhost;Database=DemoModule;User Id=sa;Password=Password123;",
+    "ConnectionString": "Server=194.62.17.5,1433;Database=CoreAxisDb;User Id=coreaxis_user;Password=YOUR_SECURE_PASSWORD;Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True;",
     "EnableCaching": true,
     "CacheExpirationMinutes": 10
   }

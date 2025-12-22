@@ -45,7 +45,7 @@ public class WorkflowModule : IModule
 
         // Register Workflow DbContext (SQL Server via env var or fallback localdb)
         var connectionString = Environment.GetEnvironmentVariable("COREAXIS_CONNECTION_STRING")
-            ?? "Server=(localdb)\\mssqllocaldb;Database=CoreAxis_Workflow;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+            ?? "Server=194.62.17.5,1433;Database=CoreAxisDb;User Id=coreaxis_user;Password=j5P9SzzCADjguKuV57lLpjxkm7EKGmyVDCgWoUrtVT3aay1C7C;Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True;";
 
         services.AddDbContext<WorkflowDbContext>(options =>
         {

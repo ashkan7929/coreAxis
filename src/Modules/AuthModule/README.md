@@ -815,7 +815,7 @@ SEQ_API_KEY="your-seq-api-key"
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=CoreAxis_Auth;Trusted_Connection=true;"
+    "DefaultConnection": "Server=194.62.17.5,1433;Database=CoreAxisDb;User Id=coreaxis_user;Password=YOUR_SECURE_PASSWORD;Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True;"
   },
   "JwtSettings": {
     "SecretKey": "your-secret-key-at-least-32-characters-long",
@@ -1645,7 +1645,7 @@ dotnet ef migrations add InitialCreate \
 // SQL Server (LocalDB)
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=CoreAxisAuth;Trusted_Connection=true;MultipleActiveResultSets=true"
+    "DefaultConnection": "Server=194.62.17.5,1433;Database=CoreAxisDb;User Id=coreaxis_user;Password=j5P9SzzCADjguKuV57lLpjxkm7EKGmyVDCgWoUrtVT3aay1C7C;Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True;"
   }
 }
 

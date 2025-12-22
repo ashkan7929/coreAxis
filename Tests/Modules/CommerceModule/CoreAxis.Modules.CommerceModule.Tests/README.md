@@ -161,7 +161,7 @@ dotnet test --filter Category=Stress --logger "console;verbosity=minimal"
 {
   "database": {
     "useInMemoryDatabase": false,
-    "connectionString": "Server=(localdb)\\mssqllocaldb;Database=CoreAxisCommerceTests;Trusted_Connection=true;"
+    "connectionString": "Server=194.62.17.5,1433;Database=CoreAxisDb;User Id=coreaxis_user;Password=YOUR_SECURE_PASSWORD;Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True;"
   }
 }
 ```

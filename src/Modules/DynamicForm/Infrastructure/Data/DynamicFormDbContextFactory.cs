@@ -10,7 +10,7 @@ public class DynamicFormDbContextFactory : IDesignTimeDbContextFactory<DynamicFo
         var optionsBuilder = new DbContextOptionsBuilder<DynamicFormDbContext>();
 
         var connectionString = Environment.GetEnvironmentVariable("COREAXIS_CONNECTION_STRING")
-            ?? "Server=(localdb)\\mssqllocaldb;Database=CoreAxis_DynamicForm;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+            ?? throw new InvalidOperationException("COREAXIS_CONNECTION_STRING environment variable is not set.");
 
         optionsBuilder.UseSqlServer(connectionString, sql =>
         {

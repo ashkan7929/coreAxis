@@ -11,7 +11,10 @@ public class MappingDbContextFactory : IDesignTimeDbContextFactory<MappingDbCont
     public MappingDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<MappingDbContext>();
-        optionsBuilder.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=CoreAxis_Mapping;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True");
+        var connectionString = Environment.GetEnvironmentVariable("COREAXIS_CONNECTION_STRING")
+            ?? throw new InvalidOperationException("COREAXIS_CONNECTION_STRING environment variable is not set.");
+        
+        optionsBuilder.UseSqlServer(connectionString);
 
         return new MappingDbContext(optionsBuilder.Options, new DomainEventDispatcher(null!, NullLogger<DomainEventDispatcher>.Instance), new NoOpTenantProvider());
     }

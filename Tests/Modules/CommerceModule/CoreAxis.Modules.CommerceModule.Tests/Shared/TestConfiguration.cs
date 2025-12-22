@@ -122,7 +122,7 @@ public class TestConfiguration
     {
         var config = CreateDefault();
         config.Database.UseInMemoryDatabase = false;
-        config.Database.ConnectionString = "Server=(localdb)\\mssqllocaldb;Database=CoreAxisCommerceTests;Trusted_Connection=true;";
+        config.Database.ConnectionString = "Server=194.62.17.5,1433;Database=CoreAxisDb;User Id=coreaxis_user;Password=YOUR_SECURE_PASSWORD;Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True;";
         config.Mocks.PaymentService.SimulateFailures = true;
         config.Mocks.WalletService.SimulateInsufficientBalance = true;
         config.ExternalServices.RetryAttempts = 1; // Faster test execution

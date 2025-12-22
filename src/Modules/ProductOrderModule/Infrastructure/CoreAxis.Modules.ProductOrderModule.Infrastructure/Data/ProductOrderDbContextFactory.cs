@@ -13,7 +13,7 @@ public class ProductOrderDbContextFactory : IDesignTimeDbContextFactory<ProductO
         var optionsBuilder = new DbContextOptionsBuilder<ProductOrderDbContext>();
 
         var connectionString = Environment.GetEnvironmentVariable("COREAXIS_CONNECTION_STRING")
-            ?? "Server=(localdb)\\mssqllocaldb;Database=CoreAxis_ProductOrder;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+            ?? throw new InvalidOperationException("COREAXIS_CONNECTION_STRING environment variable is not set.");
 
         optionsBuilder.UseSqlServer(connectionString, sql =>
         {

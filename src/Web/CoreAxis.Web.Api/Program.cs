@@ -3,8 +3,38 @@ using CoreAxis.SharedKernel.Observability;
 using CoreAxis.Modules.WalletModule.Api;
 using CoreAxis.Modules.ProductOrderModule.Api;
 using Microsoft.EntityFrameworkCore;
+using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Load .env
+string? loadedEnvPath = null;
+var currentDir = Directory.GetCurrentDirectory();
+var candidateEnvPaths = new List<string>
+{
+    Path.Combine(currentDir, ".env"),
+    Path.Combine(AppContext.BaseDirectory, ".env")
+};
+var parent = Directory.GetParent(currentDir);
+for (int i = 0; i < 5; i++)
+{
+    if (parent == null) break;
+    candidateEnvPaths.Add(Path.Combine(parent.FullName, ".env"));
+    parent = parent.Parent;
+}
+foreach (var candidate in candidateEnvPaths.Distinct())
+{
+    if (File.Exists(candidate))
+    {
+        Env.Load(candidate);
+        loadedEnvPath = candidate;
+        break;
+    }
+}
+Console.WriteLine(loadedEnvPath != null ? $"[Startup] .env loaded from: {loadedEnvPath}" : "[Startup] .env not found");
+
+builder.Configuration.AddEnvironmentVariables();
+ExpandEnvironmentVariables(builder.Configuration);
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -96,3 +126,24 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static void ExpandEnvironmentVariables(IConfiguration configuration)
+{
+    var connectionStringsSection = configuration.GetSection("ConnectionStrings");
+    if (connectionStringsSection.Exists())
+    {
+        ExpandSection(connectionStringsSection, new[] { "DefaultConnection" });
+    }
+
+    var fanavaranSection = configuration.GetSection("Fanavaran");
+    if (fanavaranSection.Exists())
+    {
+        ExpandSection(fanavaranSection, new[] { "BaseUrl", "AppName", "Secret", "Username", "Password", "AuthorizationHeader", "Location", "CorpId", "ContractId" });
+    }
+
+    var jwtSection = configuration.GetSection("Jwt");
+    if (jwtSection.Exists())
+    {
+        ExpandSection(jwtSection, new[] { "SecretKey", "Issuer", "Audience" });
+    }
+}

@@ -12,7 +12,7 @@ public class TaskDbContextFactory : IDesignTimeDbContextFactory<TaskDbContext>
         var optionsBuilder = new DbContextOptionsBuilder<TaskDbContext>();
 
         var connectionString = Environment.GetEnvironmentVariable("COREAXIS_CONNECTION_STRING")
-            ?? "Server=(localdb)\\mssqllocaldb;Database=CoreAxis_Task;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+            ?? throw new InvalidOperationException("COREAXIS_CONNECTION_STRING environment variable is not set.");
 
         optionsBuilder.UseSqlServer(connectionString, sql =>
         {

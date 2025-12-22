@@ -8,7 +8,9 @@ public class ProductBuilderDbContextFactory : IDesignTimeDbContextFactory<Produc
     public ProductBuilderDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<ProductBuilderDbContext>();
-        optionsBuilder.UseSqlServer("Server=.;Database=CoreAxis_ProductBuilder;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True");
+        var connectionString = Environment.GetEnvironmentVariable("COREAXIS_CONNECTION_STRING")
+            ?? throw new InvalidOperationException("COREAXIS_CONNECTION_STRING environment variable is not set.");
+        optionsBuilder.UseSqlServer(connectionString);
 
         return new ProductBuilderDbContext(optionsBuilder.Options);
     }

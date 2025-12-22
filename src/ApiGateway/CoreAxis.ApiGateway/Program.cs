@@ -499,6 +499,27 @@ static void ExpandEnvironmentVariables(IConfiguration configuration)
     {
         ExpandSection(civilRegistrySection, new[] { "Token" });
     }
+
+    // Expand environment variables in Fanavaran section
+    var fanavaranSection = configuration.GetSection("Fanavaran");
+    if (fanavaranSection.Exists())
+    {
+        ExpandSection(fanavaranSection, new[] { "BaseUrl", "AppName", "Secret", "Username", "Password", "AuthorizationHeader", "Location", "CorpId", "ContractId" });
+    }
+
+    // Expand environment variables in Jwt section
+    var jwtSection = configuration.GetSection("Jwt");
+    if (jwtSection.Exists())
+    {
+        ExpandSection(jwtSection, new[] { "SecretKey", "Issuer", "Audience" });
+    }
+
+    // Expand environment variables in ConnectionStrings section
+    var connectionStringsSection = configuration.GetSection("ConnectionStrings");
+    if (connectionStringsSection.Exists())
+    {
+        ExpandSection(connectionStringsSection, new[] { "DefaultConnection" });
+    }
 }
 
 static void ExpandSection(IConfigurationSection section, string[] keys)

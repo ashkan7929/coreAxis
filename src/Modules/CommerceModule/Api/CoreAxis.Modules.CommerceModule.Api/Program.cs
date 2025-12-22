@@ -192,6 +192,38 @@ finally
     Log.CloseAndFlush();
 }
 
+static void ExpandEnvironmentVariables(IConfiguration configuration)
+{
+    var connectionStringsSection = configuration.GetSection("ConnectionStrings");
+    if (connectionStringsSection.Exists())
+    {
+        ExpandSection(connectionStringsSection, new[] { "DefaultConnection", "RedisConnection" });
+    }
+
+    var jwtSection = configuration.GetSection("JwtSettings");
+    if (jwtSection.Exists())
+    {
+        ExpandSection(jwtSection, new[] { "SecretKey", "Issuer", "Audience" });
+    }
+}
+
+static void ExpandSection(IConfigurationSection section, string[] keys)
+{
+    foreach (var key in keys)
+    {
+        var value = section[key];
+        if (!string.IsNullOrEmpty(value) && value.StartsWith("${") && value.EndsWith("}"))
+        {
+            var envVarName = value.Substring(2, value.Length - 3);
+            var envValue = Environment.GetEnvironmentVariable(envVarName);
+            if (!string.IsNullOrEmpty(envValue))
+            {
+                section[key] = envValue;
+            }
+        }
+    }
+}
+
 /// <summary>
 /// Global exception handling middleware
 /// </summary>

@@ -13,7 +13,7 @@ public class WorkflowDbContextFactory : IDesignTimeDbContextFactory<WorkflowDbCo
         var optionsBuilder = new DbContextOptionsBuilder<WorkflowDbContext>();
 
         var connectionString = Environment.GetEnvironmentVariable("COREAXIS_CONNECTION_STRING")
-            ?? "Server=(localdb)\\mssqllocaldb;Database=CoreAxis_Workflow;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+            ?? throw new InvalidOperationException("COREAXIS_CONNECTION_STRING environment variable is not set.");
 
         optionsBuilder.UseSqlServer(connectionString, sql =>
         {
