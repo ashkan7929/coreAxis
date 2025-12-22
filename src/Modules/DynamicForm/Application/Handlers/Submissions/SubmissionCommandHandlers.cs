@@ -127,7 +127,7 @@ public class CreateSubmissionCommandHandler : IRequestHandler<CreateSubmissionCo
                 submission.UserId,
                 submission.Data,
                 submission.Metadata,
-                Guid.NewGuid()
+                _correlationIdAccessor.GetCorrelationId()
             ));
 
             _logger.LogInformation("Form submission created successfully with ID: {SubmissionId} for Form: {FormId}", submission.Id, request.FormId);

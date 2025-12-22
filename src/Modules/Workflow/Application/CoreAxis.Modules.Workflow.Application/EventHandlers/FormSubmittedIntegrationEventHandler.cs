@@ -63,11 +63,49 @@ public class FormSubmittedIntegrationEventHandler : IIntegrationEventHandler<For
                 input["stepKey"] = @event.StepKey;
             }
 
-            await _workflowExecutor.ResumeAsync(workflowRunId.Value, input);
+            try
+            {
+                await _workflowExecutor.ResumeAsync(workflowRunId.Value, input);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error resuming workflow {WorkflowRunId} for submission {SubmissionId}", workflowRunId, @event.SubmissionId);
+                throw; // Re-throw to let EventBus handle it (or not, if we want to suppress)
+            }
         }
         else
         {
-            _logger.LogWarning("Could not find workflowRunId (explicit or in metadata) for Submission {SubmissionId}", @event.SubmissionId);
+            // Try to find by CorrelationId
+            if (@event.CorrelationId != Guid.Empty)
+            {
+                _logger.LogInformation("Attempting to resume workflow by CorrelationId {CorrelationId}", @event.CorrelationId);
+                
+                var input = new Dictionary<string, object>
+                {
+                    ["submissionId"] = @event.SubmissionId,
+                    ["submissionData"] = @event.SubmissionData,
+                    ["userId"] = @event.UserId
+                };
+
+                if (!string.IsNullOrEmpty(@event.StepKey))
+                {
+                    input["stepKey"] = @event.StepKey;
+                }
+
+                try
+                {
+                    await _workflowExecutor.SignalByCorrelationAsync(@event.CorrelationId.ToString(), "FormSubmitted", input);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error signaling workflow by correlation {CorrelationId} for submission {SubmissionId}", @event.CorrelationId, @event.SubmissionId);
+                    throw;
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Could not find workflowRunId (explicit or in metadata) or CorrelationId for Submission {SubmissionId}", @event.SubmissionId);
+            }
         }
     }
 }

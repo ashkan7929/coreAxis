@@ -41,6 +41,7 @@ public class WorkflowModule : IModule
         services.AddTransient<OrderFinalizedStartPostFinalizeHandler>();
         services.AddTransient<TaskCompletedIntegrationEventHandler>();
         services.AddTransient<PaymentEventsHandler>();
+        services.AddTransient<FormSubmittedIntegrationEventHandler>();
 
         // Register Workflow DbContext (SQL Server via env var or fallback localdb)
         var connectionString = Environment.GetEnvironmentVariable("COREAXIS_CONNECTION_STRING")
