@@ -289,6 +289,12 @@ public class FanavaranConnector : IFanavaranConnector
             // Fix BeneficiaryId if missing (required for non-legal-heir relations)
             foreach (var person in insuredPeople)
             {
+                // Sync InsuredPersonJobId with CustomerJobId (jobId) if Insured is Policyholder (Relation 105)
+                if (person.InsurerAndInsuredRelationId == 105)
+                {
+                    person.InsuredPersonJobId = jobId;
+                }
+
                 if (person.Beneficiaries != null)
                 {
                     foreach (var beneficiary in person.Beneficiaries)
