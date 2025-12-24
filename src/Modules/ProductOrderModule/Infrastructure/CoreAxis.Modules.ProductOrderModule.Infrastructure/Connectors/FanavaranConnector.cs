@@ -141,7 +141,9 @@ public class FanavaranConnector : IFanavaranConnector
             BirthYear = birthYear,
             BirthMonth = birthMonth,
             BirthDay = birthDay,
-            CityId = int.Parse(address.GetProperty("city").GetString()!),
+            CityId = address.GetProperty("city").ValueKind == JsonValueKind.Number 
+                ? address.GetProperty("city").GetInt32() 
+                : int.Parse(address.GetProperty("city").GetString()!),
             Address = address.GetProperty("line").GetString()!,
             PostalCode = policyholder.GetProperty("postalCode").ToString(),
             Tel = policyholder.GetProperty("phone").GetString()!,
@@ -258,7 +260,7 @@ public class FanavaranConnector : IFanavaranConnector
         var coverage = appData.GetProperty("coverage");
         var body = appData.GetProperty("body");
         var policyholder = appData.GetProperty("policyholder");
-        var health = appData.GetProperty("health");
+        var health = appData.TryGetProperty("health", out var healthElem) ? healthElem : default;
         
         long customerIdLong = long.Parse(customerId);
         
@@ -273,24 +275,85 @@ public class FanavaranConnector : IFanavaranConnector
             {
                 jobId = jobElem.GetInt32();
             }
+            else if (jobElem.ValueKind == JsonValueKind.String && int.TryParse(jobElem.GetString(), out var parsedJobId))
+            {
+                jobId = parsedJobId;
+            }
         }
 
-        var ulRequest = new UniversalLifeRequest
+        List<InsuredPerson> insuredPeople;
+        if (appData.TryGetProperty("InsuredPeople", out var insuredPeopleElem) && insuredPeopleElem.ValueKind == JsonValueKind.Array)
         {
-            CustomerId = customerIdLong,
-            CustomerJobId = jobId, // Sync Customer Job
-            FirstPrm = contract.GetProperty("annualPremium").GetDecimal(),
-            Duration = contract.GetProperty("durationYears").GetInt32(),
-            BeginDate = appData.TryGetProperty("beginDate", out var beginDateElem) ? beginDateElem.GetString()! : GetCurrentPersianDate(),
-            // Allow PlanId override if present in applicationData, else default to 10 (from working example)
-            PlanId = appData.TryGetProperty("planId", out var planIdElem) ? planIdElem.GetInt32() : 10,
-            ContractId = appData.TryGetProperty("contractId", out var contractIdElem) ? contractIdElem.GetInt32() : 4604,
-            AgentId = 1035,
-            SaleManagerId = 1035,
-            CapitalChangePercent = 10,
-            PrmChangePercent = 15,
-            InsuredPersonCount = 58,
-            InsuredPeople = new List<InsuredPerson>
+            insuredPeople = JsonSerializer.Deserialize<List<InsuredPerson>>(insuredPeopleElem.GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            
+            // Fix BeneficiaryId if missing (required for non-legal-heir relations)
+            foreach (var person in insuredPeople)
+            {
+                if (person.Beneficiaries != null)
+                {
+                    foreach (var beneficiary in person.Beneficiaries)
+                    {
+                        // If BeneficiaryId is null and it's not "Legal Heirs" (usually 117), 
+                        // we must provide an ID. Defaulting to InsuredPersonId (Self).
+                        if (beneficiary.BeneficiaryId == null && beneficiary.BeneficiaryRelationId != 117)
+                        {
+                            _logger.LogWarning("BeneficiaryId is null for Relation {RelationId}. Defaulting to InsuredPersonId {InsuredPersonId}.", 
+                                beneficiary.BeneficiaryRelationId, person.InsuredPersonId);
+                            beneficiary.BeneficiaryId = person.InsuredPersonId;
+                        }
+                    }
+                }
+
+                // Ensure MedicalHistories is populated
+                if (person.MedicalHistories == null || !person.MedicalHistories.Any())
+                {
+                    person.MedicalHistories = new List<MedicalHistory>
+                    {
+                        new MedicalHistory
+                        {
+                             Height = body.ValueKind != JsonValueKind.Undefined && body.TryGetProperty("heightCm", out var h) ? h.GetInt32() : 170,
+                             Weight = body.ValueKind != JsonValueKind.Undefined && body.TryGetProperty("weightKg", out var w) ? w.GetInt32() : 75,
+                             HealthInsuranceName = "تامين اجتماعي، تکميلي درمان"
+                        }
+                    };
+                }
+
+                // Ensure FamilyMedicalHistories is populated
+                if (person.FamilyMedicalHistories == null || !person.FamilyMedicalHistories.Any())
+                {
+                    person.FamilyMedicalHistories = new List<FamilyMedicalHistory> { new FamilyMedicalHistory() };
+                }
+
+                // Ensure DoctorRecommendations is populated
+                if (person.DoctorRecommendations == null || !person.DoctorRecommendations.Any())
+                {
+                    person.DoctorRecommendations = new List<DoctorRecommendation> { new DoctorRecommendation() };
+                }
+                
+                // Ensure Covs is populated from 'coverage' if missing
+                if ((person.Covs == null || !person.Covs.Any()) && coverage.ValueKind != JsonValueKind.Undefined)
+                {
+                    person.Covs = new List<Cov>
+                    {
+                        new Cov { CovKindId = 1, CapitalAmount = coverage.TryGetProperty("deathAnyCause", out var d) ? d.GetDecimal() : 100000000 },
+                        new Cov { CovKindId = 2, CapitalRatio = 3 },
+                        new Cov { CovKindId = 3, CapitalRatio = 1 }
+                    };
+                }
+                
+                // Ensure Surcharges is populated (default to 99 as per working JSON)
+                if (person.Surcharges == null || !person.Surcharges.Any())
+                {
+                    person.Surcharges = new List<Surcharge>
+                    {
+                        new Surcharge { SurchargeId = 99 }
+                    };
+                }
+            }
+        }
+        else
+        {
+            insuredPeople = new List<InsuredPerson>
             {
                 new InsuredPerson
                 {
@@ -339,9 +402,31 @@ public class FanavaranConnector : IFanavaranConnector
                         new Cov { CovKindId = 1, CapitalAmount = coverage.GetProperty("deathAnyCause").GetDecimal() },
                         new Cov { CovKindId = 2, CapitalRatio = 3 },
                         new Cov { CovKindId = 3, CapitalRatio = 1 }
+                    },
+                    Surcharges = new List<Surcharge>
+                    {
+                        new Surcharge { SurchargeId = 99 }
                     }
                 }
-            }
+            };
+        }
+
+        var ulRequest = new UniversalLifeRequest
+        {
+            CustomerId = customerIdLong,
+            CustomerJobId = jobId, // Sync Customer Job
+            FirstPrm = contract.GetProperty("annualPremium").GetDecimal(),
+            Duration = contract.GetProperty("durationYears").GetInt32(),
+            BeginDate = appData.TryGetProperty("beginDate", out var beginDateElem) ? beginDateElem.GetString()! : GetCurrentPersianDate(),
+            // Allow PlanId override if present in applicationData, else default to 21 (from working example)
+            PlanId = appData.TryGetProperty("planId", out var planIdElem) ? planIdElem.GetInt32() : 21,
+            ContractId = appData.TryGetProperty("contractId", out var contractIdElem) ? contractIdElem.GetInt32() : 10743,
+            AgentId = 1035,
+            SaleManagerId = 1035,
+            CapitalChangePercent = 10,
+            PrmChangePercent = 15,
+            InsuredPersonCount = 58,
+            InsuredPeople = insuredPeople
         };
 
         // 3. Prepare Multipart Request
