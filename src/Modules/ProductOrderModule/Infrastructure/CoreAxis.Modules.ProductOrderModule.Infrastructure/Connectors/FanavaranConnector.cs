@@ -418,18 +418,20 @@ public class FanavaranConnector : IFanavaranConnector
             FirstPrm = contract.GetProperty("annualPremium").GetDecimal(),
             Duration = contract.GetProperty("durationYears").GetInt32(),
             BeginDate = appData.TryGetProperty("beginDate", out var beginDateElem) ? beginDateElem.GetString()! : GetCurrentPersianDate(),
-            // Allow PlanId override if present in applicationData, else default to 21 (from working example)
-            // PlanId 21 is confirmed correct by user. 
-            // The previous error "Entity not found... Id = 21" might be due to mismatched ContractId or other dependencies.
-            // Ensuring PlanId is 21 unless overridden.
-            PlanId = appData.TryGetProperty("planId", out var planIdElem) ? planIdElem.GetInt32() : 10,
-            ContractId = appData.TryGetProperty("contractId", out var contractIdElem) ? contractIdElem.GetInt32() : 10743,
-            AgentId = 1035,
-            SaleManagerId = 1035,
-            CapitalChangePercent = 10,
-            PrmChangePercent = 15,
-            InsuredPersonCount = 58,
-            InsuredPeople = insuredPeople
+            PlanId = appData.TryGetProperty("planId", out var planIdElem) ? planIdElem.GetInt32() : 21,
+            ContractId = appData.TryGetProperty("contractId", out var contractIdElem) ? contractIdElem.GetInt32() : 4604, // Default to 4604 (working default) if not provided, NOT 10743 which causes errors
+            AgentId = appData.TryGetProperty("agentId", out var agentIdElem) ? agentIdElem.GetInt32() : 1035,
+            SaleManagerId = appData.TryGetProperty("saleManagerId", out var smIdElem) ? smIdElem.GetInt32() : 1035,
+            CapitalChangePercent = appData.TryGetProperty("capitalChangePercent", out var ccp) ? ccp.GetInt32() : 10,
+            PrmChangePercent = appData.TryGetProperty("prmChangePercent", out var pcp) ? pcp.GetInt32() : 15,
+            InsuredPersonCount = appData.TryGetProperty("insuredPersonCount", out var ipc) ? ipc.GetInt32() : 58,
+            PayPeriodId = appData.TryGetProperty("payPeriodId", out var ppId) ? ppId.GetInt32() : 275, // Yearly default
+            PolicyUsageTypeId = appData.TryGetProperty("policyUsageTypeId", out var putId) ? putId.GetInt32() : 2898,
+            InsuredPeople = insuredPeople,
+            
+            // Map optional fields if present in root applicationData
+            Note = appData.TryGetProperty("note", out var note) ? note.GetString()! : "يادداشت متفرقه",
+            SpecialCondition = appData.TryGetProperty("specialCondition", out var sc) ? sc.GetString()! : "شرايط خصوصي"
         };
 
         // 3. Prepare Multipart Request
