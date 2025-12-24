@@ -293,13 +293,23 @@ public class FanavaranConnector : IFanavaranConnector
                 {
                     foreach (var beneficiary in person.Beneficiaries)
                     {
-                        // If BeneficiaryId is null and it's not "Legal Heirs" (usually 117), 
-                        // we must provide an ID. Defaulting to InsuredPersonId (Self).
-                        if (beneficiary.BeneficiaryId == null && beneficiary.BeneficiaryRelationId != 117)
+                        // Fix BeneficiaryId if missing (required for non-legal-heir relations)
+                        // Note: User confirmed that for "Legal Heirs" (which seems to include 103), the "BeneficiaryId" field MUST NOT exist (even as null).
+                        // We added [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] to the DTO.
+                        // Now we just need to ensure it is null for 103/117.
+                        
+                        // If Relation is "Legal Heirs" (117) or "Legal Heirs" (103 as per user), BeneficiaryId MUST be null.
+                        if (beneficiary.BeneficiaryRelationId == 117 || beneficiary.BeneficiaryRelationId == 103)
+                        {
+                             beneficiary.BeneficiaryId = null;
+                        }
+                        // For others, if ID is missing, default to InsuredPersonId (Self)
+                        else if (beneficiary.BeneficiaryId == null)
                         {
                             _logger.LogWarning("BeneficiaryId is null for Relation {RelationId}. Defaulting to InsuredPersonId {InsuredPersonId}.", 
                                 beneficiary.BeneficiaryRelationId, person.InsuredPersonId);
                             beneficiary.BeneficiaryId = person.InsuredPersonId;
+                            // beneficiary.BeneficiaryRelationId = 101; // Not forcing relation change anymore, let's trust the ID fill.
                         }
                     }
                 }
