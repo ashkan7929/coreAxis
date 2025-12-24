@@ -356,7 +356,11 @@ public class FanavaranConnector : IFanavaranConnector
                 {
                     person.Surcharges = new List<Surcharge>
                     {
-                        new Surcharge { SurchargeId = 99 }
+                        new Surcharge 
+                        { 
+                            ExerciseDuration = null,
+                            SurchargeId = 99 
+                        }
                     };
                 }
             }
@@ -415,7 +419,7 @@ public class FanavaranConnector : IFanavaranConnector
                     },
                     Surcharges = new List<Surcharge>
                     {
-                        new Surcharge { SurchargeId = 99 }
+                        new Surcharge { ExerciseDuration = null, SurchargeId = 99 }
                     }
                 }
             };
