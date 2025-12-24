@@ -418,8 +418,22 @@ public class FanavaranConnector : IFanavaranConnector
             FirstPrm = contract.GetProperty("annualPremium").GetDecimal(),
             Duration = contract.GetProperty("durationYears").GetInt32(),
             BeginDate = appData.TryGetProperty("beginDate", out var beginDateElem) ? beginDateElem.GetString()! : GetCurrentPersianDate(),
-            PlanId = appData.TryGetProperty("planId", out var planIdElem) ? planIdElem.GetInt32() : 21,
-            ContractId = appData.TryGetProperty("contractId", out var contractIdElem) ? contractIdElem.GetInt32() : 4604, // Default to 4604 (working default) if not provided, NOT 10743 which causes errors
+            // If PlanId is 21 and ContractId is 10743, it fails.
+            // If PlanId is 10 and ContractId is 10743, it fails on ContractId.
+            // This suggests 10743 is problematic OR 21 requires a different contract.
+            // Reverting default ContractId to 4604 which is known to work with PlanId 10.
+            // However, user wants to use provided IDs.
+            // The issue is likely the combination.
+            // If user provides PlanId 21, they MUST provide a compatible ContractId.
+            // If user provides PlanId 10, they MUST provide a compatible ContractId (like 4604).
+            
+            // Logic:
+            // 1. Read User Inputs.
+            // 2. If User Input is present, use it.
+            // 3. If User Input is missing, use SAFE defaults (Plan 10, Contract 4604).
+            
+            PlanId = appData.TryGetProperty("planId", out var planIdElem) ? planIdElem.GetInt32() : 10,
+            ContractId = appData.TryGetProperty("contractId", out var contractIdElem) ? contractIdElem.GetInt32() : 4604,
             AgentId = appData.TryGetProperty("agentId", out var agentIdElem) ? agentIdElem.GetInt32() : 1035,
             SaleManagerId = appData.TryGetProperty("saleManagerId", out var smIdElem) ? smIdElem.GetInt32() : 1035,
             CapitalChangePercent = appData.TryGetProperty("capitalChangePercent", out var ccp) ? ccp.GetInt32() : 10,
