@@ -293,6 +293,7 @@ public class FanavaranConnector : IFanavaranConnector
             CustomerId = customerIdLong,
             CustomerJobId = jobId, // Sync Customer Job
             FirstPrm = contract.GetProperty("annualPremium").GetDecimal(),
+            FirstPrmContainsExtraCov = appData.TryGetProperty("FirstPrmContainsExtraCov", out var fpcec) ? fpcec.GetInt32() : (appData.TryGetProperty("firstPrmContainsExtraCov", out var fpcec2) ? fpcec2.GetInt32() : null),
             Duration = contract.GetProperty("durationYears").GetInt32(),
             BeginDate = appData.TryGetProperty("beginDate", out var beginDateElem) ? beginDateElem.GetString()! : GetCurrentPersianDate(),
             
