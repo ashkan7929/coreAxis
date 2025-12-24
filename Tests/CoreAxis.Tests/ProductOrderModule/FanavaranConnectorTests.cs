@@ -212,8 +212,8 @@ public class FanavaranConnectorTests
         // Check Surcharges
         var surcharges = insuredPerson.GetProperty("Surcharges");
         var surcharge = surcharges[0];
-        Assert.Equal(19, surcharge.GetProperty("SurchargeId").GetInt32());
+        Assert.Equal(4, surcharge.GetProperty("SurchargeId").GetInt32());
         Assert.True(surcharge.TryGetProperty("ExerciseDuration", out var ed));
-        Assert.Equal("5", ed.GetString());
+        Assert.Equal(JsonValueKind.Null, ed.ValueKind);
     }
 }
