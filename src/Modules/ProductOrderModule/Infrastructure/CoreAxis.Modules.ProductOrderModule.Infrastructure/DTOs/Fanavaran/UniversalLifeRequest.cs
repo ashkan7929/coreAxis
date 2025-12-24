@@ -37,7 +37,7 @@ public class UniversalLifeRequest
     public int? SalesTeamCompId { get; set; }
     
     public List<InsuredPerson>? InsuredPeople { get; set; }
-    // public List<FileItem> Files { get; set; } = new();
+    public List<FileItem>? Files { get; set; }
 }
 
 public class InsuredPerson

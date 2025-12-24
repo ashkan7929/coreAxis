@@ -292,9 +292,9 @@ public class FanavaranConnector : IFanavaranConnector
         {
             CustomerId = customerIdLong,
             CustomerJobId = jobId, // Sync Customer Job
-            FirstPrm = contract.GetProperty("annualPremium").GetDecimal(),
+            FirstPrm = appData.TryGetProperty("FirstPrm", out var fp) ? fp.GetDecimal() : (appData.TryGetProperty("firstPrm", out var fp2) ? fp2.GetDecimal() : contract.GetProperty("annualPremium").GetDecimal()),
             FirstPrmContainsExtraCov = appData.TryGetProperty("FirstPrmContainsExtraCov", out var fpcec) ? fpcec.GetInt32() : (appData.TryGetProperty("firstPrmContainsExtraCov", out var fpcec2) ? fpcec2.GetInt32() : null),
-            Duration = contract.GetProperty("durationYears").GetInt32(),
+            Duration = appData.TryGetProperty("Duration", out var du) ? du.GetInt32() : (appData.TryGetProperty("duration", out var du2) ? du2.GetInt32() : contract.GetProperty("durationYears").GetInt32()),
             BeginDate = appData.TryGetProperty("beginDate", out var beginDateElem) ? beginDateElem.GetString()! : GetCurrentPersianDate(),
             
             PlanId = appData.TryGetProperty("planId", out var planIdElem) ? planIdElem.GetInt32() : null,
@@ -306,11 +306,32 @@ public class FanavaranConnector : IFanavaranConnector
             InsuredPersonCount = appData.TryGetProperty("insuredPersonCount", out var ipc) ? ipc.GetInt32() : null,
             PayPeriodId = appData.TryGetProperty("payPeriodId", out var ppId) ? ppId.GetInt32() : null,
             PolicyUsageTypeId = appData.TryGetProperty("policyUsageTypeId", out var putId) ? putId.GetInt32() : null,
+            
+            CapitalReceiveId = appData.TryGetProperty("capitalReceiveId", out var crId) ? crId.GetInt32() : null,
+            PensionPayDuration = appData.TryGetProperty("pensionPayDuration", out var ppd) ? ppd.GetInt32() : null,
+            PensionPayPeriodId = appData.TryGetProperty("pensionPayPeriodId", out var pppId) ? pppId.GetInt32() : null,
+            GuaranteeDuration = appData.TryGetProperty("guaranteeDuration", out var gd) ? gd.GetInt32() : null,
+            PensionChangePercent = appData.TryGetProperty("pensionChangePercent", out var pcp2) ? pcp2.GetInt32() : null,
+            PensionDeathCalcKindId = appData.TryGetProperty("pensionDeathCalcKindId", out var pdcki) ? pdcki.GetInt32() : null,
+            FirstReserved = appData.TryGetProperty("firstReserved", out var fr) ? fr.GetDecimal() : null,
+            FreeRegionId = appData.TryGetProperty("freeRegionId", out var fri) ? fri.GetInt32() : null,
+            IsInFreeRegion = appData.TryGetProperty("isInFreeRegion", out var iifr) ? iifr.GetInt32() : null,
+            IssuDate = appData.TryGetProperty("issuDate", out var id) ? id.GetString() : null,
+            PersonnelCode = appData.TryGetProperty("personnelCode", out var pcode) ? pcode.GetString() : null,
+            WithMedicalExperiment = appData.TryGetProperty("withMedicalExperiment", out var wme) ? wme.GetInt32() : null,
+            MarketerId = appData.TryGetProperty("marketerId", out var mId) ? mId.GetInt32() : null,
+            SalesTeamCompId = appData.TryGetProperty("salesTeamCompId", out var stcId) ? stcId.GetInt32() : null,
+            
             InsuredPeople = insuredPeople,
             
             // Map optional fields if present in root applicationData
             Note = appData.TryGetProperty("note", out var note) ? note.GetString()! : null,
-            SpecialCondition = appData.TryGetProperty("specialCondition", out var sc) ? sc.GetString()! : null
+            SpecialCondition = appData.TryGetProperty("specialCondition", out var sc) ? sc.GetString()! : null,
+            Files = appData.TryGetProperty("Files", out var filesElem) 
+                ? JsonSerializer.Deserialize<List<FileItem>>(filesElem.GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) 
+                : (appData.TryGetProperty("files", out var filesElem2) 
+                    ? JsonSerializer.Deserialize<List<FileItem>>(filesElem2.GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) 
+                    : null)
         };
 
         // 3. Prepare Multipart Request
