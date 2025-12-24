@@ -209,11 +209,84 @@ public class FanavaranConnectorTests
         Assert.True(ben105.TryGetProperty("BeneficiaryId", out var id105));
         Assert.Equal(777, id105.GetInt64());
         
-        // Check Surcharges
-        var surcharges = insuredPerson.GetProperty("Surcharges");
-        var surcharge = surcharges[0];
-        Assert.Equal(4, surcharge.GetProperty("SurchargeId").GetInt32());
-        Assert.True(surcharge.TryGetProperty("ExerciseDuration", out var ed));
-        Assert.Equal(JsonValueKind.Null, ed.ValueKind);
+        // Check Job Sync for Self (105 relation)
+        // In the setup, insuredPerson relation is not explicitly set to 105 for the person itself (it's inside InsuredPerson object)
+        // Wait, InsurerAndInsuredRelationId is a property of InsuredPerson.
+        // Let's add verification for Job Sync.
+        // The input 'policyholder.mainJob' is 1.
+        // The insured person has 'InsuredPersonId = 1001'.
+        // If we assume default relation is 105 (or set it in input), then Job should be 1.
+        
+        // However, in the input JSON above, we didn't set InsurerAndInsuredRelationId.
+        // The default in the connector loop is just deserialization.
+        // If we want to test the sync, we should include InsurerAndInsuredRelationId = 105 in input.
+    }
+
+    [Fact]
+    public async Task GetUniversalLifePriceAsync_ShouldSyncJobForPolicyholder()
+    {
+        // Arrange
+        var customerId = "1001";
+        var appData = new
+        {
+            contract = new { annualPremium = 1000000, durationYears = 20 },
+            coverage = new { },
+            body = new { heightCm = 180, weightKg = 80 },
+            policyholder = new { mainJob = 555 }, // Explicit Job
+            InsuredPeople = new[]
+            {
+                new
+                {
+                    InsuredPersonId = 1001,
+                    InsurerAndInsuredRelationId = 105, // Self
+                    InsuredPersonJobId = 999, // Different job, should be synced to 555
+                    Beneficiaries = new object[] { }
+                }
+            }
+        };
+        var applicationData = JsonSerializer.Serialize(appData);
+
+        // Mock Token & Login
+        _handlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.Is<HttpRequestMessage>(r => r.RequestUri.ToString().Contains("GetAppToken")), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK) { Headers = { { "appToken", "mock_app" } } });
+        
+        _handlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.Is<HttpRequestMessage>(r => r.RequestUri.ToString().Contains("Login")), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.OK) { Headers = { { "authenticationToken", "mock_auth" } } });
+
+        // Mock Price Calculation
+        string capturedJson = null;
+        _handlerMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.Is<HttpRequestMessage>(r => r.RequestUri.ToString().Contains("Universal-life-policies")), ItExpr.IsAny<CancellationToken>())
+            .Returns(async (HttpRequestMessage req, CancellationToken token) =>
+            {
+                if (req.Content is MultipartFormDataContent multipart)
+                {
+                    foreach (var part in multipart)
+                    {
+                        var str = await part.ReadAsStringAsync();
+                        if (str.Trim().StartsWith("{") && str.Contains("InsuredPeople"))
+                        {
+                            capturedJson = str;
+                            break;
+                        }
+                    }
+                }
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("1000000") };
+            });
+
+        var connector = new FanavaranConnector(_loggerMock.Object, _httpClient, _options);
+
+        // Act
+        await connector.GetUniversalLifePriceAsync(customerId, applicationData, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(capturedJson);
+        var jsonDoc = JsonDocument.Parse(capturedJson);
+        var insuredPerson = jsonDoc.RootElement.GetProperty("InsuredPeople")[0];
+        
+        // Verify Job ID is synced to Policyholder's Job (555) instead of original (999)
+        Assert.Equal(555, insuredPerson.GetProperty("InsuredPersonJobId").GetInt32());
     }
 }

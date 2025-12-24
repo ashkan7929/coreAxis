@@ -160,7 +160,8 @@ public class FanavaranConnector : IFanavaranConnector
         request.Headers.Add("CorpId", _options.CorpId);
         request.Headers.Add("ContractId", _options.ContractId);
         
-        request.Content = JsonContent.Create(fanavaranRequest);
+        var jsonOptions = new JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull };
+        request.Content = JsonContent.Create(fanavaranRequest, options: jsonOptions);
 
         _logger.LogInformation("Sending CreateCustomer request to Fanavaran. NationalCode: {NationalCode}", fanavaranRequest.NationalCode);
         
@@ -281,150 +282,10 @@ public class FanavaranConnector : IFanavaranConnector
             }
         }
 
-        List<InsuredPerson> insuredPeople;
+        List<InsuredPerson>? insuredPeople = null;
         if (appData.TryGetProperty("InsuredPeople", out var insuredPeopleElem) && insuredPeopleElem.ValueKind == JsonValueKind.Array)
         {
             insuredPeople = JsonSerializer.Deserialize<List<InsuredPerson>>(insuredPeopleElem.GetRawText(), new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            
-            // Fix BeneficiaryId if missing (required for non-legal-heir relations)
-            foreach (var person in insuredPeople)
-            {
-                // Sync InsuredPersonJobId with CustomerJobId (jobId) if Insured is Policyholder (Relation 105)
-                if (person.InsurerAndInsuredRelationId == 105)
-                {
-                    person.InsuredPersonJobId = jobId;
-                }
-
-                if (person.Beneficiaries != null)
-                {
-                    foreach (var beneficiary in person.Beneficiaries)
-                    {
-                        // Fix BeneficiaryId if missing (required for non-legal-heir relations)
-                        // Note: User confirmed that for "Legal Heirs" (which seems to include 103), the "BeneficiaryId" field MUST NOT exist (even as null).
-                        // We added [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] to the DTO.
-                        // Now we just need to ensure it is null for 103/117.
-                        
-                        // If Relation is "Legal Heirs" (117) or "Legal Heirs" (103 as per user), BeneficiaryId MUST be null.
-                        if (beneficiary.BeneficiaryRelationId == 117 || beneficiary.BeneficiaryRelationId == 103)
-                        {
-                             beneficiary.BeneficiaryId = null;
-                        }
-                        // For others, if ID is missing, default to InsuredPersonId (Self)
-                        else if (beneficiary.BeneficiaryId == null)
-                        {
-                            _logger.LogWarning("BeneficiaryId is null for Relation {RelationId}. Defaulting to InsuredPersonId {InsuredPersonId}.", 
-                                beneficiary.BeneficiaryRelationId, person.InsuredPersonId);
-                            beneficiary.BeneficiaryId = person.InsuredPersonId;
-                            // beneficiary.BeneficiaryRelationId = 101; // Not forcing relation change anymore, let's trust the ID fill.
-                        }
-                    }
-                }
-
-                // Ensure MedicalHistories is populated
-                if (person.MedicalHistories == null || !person.MedicalHistories.Any())
-                {
-                    person.MedicalHistories = new List<MedicalHistory>
-                    {
-                        new MedicalHistory
-                        {
-                             Height = body.ValueKind != JsonValueKind.Undefined && body.TryGetProperty("heightCm", out var h) ? h.GetInt32() : 170,
-                             Weight = body.ValueKind != JsonValueKind.Undefined && body.TryGetProperty("weightKg", out var w) ? w.GetInt32() : 75,
-                             HealthInsuranceName = "تامين اجتماعي، تکميلي درمان"
-                        }
-                    };
-                }
-
-                // Ensure FamilyMedicalHistories is populated
-                if (person.FamilyMedicalHistories == null || !person.FamilyMedicalHistories.Any())
-                {
-                    person.FamilyMedicalHistories = new List<FamilyMedicalHistory> { new FamilyMedicalHistory() };
-                }
-
-                // Ensure DoctorRecommendations is populated
-                if (person.DoctorRecommendations == null || !person.DoctorRecommendations.Any())
-                {
-                    person.DoctorRecommendations = new List<DoctorRecommendation> { new DoctorRecommendation() };
-                }
-                
-                // Ensure Covs is populated from 'coverage' if missing
-                if ((person.Covs == null || !person.Covs.Any()) && coverage.ValueKind != JsonValueKind.Undefined)
-                {
-                    person.Covs = new List<Cov>
-                    {
-                        new Cov { CovKindId = 1, CapitalAmount = coverage.TryGetProperty("deathAnyCause", out var d) ? d.GetDecimal() : 100000000 },
-                        new Cov { CovKindId = 2, CapitalRatio = 3 },
-                        new Cov { CovKindId = 3, CapitalRatio = 1 }
-                    };
-                }
-                
-                // Ensure Surcharges is populated (default to 99 as per working JSON)
-                if (person.Surcharges == null || !person.Surcharges.Any())
-                {
-                    person.Surcharges = new List<Surcharge>
-                    {
-                        new Surcharge { SurchargeId = 4 }
-                    };
-                }
-            }
-        }
-        else
-        {
-            insuredPeople = new List<InsuredPerson>
-            {
-                new InsuredPerson
-                {
-                    InsuredPersonId = insuredPersonId,
-                    InsuredPersonJobId = jobId, // Sync Insured Job (Must be same as CustomerJobId)
-                    InsuredPersonRoleKindId = 793,
-                    InsurerAndInsuredRelationId = 105,
-                    MedicalRate = 0,
-                    Beneficiaries = new List<Beneficiary>
-                    {
-                        // Death Beneficiary (Kind 791) - Legal Heirs (Worrath)
-                        // Relation 117 is commonly used for "Voras" (Legal Heirs) in such systems
-                        // BeneficiaryId should be null for this type of general relation
-                        new Beneficiary 
-                        { 
-                            BeneficiaryId = null, 
-                            BeneficiaryKindId = 791, 
-                            BeneficiaryRelationId = 117, // Legal Heirs (Worrath)
-                            CapitalPercent = 100, 
-                            PriorityId = 40 
-                        },
-                        // Survival Beneficiary (Kind 792) - Policyholder (101)
-                        new Beneficiary 
-                        { 
-                            BeneficiaryId = null, // Must be empty for Policyholder relation
-                            BeneficiaryKindId = 792, 
-                            BeneficiaryRelationId = 101, // Bimegozar
-                            CapitalPercent = 100, 
-                            PriorityId = 40 
-                        }
-                    },
-                    MedicalHistories = new List<MedicalHistory>
-                    {
-                        new MedicalHistory
-                        {
-                             Height = body.GetProperty("heightCm").GetInt32(),
-                             Weight = body.GetProperty("weightKg").GetInt32(),
-                             HealthInsuranceName = "تامين اجتماعي، تکميلي درمان"
-                        }
-                    },
-                    FamilyMedicalHistories = new List<FamilyMedicalHistory> { new FamilyMedicalHistory() },
-                    DoctorRecommendations = new List<DoctorRecommendation> { new DoctorRecommendation() },
-                    Covs = new List<Cov>
-                    {
-                        // Example Mapping from working JSON
-                        new Cov { CovKindId = 1, CapitalAmount = coverage.GetProperty("deathAnyCause").GetDecimal() },
-                        new Cov { CovKindId = 2, CapitalRatio = 3 },
-                        new Cov { CovKindId = 3, CapitalRatio = 1 }
-                    },
-                    Surcharges = new List<Surcharge>
-                    {
-                        new Surcharge { SurchargeId = 4 }
-                    }
-                }
-            };
         }
 
         var ulRequest = new UniversalLifeRequest
@@ -434,41 +295,29 @@ public class FanavaranConnector : IFanavaranConnector
             FirstPrm = contract.GetProperty("annualPremium").GetDecimal(),
             Duration = contract.GetProperty("durationYears").GetInt32(),
             BeginDate = appData.TryGetProperty("beginDate", out var beginDateElem) ? beginDateElem.GetString()! : GetCurrentPersianDate(),
-            // If PlanId is 21 and ContractId is 10743, it fails.
-            // If PlanId is 10 and ContractId is 10743, it fails on ContractId.
-            // This suggests 10743 is problematic OR 21 requires a different contract.
-            // Reverting default ContractId to 4604 which is known to work with PlanId 10.
-            // However, user wants to use provided IDs.
-            // The issue is likely the combination.
-            // If user provides PlanId 21, they MUST provide a compatible ContractId.
-            // If user provides PlanId 10, they MUST provide a compatible ContractId (like 4604).
             
-            // Logic:
-            // 1. Read User Inputs.
-            // 2. If User Input is present, use it.
-            // 3. If User Input is missing, use SAFE defaults (Plan 10, Contract 4604).
-            
-            PlanId = appData.TryGetProperty("planId", out var planIdElem) ? planIdElem.GetInt32() : 10,
-            ContractId = appData.TryGetProperty("contractId", out var contractIdElem) ? contractIdElem.GetInt32() : 4604,
-            AgentId = appData.TryGetProperty("agentId", out var agentIdElem) ? agentIdElem.GetInt32() : 1035,
-            SaleManagerId = appData.TryGetProperty("saleManagerId", out var smIdElem) ? smIdElem.GetInt32() : 1035,
-            CapitalChangePercent = appData.TryGetProperty("capitalChangePercent", out var ccp) ? ccp.GetInt32() : 10,
-            PrmChangePercent = appData.TryGetProperty("prmChangePercent", out var pcp) ? pcp.GetInt32() : 15,
-            InsuredPersonCount = appData.TryGetProperty("insuredPersonCount", out var ipc) ? ipc.GetInt32() : 58,
-            PayPeriodId = appData.TryGetProperty("payPeriodId", out var ppId) ? ppId.GetInt32() : 275, // Yearly default
-            PolicyUsageTypeId = appData.TryGetProperty("policyUsageTypeId", out var putId) ? putId.GetInt32() : 2898,
+            PlanId = appData.TryGetProperty("planId", out var planIdElem) ? planIdElem.GetInt32() : null,
+            ContractId = appData.TryGetProperty("contractId", out var contractIdElem) ? contractIdElem.GetInt32() : null,
+            AgentId = appData.TryGetProperty("agentId", out var agentIdElem) ? agentIdElem.GetInt32() : null,
+            SaleManagerId = appData.TryGetProperty("saleManagerId", out var smIdElem) ? smIdElem.GetInt32() : null,
+            CapitalChangePercent = appData.TryGetProperty("capitalChangePercent", out var ccp) ? ccp.GetInt32() : null,
+            PrmChangePercent = appData.TryGetProperty("prmChangePercent", out var pcp) ? pcp.GetInt32() : null,
+            InsuredPersonCount = appData.TryGetProperty("insuredPersonCount", out var ipc) ? ipc.GetInt32() : null,
+            PayPeriodId = appData.TryGetProperty("payPeriodId", out var ppId) ? ppId.GetInt32() : null,
+            PolicyUsageTypeId = appData.TryGetProperty("policyUsageTypeId", out var putId) ? putId.GetInt32() : null,
             InsuredPeople = insuredPeople,
             
             // Map optional fields if present in root applicationData
-            Note = appData.TryGetProperty("note", out var note) ? note.GetString()! : "يادداشت متفرقه",
-            SpecialCondition = appData.TryGetProperty("specialCondition", out var sc) ? sc.GetString()! : "شرايط خصوصي"
+            Note = appData.TryGetProperty("note", out var note) ? note.GetString()! : null,
+            SpecialCondition = appData.TryGetProperty("specialCondition", out var sc) ? sc.GetString()! : null
         };
 
         // 3. Prepare Multipart Request
         using var content = new MultipartFormDataContent();
         
         // Add JSON part
-        var jsonContent = new StringContent(JsonSerializer.Serialize(ulRequest), System.Text.Encoding.UTF8, "application/json");
+        var jsonOptions = new JsonSerializerOptions { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull };
+        var jsonContent = new StringContent(JsonSerializer.Serialize(ulRequest, jsonOptions), System.Text.Encoding.UTF8, "application/json");
         content.Add(jsonContent, "\"\""); // Empty name as per curl example
         
         // Add Name field
@@ -500,7 +349,7 @@ public class FanavaranConnector : IFanavaranConnector
 
              // Assuming the response is a JSON with price details or just success
              // For now, return the input premium as placeholder if parsing logic is unknown
-             return ulRequest.FirstPrm;
+             return ulRequest.FirstPrm ?? 0;
         }
         catch (TaskCanceledException ex)
         {
@@ -519,7 +368,7 @@ public class FanavaranConnector : IFanavaranConnector
         // Let's assume the API returns the base premium confirmed.
         
         // For MVP, return the input premium as the "Base Price" confirmed by API
-        return ulRequest.FirstPrm;
+        return ulRequest.FirstPrm ?? 0;
     }
 
     private string GetCurrentPersianDate()

@@ -2,17 +2,17 @@ namespace CoreAxis.Modules.ProductOrderModule.Infrastructure.DTOs.Fanavaran;
 
 public class CreateCustomerRequest
 {
-    public string NationalCode { get; set; }
-    public int BirthYear { get; set; }
-    public int BirthMonth { get; set; }
-    public int BirthDay { get; set; }
+    public string? NationalCode { get; set; }
+    public int? BirthYear { get; set; }
+    public int? BirthMonth { get; set; }
+    public int? BirthDay { get; set; }
     public string? BirthPlace { get; set; }
     public string? IdentityNoIssuPlace { get; set; }
-    public int CityId { get; set; } = 9131; // Default from example if not provided
-    public string Address { get; set; }
-    public string PostalCode { get; set; }
-    public string Tel { get; set; }
-    public string Mobile { get; set; }
+    public int? CityId { get; set; }
+    public string? Address { get; set; }
+    public string? PostalCode { get; set; }
+    public string? Tel { get; set; }
+    public string? Mobile { get; set; }
     public string? Fax { get; set; }
     public string? Email { get; set; }
     public string? JobAddress { get; set; }
@@ -24,7 +24,7 @@ public class CreateCustomerRequest
     public string? EnName { get; set; }
     public string? EnLastName { get; set; }
     public string? EnAddress { get; set; }
-    public string IsIranian { get; set; } = "1";
+    public string? IsIranian { get; set; }
 }
 
 public class CreateCustomerResponse
