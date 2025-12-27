@@ -12,6 +12,8 @@
     <ProjectReference Include="..\..\..\BuildingBlocks\SharedKernel\CoreAxis.SharedKernel\CoreAxis.SharedKernel.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks\CoreAxis.BuildingBlocks\CoreAxis.BuildingBlocks.csproj" />
     <ProjectReference Include="..\..\AuthModule\API\CoreAxis.Modules.AuthModule.API\CoreAxis.Modules.AuthModule.API.csproj" />
+    <ProjectReference Include="..\..\DynamicForm\Infrastructure\CoreAxis.Modules.DynamicForm.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\DynamicForm\Domain\CoreAxis.Modules.DynamicForm.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
