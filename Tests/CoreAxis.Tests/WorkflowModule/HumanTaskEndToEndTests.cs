@@ -123,7 +123,8 @@ public class HumanTaskEndToEndTests
                 Code = "test-wf",
                 Name = "Test Workflow",
                 CreatedBy = "test",
-                LastModifiedBy = "test"
+                LastModifiedBy = "test",
+                TenantId = "default"
             },
             VersionNumber = 1,
             DslJson = JsonSerializer.Serialize(dsl),
