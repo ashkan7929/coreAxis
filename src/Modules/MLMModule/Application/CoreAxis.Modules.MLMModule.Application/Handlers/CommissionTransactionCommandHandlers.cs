@@ -1,5 +1,6 @@
 using CoreAxis.Modules.MLMModule.Application.Commands;
 using CoreAxis.Modules.MLMModule.Application.DTOs;
+using CoreAxis.Modules.MLMModule.Application.Contracts;
 using CoreAxis.Modules.MLMModule.Domain.Entities;
 using CoreAxis.Modules.MLMModule.Domain.Enums;
 using CoreAxis.Modules.MLMModule.Domain.Events;
@@ -12,12 +13,12 @@ namespace CoreAxis.Modules.MLMModule.Application.Handlers;
 public class ApproveCommissionCommandHandler : IRequestHandler<ApproveCommissionCommand, CommissionTransactionDto>
 {
     private readonly ICommissionTransactionRepository _commissionRepository;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMLMUnitOfWork _unitOfWork;
     private readonly IPublisher _publisher;
 
     public ApproveCommissionCommandHandler(
         ICommissionTransactionRepository commissionRepository,
-        IUnitOfWork unitOfWork,
+        IMLMUnitOfWork unitOfWork,
         IPublisher publisher)
     {
         _commissionRepository = commissionRepository;
@@ -76,12 +77,12 @@ public class ApproveCommissionCommandHandler : IRequestHandler<ApproveCommission
 public class RejectCommissionCommandHandler : IRequestHandler<RejectCommissionCommand, CommissionTransactionDto>
 {
     private readonly ICommissionTransactionRepository _commissionRepository;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMLMUnitOfWork _unitOfWork;
     private readonly IPublisher _publisher;
 
     public RejectCommissionCommandHandler(
         ICommissionTransactionRepository commissionRepository,
-        IUnitOfWork unitOfWork,
+        IMLMUnitOfWork unitOfWork,
         IPublisher publisher)
     {
         _commissionRepository = commissionRepository;
@@ -141,12 +142,12 @@ public class RejectCommissionCommandHandler : IRequestHandler<RejectCommissionCo
 public class MarkCommissionAsPaidCommandHandler : IRequestHandler<MarkCommissionAsPaidCommand, CommissionTransactionDto>
 {
     private readonly ICommissionTransactionRepository _commissionRepository;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMLMUnitOfWork _unitOfWork;
     private readonly IPublisher _publisher;
 
     public MarkCommissionAsPaidCommandHandler(
         ICommissionTransactionRepository commissionRepository,
-        IUnitOfWork unitOfWork,
+        IMLMUnitOfWork unitOfWork,
         IPublisher publisher)
     {
         _commissionRepository = commissionRepository;
@@ -206,11 +207,11 @@ public class MarkCommissionAsPaidCommandHandler : IRequestHandler<MarkCommission
 public class ProcessPendingCommissionsCommandHandler : IRequestHandler<ProcessPendingCommissionsCommand, List<CommissionTransactionDto>>
 {
     private readonly ICommissionTransactionRepository _commissionRepository;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMLMUnitOfWork _unitOfWork;
 
     public ProcessPendingCommissionsCommandHandler(
         ICommissionTransactionRepository commissionRepository,
-        IUnitOfWork unitOfWork)
+        IMLMUnitOfWork unitOfWork)
     {
         _commissionRepository = commissionRepository;
         _unitOfWork = unitOfWork;
@@ -263,11 +264,11 @@ public class ProcessPendingCommissionsCommandHandler : IRequestHandler<ProcessPe
 public class UpdateCommissionNotesCommandHandler : IRequestHandler<UpdateCommissionNotesCommand, CommissionTransactionDto>
 {
     private readonly ICommissionTransactionRepository _commissionRepository;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMLMUnitOfWork _unitOfWork;
 
     public UpdateCommissionNotesCommandHandler(
         ICommissionTransactionRepository commissionRepository,
-        IUnitOfWork unitOfWork)
+        IMLMUnitOfWork unitOfWork)
     {
         _commissionRepository = commissionRepository;
         _unitOfWork = unitOfWork;
@@ -317,12 +318,12 @@ public class UpdateCommissionNotesCommandHandler : IRequestHandler<UpdateCommiss
 public class ExpireCommissionCommandHandler : IRequestHandler<ExpireCommissionCommand, CommissionTransactionDto>
 {
     private readonly ICommissionTransactionRepository _commissionRepository;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMLMUnitOfWork _unitOfWork;
     private readonly IPublisher _publisher;
 
     public ExpireCommissionCommandHandler(
         ICommissionTransactionRepository commissionRepository,
-        IUnitOfWork unitOfWork,
+        IMLMUnitOfWork unitOfWork,
         IPublisher publisher)
     {
         _commissionRepository = commissionRepository;

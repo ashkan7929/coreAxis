@@ -36,6 +36,18 @@ public class CivilRegistryService : ICivilRegistryService
         string birthDate, 
         CancellationToken cancellationToken = default)
     {
+        if (_token == "MOCK")
+        {
+            _logger.LogInformation("Civil Registry MOCK mode: Returning dummy data for {NationalCode}", nationalCode);
+            return Result<CivilRegistryPersonalInfo>.Success(new CivilRegistryPersonalInfo
+            {
+                FirstName = "MockFirstName",
+                LastName = "MockLastName",
+                FatherName = "MockFather",
+                Aliveness = 1
+            });
+        }
+
         try
         {
             _logger.LogInformation("Starting Civil Registry lookup for national code: {NationalCode}", nationalCode);

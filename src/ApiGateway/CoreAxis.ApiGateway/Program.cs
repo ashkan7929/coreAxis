@@ -171,6 +171,10 @@ try
     // Register DomainEventDispatcher
     builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 
+    // Register CorrelationId Accessor
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddScoped<CoreAxis.SharedKernel.Observability.ICorrelationIdAccessor, CoreAxis.SharedKernel.Observability.HttpContextCorrelationIdAccessor>();
+
     // Register DynamicForm dependencies via Module mechanism now that it is re-enabled
     // Manual registration removed to avoid duplicates
     

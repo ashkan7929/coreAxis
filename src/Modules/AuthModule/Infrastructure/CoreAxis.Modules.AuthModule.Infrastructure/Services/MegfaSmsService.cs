@@ -69,6 +69,17 @@ public class MegfaSmsService : IMegfaSmsService
     {
         try
         {
+            if (_username == "MOCK")
+            {
+                _logger.LogInformation("Megfa SMS MOCK mode: Skipping SMS to {PhoneNumber}", phoneNumber);
+                return Result<SmsResult>.Success(new SmsResult
+                {
+                    IsSuccess = true,
+                    MessageId = "MOCK-" + Guid.NewGuid(),
+                    ErrorMessage = null
+                });
+            }
+
             _logger.LogInformation("Sending SMS to {PhoneNumber}", phoneNumber);
 
             // Adjust resource based on BaseUrl to avoid double "send"

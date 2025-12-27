@@ -164,17 +164,17 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Configurations
             builder.HasOne(fel => fel.FormulaVersion)
                 .WithMany(fv => fv.EvaluationLogs)
                 .HasForeignKey(fel => fel.FormulaVersionId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.NoAction);
 
             builder.HasOne(fel => fel.Form)
                 .WithMany()
                 .HasForeignKey(fel => fel.FormId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.NoAction);
 
             builder.HasOne(fel => fel.FormSubmission)
                 .WithMany()
                 .HasForeignKey(fel => fel.FormSubmissionId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.NoAction);
 
             // Ignore domain events
             builder.Ignore(fel => fel.DomainEvents);

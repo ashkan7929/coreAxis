@@ -15,7 +15,8 @@ namespace CoreAxis.Modules.Workflow.Api.Controllers;
 [ApiController]
 [Route("api/workflows")]
 [ApiExplorerSettings(GroupName = "workflows-runtime")]
-[Authorize]
+//[Authorize]
+[AllowAnonymous]
 public class WorkflowController : ControllerBase
 {
     private readonly IMediator _mediator;

@@ -85,7 +85,30 @@ namespace CoreAxis.Modules.DynamicForm.Application.Services
                 FormSchema schema;
                 try
                 {
-                    schema = JsonSerializer.Deserialize<FormSchema>(schemaJson);
+                    var options = new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true,
+                        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+                        IncludeFields = true
+                    };
+
+                    // Use a dynamic approach or a simple DTO to avoid constructor binding issues
+                    var jsonDoc = JsonDocument.Parse(schemaJson);
+                    var root = jsonDoc.RootElement;
+                    
+                    string version = root.GetProperty("version").GetString();
+                    string title = root.GetProperty("title").GetString();
+                    
+                    var fields = JsonSerializer.Deserialize<List<FieldDefinition>>(
+                        root.GetProperty("fields").GetRawText(), options);
+                        
+                    FormConfiguration config = null;
+                    if (root.TryGetProperty("configuration", out var configElement) && configElement.ValueKind != JsonValueKind.Null)
+                    {
+                        config = JsonSerializer.Deserialize<FormConfiguration>(configElement.GetRawText(), options);
+                    }
+                    
+                    schema = new FormSchema(version, title, fields, config);
                 }
                 catch (JsonException ex)
                 {

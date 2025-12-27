@@ -92,6 +92,8 @@ public class DynamicFormDbContext : DbContext
             tenantId: "default",
             maxRetries: 3
         );
+        outboxMessage.CreatedBy = "system";
+        outboxMessage.LastModifiedBy = "system";
 
         OutboxMessages.Add(outboxMessage);
         await SaveChangesAsync();

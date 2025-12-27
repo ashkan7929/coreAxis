@@ -1,5 +1,10 @@
 using CoreAxis.Modules.DynamicForm.Application.Services;
 using CoreAxis.Modules.DynamicForm.Application.Services.Handlers; // Added
+using CoreAxis.Modules.DynamicForm.Application.Commands.Forms; // Added
+using CoreAxis.Modules.DynamicForm.Application.Handlers.Forms;
+using CoreAxis.Modules.DynamicForm.Application.DTOs;
+using CoreAxis.SharedKernel;
+using MediatR;
 using CoreAxis.Modules.DynamicForm.Domain.Interfaces;
 using CoreAxis.Modules.DynamicForm.Domain.Repositories;
 using CoreAxis.Modules.DynamicForm.Infrastructure.Data;
@@ -28,7 +33,12 @@ public static class DependencyInjection
             }));
 
         // Add MediatR
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+        services.AddMediatR(cfg => 
+        {
+            cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
+            cfg.RegisterServicesFromAssembly(typeof(IFormulaService).Assembly);
+            cfg.RegisterServicesFromAssembly(typeof(CreateFormCommand).Assembly);
+        });
 
         // Add Repositories
         services.AddScoped<IFormRepository, FormRepository>();

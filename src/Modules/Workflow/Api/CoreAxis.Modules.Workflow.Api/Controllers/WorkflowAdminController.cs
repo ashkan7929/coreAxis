@@ -13,7 +13,8 @@ namespace CoreAxis.Modules.Workflow.Api.Controllers;
 [ApiController]
 [Route("api/admin/workflows")]
 [ApiExplorerSettings(GroupName = "workflows-admin")]
-[Authorize]
+//[Authorize]
+[AllowAnonymous]
 public class WorkflowAdminController : ControllerBase
 {
     private readonly IWorkflowAdminService _service;

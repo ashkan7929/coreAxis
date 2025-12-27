@@ -28,6 +28,8 @@ public class OutboxMessage : EntityBase
         TenantId = tenantId;
         MaxRetries = maxRetries;
         CreatedOn = DateTime.UtcNow;
+        CreatedBy = "system";
+        LastModifiedBy = "system";
     }
 
     public void MarkAsProcessed()

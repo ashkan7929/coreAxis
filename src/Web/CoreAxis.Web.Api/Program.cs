@@ -1,9 +1,15 @@
 using CoreAxis.Modules.DynamicForm.Infrastructure.Data;
+using CoreAxis.Modules.DynamicForm;
 using CoreAxis.SharedKernel.Observability;
-using CoreAxis.Modules.WalletModule.Api;
+// using CoreAxis.SharedKernel.Eventing; 
 using CoreAxis.Modules.ProductOrderModule.Api;
+using CoreAxis.Modules.WalletModule.Api;
+using CoreAxis.Modules.AuthModule.API;
 using Microsoft.EntityFrameworkCore;
 using DotNetEnv;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -89,18 +95,50 @@ builder.Services.AddSwaggerGen(c =>
     }
 });
 
-// Add Entity Framework
-builder.Services.AddDbContext<DynamicFormDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Add DynamicForm Module
+builder.Services.AddDynamicFormModule(builder.Configuration);
 
 // Observability: register ProblemDetails services (extensible/no-op for now)
 builder.Services.AddCoreAxisProblemDetails();
+// builder.Services.AddCoreAxisEventBus(); 
+builder.Services.AddSingleton<CoreAxis.EventBus.IEventBus, CoreAxis.EventBus.InMemoryEventBus>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICorrelationIdAccessor, HttpContextCorrelationIdAccessor>();
 
 // Add WalletModule
 builder.Services.AddWalletModuleApi(builder.Configuration);
 
+// Add AuthModule
+CoreAxis.Modules.AuthModule.API.DependencyInjection.AddAuthModuleApi(builder.Services, builder.Configuration, builder.Environment);
+
 // Add ProductOrderModule (Product API)
 builder.Services.AddProductOrderModuleApi(builder.Configuration);
+
+// Add Authentication
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    var jwtSettings = builder.Configuration.GetSection("Jwt");
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtSettings["Issuer"],
+        ValidAudience = jwtSettings["Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(
+                jwtSettings["SecretKey"] 
+                ?? Environment.GetEnvironmentVariable("JWT_SECRET_KEY") 
+                ?? "CoreAxisSecretKey1234567890123456")) // Fallback
+    };
+});
+
 // Register file-based Audit Store for admin audit API
 builder.Services.AddSingleton<CoreAxis.SharedKernel.Observability.Audit.IAuditStore>(sp =>
     new CoreAxis.SharedKernel.Observability.Audit.AuditFileStore(
@@ -122,6 +160,7 @@ app.UseHttpsRedirection();
 app.UseCoreAxisCorrelation();
 // Map exceptions uniformly to RFC7807 Problem+JSON with correlation
 app.UseCoreAxisProblemDetails();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
@@ -145,5 +184,30 @@ static void ExpandEnvironmentVariables(IConfiguration configuration)
     if (jwtSection.Exists())
     {
         ExpandSection(jwtSection, new[] { "SecretKey", "Issuer", "Audience" });
+    }
+}
+
+static void ExpandSection(IConfigurationSection section, string[] keys)
+{
+    foreach (var key in keys)
+    {
+        var value = section[key];
+        if (!string.IsNullOrEmpty(value))
+        {
+            // First try standard expansion (works for %VAR% on Windows, $VAR on Linux/Mac sometimes)
+            var expanded = Environment.ExpandEnvironmentVariables(value);
+            
+            // If explicit ${VAR} syntax is used (common in appsettings templates), handle it manually
+            if (expanded.Contains("${"))
+            {
+                expanded = System.Text.RegularExpressions.Regex.Replace(expanded, @"\$\{(\w+)\}", match =>
+                {
+                    var envVar = Environment.GetEnvironmentVariable(match.Groups[1].Value);
+                    return envVar ?? match.Value;
+                });
+            }
+            
+            section[key] = expanded;
+        }
     }
 }

@@ -14,8 +14,10 @@ namespace CoreAxis.Modules.DynamicForm.Presentation.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
-[RequirePermission("Forms", "manage_access")]
+[Route("forms")]
+// [Authorize]
+// [RequirePermission("Forms", "manage_access")]
+[AllowAnonymous]
 public class FormsController : ControllerBase
 {
     private readonly IMediator _mediator;

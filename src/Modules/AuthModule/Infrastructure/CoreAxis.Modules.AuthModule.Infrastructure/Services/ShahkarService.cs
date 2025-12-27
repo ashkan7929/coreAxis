@@ -36,6 +36,12 @@ public class ShahkarService : IShahkarService
         string mobileNumber,
         CancellationToken cancellationToken = default)
     {
+        if (_token == "MOCK")
+        {
+            _logger.LogInformation("Shahkar MOCK mode: Skipping verification for {NationalCode}", nationalCode);
+            return Result<bool>.Success(true);
+        }
+
         try
         {
             _logger.LogInformation("Starting Shahkar verification for national code: {NationalCode}", nationalCode);

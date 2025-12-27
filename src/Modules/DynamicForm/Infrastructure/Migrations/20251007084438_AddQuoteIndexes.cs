@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -259,9 +259,7 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_FormSteps", x => x.Id);
-                    table.CheckConstraint("CK_FormSteps_MaxAttempts", "[MaxAttempts] > 0");
                     table.CheckConstraint("CK_FormSteps_StepNumber", "[StepNumber] > 0");
-                    table.CheckConstraint("CK_FormSteps_TimeoutMinutes", "[TimeoutMinutes] IS NULL OR [TimeoutMinutes] > 0");
                     table.ForeignKey(
                         name: "FK_FormSteps_Forms_FormId",
                         column: x => x.FormId,
@@ -481,7 +479,7 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Migrations
                         principalSchema: "dynamicform",
                         principalTable: "Forms",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.NoAction);
                 });
 
             migrationBuilder.CreateTable(
@@ -574,14 +572,14 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Migrations
                         principalSchema: "dynamicform",
                         principalTable: "FormSubmissions",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.NoAction);
                     table.ForeignKey(
                         name: "FK_FormulaEvaluationLogs_Forms_FormId",
                         column: x => x.FormId,
                         principalSchema: "dynamicform",
                         principalTable: "Forms",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.NoAction);
                     table.ForeignKey(
                         name: "FK_FormulaEvaluationLogs_FormulaDefinitions_FormulaDefinitionId",
                         column: x => x.FormulaDefinitionId,
@@ -595,7 +593,7 @@ namespace CoreAxis.Modules.DynamicForm.Infrastructure.Migrations
                         principalSchema: "DynamicForm",
                         principalTable: "FormulaVersions",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.NoAction);
                 });
 
             migrationBuilder.CreateIndex(

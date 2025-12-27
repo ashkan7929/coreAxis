@@ -134,16 +134,16 @@ namespace CoreAxis.Modules.AuthModule.Infrastructure.Migrations
                 SELECT @AdminRoleId = Id FROM Roles WHERE Name = 'Admin'
 
                 -- Assign all Read permissions to User role
-                INSERT INTO RolePermissions (RoleId, PermissionId, CreatedOn, CreatedBy, IsGranted, AssignedAt, AssignedBy)
-                SELECT @UserRoleId, p.Id, GETDATE(), 'System', 1, GETDATE(), '00000000-0000-0000-0000-000000000000'
+                INSERT INTO RolePermissions (RoleId, PermissionId, CreatedOn, CreatedBy, AssignedAt, AssignedBy)
+                SELECT @UserRoleId, p.Id, GETDATE(), 'System', GETDATE(), '00000000-0000-0000-0000-000000000000'
                 FROM Permissions p
                 JOIN Actions a ON p.ActionId = a.Id
                 WHERE a.Code = 'Read'
                 AND NOT EXISTS (SELECT 1 FROM RolePermissions rp WHERE rp.RoleId = @UserRoleId AND rp.PermissionId = p.Id)
 
                 -- Assign ALL permissions to Admin role
-                INSERT INTO RolePermissions (RoleId, PermissionId, CreatedOn, CreatedBy, IsGranted, AssignedAt, AssignedBy)
-                SELECT @AdminRoleId, p.Id, GETDATE(), 'System', 1, GETDATE(), '00000000-0000-0000-0000-000000000000'
+                INSERT INTO RolePermissions (RoleId, PermissionId, CreatedOn, CreatedBy, AssignedAt, AssignedBy)
+                SELECT @AdminRoleId, p.Id, GETDATE(), 'System', GETDATE(), '00000000-0000-0000-0000-000000000000'
                 FROM Permissions p
                 WHERE NOT EXISTS (SELECT 1 FROM RolePermissions rp WHERE rp.RoleId = @AdminRoleId AND rp.PermissionId = p.Id)
             ");

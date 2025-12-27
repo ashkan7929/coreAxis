@@ -30,8 +30,30 @@ public class CreateFormCommandHandler : IRequestHandler<CreateFormCommand, Resul
     {
         try
         {
+            // Handle SchemaJson input (string or object)
+            string schemaString;
+            if (request.SchemaJson is JsonElement element)
+            {
+                if (element.ValueKind == JsonValueKind.String)
+                {
+                    schemaString = element.GetString() ?? "{}";
+                }
+                else
+                {
+                    schemaString = element.ToString();
+                }
+            }
+            else if (request.SchemaJson is string str)
+            {
+                schemaString = str;
+            }
+            else
+            {
+                schemaString = JsonSerializer.Serialize(request.SchemaJson);
+            }
+
             // Validate schema
-            var schemaValidation = await _schemaValidator.ValidateJsonAsync(request.SchemaJson);
+            var schemaValidation = await _schemaValidator.ValidateJsonAsync(schemaString);
             if (!schemaValidation.IsSuccess)
             {
                 return Result<FormDto>.Failure(schemaValidation.Errors.ToArray());
@@ -45,18 +67,18 @@ public class CreateFormCommandHandler : IRequestHandler<CreateFormCommand, Resul
             }
 
             // Create form entity
-            var form = new Form
+            var form = new Form(
+                request.Name,
+                schemaString,
+                request.TenantId ?? "default",
+                "system"
+            )
             {
-                Id = Guid.NewGuid(),
-                Name = request.Name,
                 Description = request.Description,
-                Schema = request.SchemaJson,
                 IsActive = request.IsActive,
-                TenantId = request.TenantId,
-                BusinessId = request.BusinessId,
-                Metadata = request.Metadata != null ? JsonSerializer.Serialize(request.Metadata) : null,
-                CreatedOn = DateTime.UtcNow,
-                Version = 1
+                BusinessId = request.BusinessId ?? "default",
+                Metadata = request.Metadata != null ? JsonSerializer.Serialize(request.Metadata) : "{}",
+                LastModifiedBy = "system"
             };
 
             await _formRepository.AddAsync(form, cancellationToken);
@@ -71,7 +93,10 @@ public class CreateFormCommandHandler : IRequestHandler<CreateFormCommand, Resul
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating form: {FormName}", request.Name);
-            return Result<FormDto>.Failure($"Error creating form: {ex.Message}");
+            var errorMessage = ex.InnerException != null 
+                ? $"Error creating form: {ex.Message} Inner: {ex.InnerException.Message}" 
+                : $"Error creating form: {ex.Message}";
+            return Result<FormDto>.Failure(errorMessage);
         }
     }
 
@@ -122,8 +147,30 @@ public class UpdateFormCommandHandler : IRequestHandler<UpdateFormCommand, Resul
                 return Result<FormDto>.Failure($"Form with ID {request.Id} not found.");
             }
 
+            // Handle SchemaJson input (string or object)
+            string schemaString;
+            if (request.SchemaJson is JsonElement element)
+            {
+                if (element.ValueKind == JsonValueKind.String)
+                {
+                    schemaString = element.GetString() ?? "{}";
+                }
+                else
+                {
+                    schemaString = element.ToString();
+                }
+            }
+            else if (request.SchemaJson is string str)
+            {
+                schemaString = str;
+            }
+            else
+            {
+                schemaString = JsonSerializer.Serialize(request.SchemaJson);
+            }
+
             // Validate schema
-            var schemaValidation = await _schemaValidator.ValidateJsonAsync(request.SchemaJson);
+            var schemaValidation = await _schemaValidator.ValidateJsonAsync(schemaString);
             if (!schemaValidation.IsSuccess)
             {
                 return Result<FormDto>.Failure(schemaValidation.Errors.ToArray());
@@ -132,10 +179,11 @@ public class UpdateFormCommandHandler : IRequestHandler<UpdateFormCommand, Resul
             // Update form properties
             form.Name = request.Name;
             form.Description = request.Description;
-            form.Schema = request.SchemaJson;
+            form.Schema = schemaString;
             form.IsActive = request.IsActive;
             form.Metadata = request.Metadata != null ? JsonSerializer.Serialize(request.Metadata) : null;
             form.LastModifiedOn = DateTime.UtcNow;
+            form.LastModifiedBy = "system";
             form.Version++;
 
             await _formRepository.UpdateAsync(form, cancellationToken);

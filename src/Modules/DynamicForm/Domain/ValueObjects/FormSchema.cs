@@ -673,17 +673,24 @@ namespace CoreAxis.Modules.DynamicForm.Domain.ValueObjects
             if (string.IsNullOrWhiteSpace(json))
                 throw new ArgumentException("JSON cannot be null or empty.", nameof(json));
 
-            // This is a simplified implementation - in practice, you'd want more robust JSON parsing
-            var document = JsonDocument.Parse(json);
-            var root = document.RootElement;
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+            options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 
-            var version = root.GetProperty("version").GetString();
-            var title = root.GetProperty("title").GetString();
-            
-            // For now, create a basic schema - full implementation would parse all properties
-            var fields = new List<FieldDefinition>();
-            
-            return new FormSchema(version, title, fields);
+            try 
+            {
+                var schema = JsonSerializer.Deserialize<FormSchema>(json, options);
+                return schema ?? throw new InvalidOperationException("Failed to deserialize schema.");
+            }
+            catch (JsonException ex)
+            {
+                // Fallback for simple/partial JSON if deserialization fails
+                // or just rethrow with better message
+                throw new ArgumentException($"Invalid schema JSON: {ex.Message}", ex);
+            }
         }
 
         private void Initialize()

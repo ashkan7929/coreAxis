@@ -8,7 +8,7 @@ public record CreateFormCommand : IRequest<Result<FormDto>>
 {
     public string Name { get; init; } = string.Empty;
     public string? Description { get; init; }
-    public string SchemaJson { get; init; } = string.Empty;
+    public object SchemaJson { get; init; } = new object();
     public bool IsActive { get; init; } = true;
     public string? TenantId { get; init; }
     public string? BusinessId { get; init; }
@@ -20,7 +20,7 @@ public record UpdateFormCommand : IRequest<Result<FormDto>>
     public Guid Id { get; init; }
     public string Name { get; init; } = string.Empty;
     public string? Description { get; init; }
-    public string SchemaJson { get; init; } = string.Empty;
+    public object SchemaJson { get; init; } = new object();
     public bool IsActive { get; init; }
     public Dictionary<string, object>? Metadata { get; init; }
 }

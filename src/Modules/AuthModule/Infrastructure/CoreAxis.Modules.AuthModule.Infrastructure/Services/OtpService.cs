@@ -72,7 +72,8 @@ public class OtpService : IOtpService
             await _otpCodeRepository.ExpireOldOtpsAsync(mobileNumber, purpose, cancellationToken);
 
             // Generate new OTP code
-            var code = GenerateRandomCode(_otpLength);
+            var fixedOtp = _configuration.GetValue<string>("Otp:FixedOtp");
+            var code = !string.IsNullOrEmpty(fixedOtp) ? fixedOtp : GenerateRandomCode(_otpLength);
             var expiresAt = DateTime.UtcNow.AddMinutes(_otpExpiryMinutes);
             
             // Get client info

@@ -24,17 +24,20 @@ public class SendOtpCommandHandler : IRequestHandler<SendOtpCommand, Result<stri
     private readonly IOtpService _otpService;
     private readonly IMegfaSmsService _smsService;
     private readonly IUserRepository _userRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<SendOtpCommandHandler> _logger;
 
     public SendOtpCommandHandler(
         IOtpService otpService,
         IMegfaSmsService smsService,
         IUserRepository userRepository,
+        IUnitOfWork unitOfWork,
         ILogger<SendOtpCommandHandler> logger)
     {
         _otpService = otpService;
         _smsService = smsService;
         _userRepository = userRepository;
+        _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
@@ -70,6 +73,9 @@ public class SendOtpCommandHandler : IRequestHandler<SendOtpCommand, Result<stri
                     request.MobileNumber, string.Join(", ", otpResult.Errors));
                 return Result<string>.Failure(otpResult.Errors);
             }
+
+            // Save OTP to database
+            await _unitOfWork.SaveChangesAsync();
 
             // Send SMS
             var smsResult = await _smsService.SendOtpAsync(request.MobileNumber, otpResult.Value, cancellationToken);

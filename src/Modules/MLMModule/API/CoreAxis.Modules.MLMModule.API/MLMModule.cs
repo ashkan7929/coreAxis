@@ -1,6 +1,7 @@
 using CoreAxis.BuildingBlocks;
 using CoreAxis.EventBus;
 using CoreAxis.Modules.MLMModule.Application.Services;
+using CoreAxis.Modules.MLMModule.Application.Extensions;
 using CoreAxis.Modules.MLMModule.Infrastructure;
 using CoreAxis.Modules.MLMModule.Infrastructure.EventHandlers;
 using CoreAxis.SharedKernel.Contracts.Events;
@@ -50,9 +51,12 @@ namespace CoreAxis.Modules.MLMModule.API
             // Register infrastructure services
             services.AddMLMModuleInfrastructure(configuration);
 
-            // Register application services
-            services.AddScoped<IMLMService, MLMService>();
-            services.AddScoped<ICommissionCalculationService, CommissionCalculationService>();
+            // Register application services (MediatR, Validators, etc.)
+            services.AddMLMModuleApplication();
+
+            // Register explicit services if not already covered by AddMLMModuleApplication
+            // services.AddScoped<IMLMService, MLMService>(); // Already registered in AddMLMModuleApplication
+            // services.AddScoped<ICommissionCalculationService, CommissionCalculationService>(); // Already registered in AddMLMModuleApplication
 
             // Configure rate limiter policy for sensitive admin actions (approve/reject/mark-paid)
             services.AddRateLimiter(options =>

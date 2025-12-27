@@ -1,3 +1,4 @@
+using CoreAxis.Modules.MLMModule.Application.Contracts;
 using CoreAxis.EventBus;
 using CoreAxis.Modules.MLMModule.Application.Services;
 using CoreAxis.Modules.MLMModule.Domain.Events;
@@ -34,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<ICommissionTransactionRepository, CommissionTransactionRepository>();
         services.AddScoped<ICommissionRuleSetRepository, CommissionRuleSetRepository>();
         services.AddScoped<IOutboxRepository, OutboxRepository>();
+        services.AddScoped<IMLMUnitOfWork, UnitOfWork>();
 
         // Register services
         services.AddScoped<IIdempotencyService, IdempotencyService>();
