@@ -109,24 +109,27 @@ public class WorkflowRunner : IWorkflowRunner
             else if (step.Type == "return")
             {
                  var config = DeserializeConfig<ReturnStepConfig>(step.Config);
+                 object? output = context; // Default to context if no mapping
+                 string? outputJson = null;
+
                  if (config != null && !string.IsNullOrEmpty(config.OutputMappingSetId))
                  {
-                     if (Guid.TryParse(config.OutputMappingSetId, out var mapId))
+                     if (Guid.TryParse(config.OutputMappingSetId, out var mapId) && mapId != Guid.Empty)
                      {
                          var contextJson = JsonSerializer.Serialize(context);
                          string mappedJson = "{}";
                          try {
                              var mapResult = await _mappingClient.ExecuteMappingAsync(mapId, contextJson, ct);
-                             mappedJson = mapResult.BodyJson;
+                             mappedJson = mapResult.BodyJson ?? "{}";
+                             
+                             outputJson = mappedJson;
+                             // Deserialize to object to return as Output (legacy support)
+                             output = JsonSerializer.Deserialize<Dictionary<string, object>>(mappedJson);
+                             
+                             // Must-fix 2: Do NOT merge output into Vars
                          } catch (Exception) {
                              // Ignore error or log it? 
-                             // For now we proceed, assuming mapping might be optional or failure handled upstream
-                         }
-                         
-                         var mappedObj = JsonSerializer.Deserialize<Dictionary<string, object>>(mappedJson);
-                         if (mappedObj != null)
-                         {
-                             foreach(var kv in mappedObj) context.Vars[kv.Key] = kv.Value;
+                             // For now we proceed
                          }
                      }
                  }
@@ -134,7 +137,9 @@ public class WorkflowRunner : IWorkflowRunner
                  return new WorkflowRunResult
                  {
                      Success = true,
-                     Context = context
+                     Context = context,
+                     Output = output,
+                     OutputJson = outputJson
                  };
             }
             

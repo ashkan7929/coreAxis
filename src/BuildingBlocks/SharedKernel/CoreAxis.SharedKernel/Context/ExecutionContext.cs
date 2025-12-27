@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace CoreAxis.SharedKernel.Context;
@@ -5,7 +6,10 @@ namespace CoreAxis.SharedKernel.Context;
 public class ExecutionContext
 {
     [JsonPropertyName("form")]
-    public Dictionary<string, object> Form { get; set; } = new();
+    public object Form { get; set; } = new();
+
+    [JsonIgnore]
+    public string FormRawJson { get; set; } = "{}";
 
     [JsonPropertyName("vars")]
     public Dictionary<string, object> Vars { get; set; } = new();
@@ -26,7 +30,7 @@ public class ExecutionContextMeta
     public string Trigger { get; set; } = string.Empty;
 
     [JsonPropertyName("startedAt")]
-    public DateTime StartedAt { get; set; } = DateTime.UtcNow;
+    public DateTimeOffset StartedAt { get; set; } = DateTimeOffset.UtcNow;
 
     [JsonPropertyName("tenantId")]
     public string TenantId { get; set; } = string.Empty;

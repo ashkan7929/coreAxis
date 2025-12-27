@@ -17,4 +17,6 @@ public sealed class WorkflowRunResult
     public bool Success { get; init; }
     public string? ErrorCode { get; init; }
     public string? ErrorMessage { get; init; }
+    public object? Output { get; init; }
+    public string? OutputJson { get; init; }
 }

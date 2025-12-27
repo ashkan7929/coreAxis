@@ -34,6 +34,7 @@ public class ProductOrderDbContext : DbContext
     public DbSet<IdempotencyEntry> IdempotencyEntries { get; set; }
     public DbSet<Supplier> Suppliers { get; set; }
     public DbSet<Quote> Quotes { get; set; }
+    public DbSet<QuoteWorkflowBinding> QuoteWorkflowBindings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

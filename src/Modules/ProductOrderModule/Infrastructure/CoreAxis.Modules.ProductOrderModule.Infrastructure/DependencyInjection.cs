@@ -50,6 +50,8 @@ public static class DependencyInjection
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<ISupplierRepository, SupplierRepository>();
         services.AddScoped<IQuoteRepository, QuoteRepository>();
+        services.AddScoped<IRepository<QuoteWorkflowBinding>>(provider => 
+            new Repository<QuoteWorkflowBinding>(provider.GetRequiredService<ProductOrderDbContext>()));
         
         // Register connectors
         services.AddHttpClient<IFanavaranConnector, FanavaranConnector>();
