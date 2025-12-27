@@ -26,7 +26,7 @@ namespace CoreAxis.Tests.ApiManager
     {
         private readonly ServiceProvider _serviceProvider;
         private readonly ApiManagerDbContext _dbContext;
-        private readonly Mock<ILogger<ApiProxy>> _mockLogger;
+        private readonly Mock<ILogger<ApiProxyService>> _mockLogger;
         private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
 
         public PolicyTests()
@@ -39,7 +39,7 @@ namespace CoreAxis.Tests.ApiManager
             
             _serviceProvider = services.BuildServiceProvider();
             _dbContext = _serviceProvider.GetRequiredService<ApiManagerDbContext>();
-            _mockLogger = new Mock<ILogger<ApiProxy>>();
+            _mockLogger = new Mock<ILogger<ApiProxyService>>();
             _mockHttpClientFactory = new Mock<IHttpClientFactory>();
             
             // Ensure database is created
@@ -88,7 +88,7 @@ namespace CoreAxis.Tests.ApiManager
             _mockHttpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>()))
                 .Returns(httpClient);
             
-            var apiProxy = new ApiProxy(_mockHttpClientFactory.Object, _mockLogger.Object, _dbContext);
+            var apiProxy = new ApiProxyService(_mockHttpClientFactory.Object, _mockLogger.Object, _dbContext);
 
             // Act
             var result = await apiProxy.InvokeAsync(method.Id, new Dictionary<string, object>());
@@ -145,7 +145,7 @@ namespace CoreAxis.Tests.ApiManager
             _mockHttpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>()))
                 .Returns(httpClient);
             
-            var apiProxy = new ApiProxy(_mockHttpClientFactory.Object, _mockLogger.Object, _dbContext);
+            var apiProxy = new ApiProxyService(_mockHttpClientFactory.Object, _mockLogger.Object, _dbContext);
 
             // Act
             var result = await apiProxy.InvokeAsync(method.Id, new Dictionary<string, object>());
@@ -189,7 +189,7 @@ namespace CoreAxis.Tests.ApiManager
             _mockHttpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>()))
                 .Returns(httpClient);
             
-            var apiProxy = new ApiProxy(_mockHttpClientFactory.Object, _mockLogger.Object, _dbContext);
+            var apiProxy = new ApiProxyService(_mockHttpClientFactory.Object, _mockLogger.Object, _dbContext);
 
             // Act - Make multiple failed calls
             for (int i = 0; i < 5; i++)
@@ -240,7 +240,7 @@ namespace CoreAxis.Tests.ApiManager
             _mockHttpClientFactory.Setup(x => x.CreateClient(It.IsAny<string>()))
                 .Returns(httpClient);
             
-            var apiProxy = new ApiProxy(_mockHttpClientFactory.Object, _mockLogger.Object, _dbContext);
+            var apiProxy = new ApiProxyService(_mockHttpClientFactory.Object, _mockLogger.Object, _dbContext);
 
             // Act
             var result = await apiProxy.InvokeAsync(method.Id, new Dictionary<string, object>());

@@ -1,7 +1,7 @@
 using CoreAxis.BuildingBlocks;
 using CoreAxis.Modules.MappingModule.Infrastructure.Data;
 using CoreAxis.Modules.MappingModule.Application;
-using CoreAxis.Modules.MappingModule.Infrastructure.Services;
+using CoreAxis.Modules.MappingModule.Application.Services;
 using CoreAxis.SharedKernel.Ports;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;

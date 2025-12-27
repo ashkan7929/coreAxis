@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Polly;
 using Polly.Extensions.Http;
 using System.Reflection;
+using CoreAxis.SharedKernel.Ports;
 
 namespace CoreAxis.Modules.ApiManager.Application;
 
@@ -29,13 +30,14 @@ public static class DependencyInjection
         services.AddDistributedMemoryCache();
 
         // Add HTTP client with Polly policies
-        services.AddHttpClient<IApiProxy, ApiProxy>(client =>
+        services.AddHttpClient<IApiProxy, ApiProxyService>(client =>
         {
             client.Timeout = TimeSpan.FromMinutes(5); // Global timeout
         });
 
         // Register services
-        services.AddScoped<IApiProxy, ApiProxy>();
+        services.AddScoped<IApiProxy, ApiProxyService>();
+        services.AddScoped<IApiManagerInvoker, ApiManagerInvoker>();
 
         // Register pluggable authentication handlers and resolver
         services.AddSingleton<IHmacCanonicalSigner, HmacCanonicalSigner>();

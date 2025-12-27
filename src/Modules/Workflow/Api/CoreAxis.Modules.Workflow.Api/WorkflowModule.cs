@@ -1,4 +1,5 @@
 using CoreAxis.Modules.Workflow.Domain.Entities;
+using CoreAxis.Modules.Workflow.Domain.Repositories;
 using CoreAxis.SharedKernel;
 using CoreAxis.BuildingBlocks;
 using CoreAxis.EventBus;
@@ -89,6 +90,10 @@ public class WorkflowModule : IModule
 
         // Register SharedKernel Clients
         services.AddScoped<IWorkflowDefinitionClient, WorkflowDefinitionClient>();
+
+        // Register Runner (Phase 1.1)
+        services.AddScoped<IWorkflowRunner, WorkflowRunner>();
+        services.AddScoped<IWorkflowDefinitionRepository, WorkflowDefinitionRepository>();
 
         // Register Repositories
         services.AddScoped<IRepository<WorkflowTimer>, WorkflowRepository<WorkflowTimer>>();

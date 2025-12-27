@@ -15,7 +15,7 @@ public class ApiManagerSmokeTests : IDisposable
 {
     private readonly ServiceProvider _serviceProvider;
     private readonly ApiManagerDbContext _dbContext;
-    private readonly Mock<ILogger<ApiProxy>> _mockLogger;
+    private readonly Mock<ILogger<ApiProxyService>> _mockLogger;
     private readonly Mock<IHttpClientFactory> _mockHttpClientFactory;
 
     public ApiManagerSmokeTests()
@@ -28,7 +28,7 @@ public class ApiManagerSmokeTests : IDisposable
         
         _serviceProvider = services.BuildServiceProvider();
         _dbContext = _serviceProvider.GetRequiredService<ApiManagerDbContext>();
-        _mockLogger = new Mock<ILogger<ApiProxy>>();
+        _mockLogger = new Mock<ILogger<ApiProxyService>>();
         _mockHttpClientFactory = new Mock<IHttpClientFactory>();
         
         // Ensure database is created
@@ -80,7 +80,7 @@ public class ApiManagerSmokeTests : IDisposable
         
         await _dbContext.SaveChangesAsync();
 
-        var apiProxy = new ApiProxy(_mockHttpClientFactory.Object, _mockLogger.Object, _dbContext);
+        var apiProxy = new ApiProxyService(_mockHttpClientFactory.Object, _mockLogger.Object, _dbContext);
 
         // Act - Call the API
         var parameters = new Dictionary<string, object>
@@ -122,7 +122,7 @@ public class ApiManagerSmokeTests : IDisposable
         _dbContext.WebServiceMethods.Add(method);
         await _dbContext.SaveChangesAsync();
 
-        var apiProxy = new ApiProxy(_mockHttpClientFactory.Object, _mockLogger.Object, _dbContext);
+        var apiProxy = new ApiProxyService(_mockHttpClientFactory.Object, _mockLogger.Object, _dbContext);
 
         // Act
         var result = await apiProxy.InvokeAsync(method.Id, new Dictionary<string, object>());
@@ -136,7 +136,7 @@ public class ApiManagerSmokeTests : IDisposable
     public async Task ApiManager_WithNonExistentMethod_ShouldReturnFailure()
     {
         // Arrange
-        var apiProxy = new ApiProxy(_mockHttpClientFactory.Object, _mockLogger.Object, _dbContext);
+        var apiProxy = new ApiProxyService(_mockHttpClientFactory.Object, _mockLogger.Object, _dbContext);
         var nonExistentMethodId = Guid.NewGuid();
 
         // Act

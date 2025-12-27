@@ -16,6 +16,15 @@ public interface IApiProxy
         Guid? workflowRunId = null,
         string? stepId = null,
         CancellationToken cancellationToken = default);
+
+    Task<ApiProxyResult> InvokeWithExplicitRequestAsync(
+        Guid webServiceMethodId,
+        Dictionary<string, string> headers,
+        Dictionary<string, string> query,
+        string? body,
+        Guid? workflowRunId = null,
+        string? stepId = null,
+        CancellationToken cancellationToken = default);
 }
 
 public class ApiProxyResult
