@@ -162,7 +162,7 @@ public class FormsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetFormByName(
         [FromRoute] string name,
-        [FromQuery, Required] Guid tenantId,
+        [FromQuery, Required] string tenantId,
         [FromQuery] bool includeFields = false,
         CancellationToken cancellationToken = default)
     {
@@ -171,7 +171,7 @@ public class FormsController : ControllerBase
             var query = new GetFormByNameQuery
             {
                 Name = name,
-                TenantId = tenantId.ToString(),
+                TenantId = tenantId,
                 IncludeFields = includeFields
             };
             
@@ -207,7 +207,7 @@ public class FormsController : ControllerBase
     [ProducesResponseType(typeof(string[]), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetForms(
-        [FromQuery] Guid? tenantId = null,
+        [FromQuery] string? tenantId = null,
         [FromQuery] Guid? businessId = null,
         [FromQuery] bool? isActive = null,
         [FromQuery] string? searchTerm = null,
@@ -219,7 +219,7 @@ public class FormsController : ControllerBase
         {
             var query = new GetFormsQuery
             {
-                TenantId = tenantId?.ToString(),
+                TenantId = tenantId,
                 BusinessId = businessId?.ToString(),
                 IsActive = isActive,
                 SearchTerm = searchTerm,

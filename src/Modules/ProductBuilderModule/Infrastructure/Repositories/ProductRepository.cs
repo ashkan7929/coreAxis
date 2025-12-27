@@ -10,6 +10,8 @@ public class ProductRepository : Repository<ProductDefinition>, IProductReposito
 {
     private readonly ProductBuilderDbContext _context;
 
+    public IUnitOfWork UnitOfWork => _context;
+
     public ProductRepository(ProductBuilderDbContext context) : base(context)
     {
         _context = context;
@@ -35,6 +37,13 @@ public class ProductRepository : Repository<ProductDefinition>, IProductReposito
             .Where(v => v.ProductId == productId && v.Status == SharedKernel.Versioning.VersionStatus.Published)
             .OrderByDescending(v => v.PublishedAt) // Get latest published
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<ProductVersion?> GetVersionByNumberAsync(Guid productId, string versionNumber, CancellationToken cancellationToken = default)
+    {
+        return await _context.ProductVersions
+            .Include(v => v.Binding)
+            .FirstOrDefaultAsync(v => v.ProductId == productId && v.VersionNumber == versionNumber, cancellationToken);
     }
 
     public async Task AddVersionAsync(ProductVersion version, CancellationToken cancellationToken = default)

@@ -34,97 +34,97 @@ namespace CoreAxis.Modules.DynamicForm.Domain.ValueObjects
         /// <summary>
         /// Gets the description or help text for the field.
         /// </summary>
-        public string Description { get; private set; }
+        public string Description { get; init; }
 
         /// <summary>
         /// Gets the placeholder text for input fields.
         /// </summary>
-        public string Placeholder { get; private set; }
+        public string Placeholder { get; init; }
 
         /// <summary>
         /// Gets the default value for the field.
         /// </summary>
-        public object DefaultValue { get; private set; }
+        public object DefaultValue { get; init; }
 
         /// <summary>
         /// Gets whether the field is required.
         /// </summary>
-        public bool IsRequired { get; private set; }
+        public bool IsRequired { get; init; }
 
         /// <summary>
         /// Gets whether the field is enabled.
         /// </summary>
-        public bool IsEnabled { get; private set; }
+        public bool IsEnabled { get; init; }
 
         /// <summary>
         /// Gets whether the field is visible.
         /// </summary>
-        public bool IsVisible { get; private set; }
+        public bool IsVisible { get; init; }
 
         /// <summary>
         /// Gets whether the field is read-only.
         /// </summary>
-        public bool IsReadOnly { get; private set; }
+        public bool IsReadOnly { get; init; }
 
         /// <summary>
         /// Gets the display order of the field.
         /// </summary>
-        public int Order { get; private set; }
+        public int Order { get; init; }
 
         /// <summary>
         /// Gets the group or section the field belongs to.
         /// </summary>
-        public string Group { get; private set; }
+        public string Group { get; init; }
 
         /// <summary>
         /// Gets the CSS classes to apply to the field.
         /// </summary>
-        public string CssClass { get; private set; }
+        public string CssClass { get; init; }
 
         /// <summary>
         /// Gets the validation rules for the field.
         /// </summary>
-        public IReadOnlyList<ValidationRule> ValidationRules { get; private set; }
+        public IReadOnlyList<ValidationRule> ValidationRules { get; init; }
 
         /// <summary>
         /// Gets the options for select, radio, and checkbox fields.
         /// </summary>
-        public IReadOnlyList<FieldOption> Options { get; private set; }
+        public IReadOnlyList<FieldOption> Options { get; init; }
 
         /// <summary>
         /// Gets the conditional logic rules for the field.
         /// </summary>
-        public IReadOnlyList<ConditionalLogic> ConditionalLogic { get; private set; }
+        public IReadOnlyList<ConditionalLogic> ConditionalLogic { get; init; }
 
         /// <summary>
         /// Gets the formula expressions associated with the field.
         /// </summary>
-        public IReadOnlyList<FormulaExpression> Formulas { get; private set; }
+        public IReadOnlyList<FormulaExpression> Formulas { get; init; }
 
         /// <summary>
         /// Gets the field-specific configuration properties.
         /// </summary>
-        public Dictionary<string, object> Properties { get; private set; }
+        public Dictionary<string, object> Properties { get; init; }
 
         /// <summary>
         /// Gets the localized labels for different languages.
         /// </summary>
-        public Dictionary<string, string> LocalizedLabels { get; private set; }
+        public Dictionary<string, string> LocalizedLabels { get; init; }
 
         /// <summary>
         /// Gets the localized descriptions for different languages.
         /// </summary>
-        public Dictionary<string, string> LocalizedDescriptions { get; private set; }
+        public Dictionary<string, string> LocalizedDescriptions { get; init; }
 
         /// <summary>
         /// Gets the localized placeholders for different languages.
         /// </summary>
-        public Dictionary<string, string> LocalizedPlaceholders { get; private set; }
+        public Dictionary<string, string> LocalizedPlaceholders { get; init; }
 
         /// <summary>
         /// Gets additional metadata for the field.
         /// </summary>
-        public Dictionary<string, object> Metadata { get; private set; }
+        public Dictionary<string, object> Metadata { get; init; }
 
         /// <summary>
         /// Gets the field definition version.

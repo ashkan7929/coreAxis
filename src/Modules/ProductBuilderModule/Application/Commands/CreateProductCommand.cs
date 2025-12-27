@@ -11,12 +11,10 @@ public record CreateProductCommand(CreateProductDto Dto) : IRequest<Result<Guid>
 public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand, Result<Guid>>
 {
     private readonly IProductRepository _repository;
-    private readonly IUnitOfWork _unitOfWork;
 
-    public CreateProductCommandHandler(IProductRepository repository, IUnitOfWork unitOfWork)
+    public CreateProductCommandHandler(IProductRepository repository)
     {
         _repository = repository;
-        _unitOfWork = unitOfWork;
     }
 
     public async Task<Result<Guid>> Handle(CreateProductCommand request, CancellationToken cancellationToken)
@@ -28,11 +26,13 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
             Description = request.Dto.Description,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
-            TenantId = "default" 
+            TenantId = "default",
+            CreatedBy = "system",
+            LastModifiedBy = "system"
         };
 
         await _repository.AddAsync(product);
-        await _unitOfWork.SaveChangesAsync();
+        await _repository.UnitOfWork.SaveChangesAsync();
 
         return Result<Guid>.Success(product.Id);
     }

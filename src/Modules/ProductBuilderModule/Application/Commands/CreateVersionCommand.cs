@@ -12,18 +12,29 @@ public record CreateVersionCommand(Guid ProductId, CreateVersionDto Dto) : IRequ
 public class CreateVersionCommandHandler : IRequestHandler<CreateVersionCommand, Result<Guid>>
 {
     private readonly IProductRepository _repository;
-    private readonly IUnitOfWork _unitOfWork;
 
-    public CreateVersionCommandHandler(IProductRepository repository, IUnitOfWork unitOfWork)
+    public CreateVersionCommandHandler(IProductRepository repository)
     {
         _repository = repository;
-        _unitOfWork = unitOfWork;
     }
 
     public async Task<Result<Guid>> Handle(CreateVersionCommand request, CancellationToken cancellationToken)
     {
         var product = await _repository.GetByIdAsync(request.ProductId);
         if (product == null) return Result<Guid>.Failure("Product not found");
+
+        var existingVersion = await _repository.GetVersionByNumberAsync(request.ProductId, request.Dto.VersionNumber, cancellationToken);
+        if (existingVersion != null)
+        {
+            // Idempotency: Update changelog if provided and different
+            if (!string.IsNullOrEmpty(request.Dto.Changelog) && existingVersion.Changelog != request.Dto.Changelog)
+            {
+                existingVersion.Changelog = request.Dto.Changelog;
+                await _repository.UpdateVersionAsync(existingVersion, cancellationToken);
+                await _repository.UnitOfWork.SaveChangesAsync();
+            }
+            return Result<Guid>.Success(existingVersion.Id);
+        }
 
         var version = new ProductVersion
         {
@@ -32,11 +43,17 @@ public class CreateVersionCommandHandler : IRequestHandler<CreateVersionCommand,
             Status = VersionStatus.Draft,
             Changelog = request.Dto.Changelog,
             CreatedAt = DateTime.UtcNow,
-            Binding = new ProductBinding() // Empty binding initially
+            Binding = new ProductBinding 
+            { 
+                CreatedBy = "system",
+                LastModifiedBy = "system"
+            },
+            CreatedBy = "system",
+            LastModifiedBy = "system"
         };
 
         await _repository.AddVersionAsync(version, cancellationToken);
-        await _unitOfWork.SaveChangesAsync();
+        await _repository.UnitOfWork.SaveChangesAsync();
 
         return Result<Guid>.Success(version.Id);
     }
