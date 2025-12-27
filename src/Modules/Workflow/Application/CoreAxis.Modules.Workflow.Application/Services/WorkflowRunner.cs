@@ -105,33 +105,108 @@ public class WorkflowRunner : IWorkflowRunner
                         Context = context
                     };
                 }
+
+                // Handle assignTo (save response to specific variable path)
+                if (!string.IsNullOrEmpty(config.AssignTo))
+                {
+                    // Logic to assign result.UpdatedContext.Form/Vars to config.AssignTo
+                    // But result.UpdatedContext is already the *whole* context after mapping.
+                    // If outputMappingSetId was used, ApiManagerInvoker already mapped output to Context.
+                    // If assignTo is used *instead* of mapping (or as a simple override), we need to extract the response.
+                    // However, IApiManagerInvoker signature returns UpdatedContext.
+                    // If we want to support direct assignment like vars["x"] = response,
+                    // we might need to know *what* was the response before it was merged.
+                    // BUT, IApiManagerInvoker logic inside usually handles mapping.
+                    // If assignTo is provided, we might assume the USER wants the raw response or the mapped result 
+                    // placed in a specific var.
+                    
+                    // Since IApiManagerInvoker encapsulates the mapping logic, let's assume 
+                    // if assignTo is present, we should probably check if we can get the 'response' 
+                    // from the step context or similar?
+                    // Actually, the requirement says: "assignTo (optional; e.g. put output in vars["fanavaran.login"])"
+                    
+                    // If ApiManagerInvoker did its job, 'context' is updated.
+                    // If we want to move something to 'assignTo', we need to access it.
+                    // Let's assume for now that if assignTo is set, we might need to manually set it 
+                    // if ApiManagerInvoker didn't already place it there.
+                    // But wait, ApiManagerInvoker takes 'stepId'. Maybe it stores response in steps[stepId].response?
+                    // Let's check ExecutionContext structure. Yes: Steps[stepId].Response
+                    
+                    if (context.Steps.TryGetValue(step.Id, out var stepContext) && stepContext.Response != null)
+                    {
+                         // Simple path setting (supporting vars.x or just x)
+                         if (config.AssignTo.StartsWith("vars."))
+                         {
+                             var key = config.AssignTo.Substring(5);
+                             context.Vars[key] = stepContext.Response;
+                         }
+                         else
+                         {
+                             context.Vars[config.AssignTo] = stepContext.Response;
+                         }
+                    }
+                }
             }
             else if (step.Type == "return")
             {
                  var config = DeserializeConfig<ReturnStepConfig>(step.Config);
-                 object? output = context; // Default to context if no mapping
-                 string? outputJson = null;
+                 object? output = null;
+                 string outputJson = "{}";
 
-                 if (config != null && !string.IsNullOrEmpty(config.OutputMappingSetId))
+                 if (config != null)
                  {
-                     if (Guid.TryParse(config.OutputMappingSetId, out var mapId) && mapId != Guid.Empty)
+                     if (!string.IsNullOrEmpty(config.OutputMappingSetId) && Guid.TryParse(config.OutputMappingSetId, out var mapId) && mapId != Guid.Empty)
                      {
+                         // 1. Mapping Strategy
                          var contextJson = JsonSerializer.Serialize(context);
-                         string mappedJson = "{}";
-                         try {
+                         try 
+                         {
                              var mapResult = await _mappingClient.ExecuteMappingAsync(mapId, contextJson, ct);
-                             mappedJson = mapResult.BodyJson ?? "{}";
-                             
-                             outputJson = mappedJson;
-                             // Deserialize to object to return as Output (legacy support)
-                             output = JsonSerializer.Deserialize<Dictionary<string, object>>(mappedJson);
-                             
-                             // Must-fix 2: Do NOT merge output into Vars
-                         } catch (Exception) {
-                             // Ignore error or log it? 
-                             // For now we proceed
+                             outputJson = mapResult.BodyJson ?? "{}";
+                             output = JsonSerializer.Deserialize<object>(outputJson);
+                         } 
+                         catch 
+                         {
+                             // Fallback or error logging
+                             outputJson = "{\"error\": \"Mapping failed\"}";
                          }
                      }
+                     else if (!string.IsNullOrEmpty(config.Source))
+                     {
+                         // 2. Direct Source Strategy (e.g. "vars.myResult")
+                         if (config.Source.StartsWith("vars.") && context.Vars.TryGetValue(config.Source.Substring(5), out var val))
+                         {
+                             output = val;
+                         }
+                         else if (context.Vars.TryGetValue(config.Source, out var val2))
+                         {
+                             output = val2;
+                         }
+                         else if (config.Source == "form")
+                         {
+                             output = context.Form;
+                         }
+                         
+                         if (output != null)
+                         {
+                             outputJson = JsonSerializer.Serialize(output);
+                         }
+                     }
+                     else
+                     {
+                         // 3. Default Strategy: Return full context (or should it be empty?)
+                         // User said: "return must build an 'outputJson' ... independent of internals"
+                         // If no config provided, maybe returning everything is safe for debugging, 
+                         // but ideally we should be explicit. 
+                         // Let's default to full context for backward compatibility but ensure it's in outputJson
+                         output = context;
+                         outputJson = JsonSerializer.Serialize(context);
+                     }
+                 }
+                 else
+                 {
+                     output = context;
+                     outputJson = JsonSerializer.Serialize(context);
                  }
                  
                  return new WorkflowRunResult
@@ -191,12 +266,15 @@ public class ApiCallStepConfig
     [JsonPropertyName("saveStepIO")]
     public bool SaveStepIO { get; set; }
     
-    [JsonPropertyName("resultVar")]
-    public string ResultVar { get; set; } = "";
+    [JsonPropertyName("assignTo")]
+    public string AssignTo { get; set; } = "";
 }
 
 public class ReturnStepConfig
 {
     [JsonPropertyName("outputMappingSetId")]
     public string OutputMappingSetId { get; set; } = "";
+
+    [JsonPropertyName("source")]
+    public string Source { get; set; } = "";
 }

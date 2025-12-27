@@ -3,6 +3,7 @@ using CoreAxis.SharedKernel;
 using CoreAxis.SharedKernel.Ports;
 using MediatR;
 using System.Text.Json;
+using CoreAxisExecutionContext = CoreAxis.SharedKernel.Context.ExecutionContext;
 
 namespace CoreAxis.Modules.ProductBuilderModule.Application.Commands;
 
@@ -40,18 +41,26 @@ public class StartProductCommandHandler : IRequestHandler<StartProductCommand, R
              return Result<StartProductResultDto>.Failure($"Product version {version.VersionNumber} has no workflow binding");
         }
 
-        var contextDict = new Dictionary<string, object>();
+        var executionContext = new CoreAxisExecutionContext();
+
+        // B) Populate ExecutionContext from request
         if (request.Context.HasValue)
         {
             try 
             {
                 var json = request.Context.Value.GetRawText();
-                contextDict = JsonSerializer.Deserialize<Dictionary<string, object>>(json) ?? new();
+                executionContext.FormRawJson = json;
+                executionContext.Form = JsonSerializer.Deserialize<JsonElement>(json);
             }
-            catch {}
+            catch 
+            {
+                executionContext.FormRawJson = "{}";
+                executionContext.Form = new object();
+            }
         }
 
-        contextDict["product"] = new 
+        // Add product context to Vars
+        executionContext.Vars["product"] = new 
         {
             key = product.Key,
             name = product.Name,
@@ -59,13 +68,19 @@ public class StartProductCommandHandler : IRequestHandler<StartProductCommand, R
             versionId = version.Id
         };
 
+        // Populate Meta
+        executionContext.Meta.ProductKey = product.Key;
+        executionContext.Meta.TenantId = product.TenantId;
+        executionContext.Meta.StartedAt = DateTimeOffset.UtcNow;
+        executionContext.Meta.Trigger = "StartProductCommand";
+
         int? workflowVersion = null;
         if (int.TryParse(version.Binding.WorkflowVersionNumber, out var v))
         {
             workflowVersion = v;
         }
 
-        var wfResult = await _workflowClient.StartAsync(version.Binding.WorkflowDefinitionCode, contextDict, workflowVersion, cancellationToken);
+        var wfResult = await _workflowClient.StartAsync(version.Binding.WorkflowDefinitionCode, executionContext, workflowVersion, cancellationToken);
         
         if (!wfResult.IsSuccess)
         {

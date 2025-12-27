@@ -40,8 +40,20 @@ public class WorkflowStepRegistry : IWorkflowStepRegistry
             CreateDescriptor("CompensationStep", "Compensation", "Compensate previous steps", "Error Handling",
                 new { type = "object", properties = new { targetStepId = new { type = "string" } } }),
 
+            CreateDescriptor("apiCall", "API Call", "Call external API via ApiManager", "Integration",
+                new { 
+                    type = "object", 
+                    properties = new { 
+                        apiMethodRef = new { type = "string" },
+                        inputMappingSetId = new { type = "string" },
+                        outputMappingSetId = new { type = "string" },
+                        assignTo = new { type = "string" }
+                    },
+                    required = new[] { "apiMethodRef" }
+                }),
+
             CreateDescriptor("return", "Return", "Return output from workflow", "End",
-                new { type = "object", properties = new { outputMappingSetId = new { type = "string" } } })
+                new { type = "object", properties = new { outputMappingSetId = new { type = "string" }, source = new { type = "string" } } })
         };
     }
 
