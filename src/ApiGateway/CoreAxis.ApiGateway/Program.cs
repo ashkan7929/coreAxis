@@ -14,7 +14,8 @@ using CoreAxis.Modules.SecretsModule.Api;
 using CoreAxis.Modules.NotificationModule.Api;
 using static CoreAxis.Modules.ApiManager.API.DependencyInjection;
 using CoreAxis.Modules.AuthModule.Infrastructure.Data;
- 
+using CoreAxis.Modules.MappingModule.Infrastructure.Data;
+
 using CoreAxis.Modules.Workflow.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -394,6 +395,7 @@ try
             var dbLogger = app.Services.GetRequiredService<ILogger<Program>>();
             var authDb = sp.GetService<AuthDbContext>();
             var workflowDb = sp.GetService<WorkflowDbContext>();
+            var mappingDb = sp.GetService<MappingDbContext>();
 
             if (authDb != null)
             {
@@ -432,6 +434,26 @@ try
                 catch (Exception ex)
                 {
                     dbLogger.LogError(ex, "WorkflowDb migration failed");
+                }
+            }
+
+            if (mappingDb != null)
+            {
+                try
+                {
+                    if (mappingDb.Database.CanConnect())
+                    {
+                        mappingDb.Database.Migrate();
+                        dbLogger.LogInformation("MappingDb migrated: {CanConnect}", mappingDb.Database.CanConnect());
+                    }
+                    else
+                    {
+                        dbLogger.LogWarning("MappingDb unreachable");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    dbLogger.LogError(ex, "MappingDb migration failed");
                 }
             }
         }

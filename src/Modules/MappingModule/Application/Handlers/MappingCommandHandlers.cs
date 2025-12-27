@@ -54,7 +54,11 @@ public class MappingCommandHandlers :
             RulesJson = request.RulesJson,
             Status = VersionStatus.Draft,
             Version = 1,
-            TenantId = "default" // TODO: Get from context
+            TenantId = "default", // TODO: Get from context
+            CreatedBy = "system",
+            CreatedOn = DateTime.UtcNow,
+            LastModifiedBy = "system",
+            LastModifiedOn = DateTime.UtcNow
         };
 
         _context.MappingDefinitions.Add(mapping);
@@ -84,7 +88,11 @@ public class MappingCommandHandlers :
             RulesJson = prevVersion.RulesJson,
             Status = VersionStatus.Draft,
             Version = maxVersion + 1,
-            TenantId = prevVersion.TenantId
+            TenantId = prevVersion.TenantId,
+            CreatedBy = "system",
+            CreatedOn = DateTime.UtcNow,
+            LastModifiedBy = "system",
+            LastModifiedOn = DateTime.UtcNow
         };
 
         _context.MappingDefinitions.Add(nextVersion);
@@ -111,6 +119,9 @@ public class MappingCommandHandlers :
         if (request.TargetSchemaRef != null) mapping.TargetSchemaRef = request.TargetSchemaRef;
         if (request.RulesJson != null) mapping.RulesJson = request.RulesJson;
 
+        mapping.LastModifiedBy = "system";
+        mapping.LastModifiedOn = DateTime.UtcNow;
+
         await _context.SaveEntitiesAsync(cancellationToken);
         return true;
     }
@@ -129,6 +140,8 @@ public class MappingCommandHandlers :
         
         mapping.Status = VersionStatus.Published;
         mapping.PublishedAt = DateTime.UtcNow;
+        mapping.LastModifiedBy = "system";
+        mapping.LastModifiedOn = DateTime.UtcNow;
 
         await _context.SaveEntitiesAsync(cancellationToken);
         return true;
@@ -163,7 +176,11 @@ public class MappingCommandHandlers :
         {
             Name = request.Name,
             ItemsJson = request.ItemsJson,
-            TenantId = "default" // TODO: Get from context
+            TenantId = "default", // TODO: Get from context
+            CreatedBy = "system",
+            CreatedOn = DateTime.UtcNow,
+            LastModifiedBy = "system",
+            LastModifiedOn = DateTime.UtcNow
         };
 
         _context.MappingSets.Add(mappingSet);
@@ -182,6 +199,9 @@ public class MappingCommandHandlers :
 
         if (request.Name != null) mappingSet.Name = request.Name;
         if (request.ItemsJson != null) mappingSet.ItemsJson = request.ItemsJson;
+
+        mappingSet.LastModifiedBy = "system";
+        mappingSet.LastModifiedOn = DateTime.UtcNow;
 
         await _context.SaveEntitiesAsync(cancellationToken);
         return true;

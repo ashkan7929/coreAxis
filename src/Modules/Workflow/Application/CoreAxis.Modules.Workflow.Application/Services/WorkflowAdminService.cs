@@ -37,7 +37,9 @@ public class WorkflowAdminService : IWorkflowAdminService
             Description = description,
             TenantId = _tenantProvider.TenantId ?? "default",
             CreatedBy = createdBy,
-            CreatedOn = DateTime.UtcNow
+            CreatedOn = DateTime.UtcNow,
+            LastModifiedBy = createdBy,
+            LastModifiedOn = DateTime.UtcNow
         };
         _db.WorkflowDefinitions.Add(def);
         await _db.SaveChangesAsync(ct);
@@ -55,7 +57,9 @@ public class WorkflowAdminService : IWorkflowAdminService
             DslJson = dslJson,
             Changelog = changelog,
             CreatedOn = DateTime.UtcNow,
-            CreatedBy = createdBy
+            CreatedBy = createdBy,
+            LastModifiedBy = createdBy,
+            LastModifiedOn = DateTime.UtcNow
         };
         _db.WorkflowDefinitionVersions.Add(ver);
         await _db.SaveChangesAsync(ct);
@@ -79,6 +83,8 @@ public class WorkflowAdminService : IWorkflowAdminService
 
         ver.Status = VersionStatus.Published;
         ver.PublishedAt = DateTime.UtcNow;
+        ver.LastModifiedBy = "system"; // TODO: get from context
+        ver.LastModifiedOn = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
         return true;
     }
@@ -89,6 +95,8 @@ public class WorkflowAdminService : IWorkflowAdminService
             .FirstOrDefaultAsync(v => v.WorkflowDefinitionId == workflowId && v.VersionNumber == versionNumber, ct);
         if (ver == null) return false;
         ver.Status = VersionStatus.Draft;
+        ver.LastModifiedBy = "system"; // TODO: get from context
+        ver.LastModifiedOn = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
         return true;
     }

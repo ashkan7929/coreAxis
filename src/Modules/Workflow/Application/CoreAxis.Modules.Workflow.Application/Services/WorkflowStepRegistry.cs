@@ -38,7 +38,10 @@ public class WorkflowStepRegistry : IWorkflowStepRegistry
                 signals: new[] { "Timer_{stepId}" }),
                 
             CreateDescriptor("CompensationStep", "Compensation", "Compensate previous steps", "Error Handling",
-                new { type = "object", properties = new { targetStepId = new { type = "string" } } })
+                new { type = "object", properties = new { targetStepId = new { type = "string" } } }),
+
+            CreateDescriptor("return", "Return", "Return output from workflow", "End",
+                new { type = "object", properties = new { outputMappingSetId = new { type = "string" } } })
         };
     }
 
