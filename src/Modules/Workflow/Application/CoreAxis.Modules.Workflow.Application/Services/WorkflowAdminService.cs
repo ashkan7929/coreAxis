@@ -1,6 +1,7 @@
 using CoreAxis.Modules.Workflow.Domain.Entities;
 using CoreAxis.Modules.Workflow.Infrastructure.Data;
 using CoreAxis.SharedKernel.Versioning;
+using CoreAxis.SharedKernel.Context;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
@@ -10,11 +11,13 @@ public class WorkflowAdminService : IWorkflowAdminService
 {
     private readonly WorkflowDbContext _db;
     private readonly IWorkflowValidator _validator;
+    private readonly ITenantProvider _tenantProvider;
 
-    public WorkflowAdminService(WorkflowDbContext db, IWorkflowValidator validator)
+    public WorkflowAdminService(WorkflowDbContext db, IWorkflowValidator validator, ITenantProvider tenantProvider)
     {
         _db = db;
         _validator = validator;
+        _tenantProvider = tenantProvider;
     }
 
     public async Task<IReadOnlyList<WorkflowDefinition>> ListDefinitionsAsync(CancellationToken ct = default)
@@ -32,6 +35,7 @@ public class WorkflowAdminService : IWorkflowAdminService
             Code = code,
             Name = name,
             Description = description,
+            TenantId = _tenantProvider.TenantId ?? "default",
             CreatedBy = createdBy,
             CreatedOn = DateTime.UtcNow
         };
